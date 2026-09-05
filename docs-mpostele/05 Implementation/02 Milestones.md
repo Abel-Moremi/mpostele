@@ -17,8 +17,9 @@
 - [x] create a Playwright capture flow
 - [x] collect and organize product visual assets
 - [x] build a screenshot-to-scene abstraction
+- [x] harden capture with platform detection, verified login completion, hide/scope selectors, and content-based duration estimation
 
-The first local proof uses Playwright to capture a page and FFmpeg to export a short motion clip from that screenshot.
+The first local proof uses Playwright to capture a page and FFmpeg to export a short motion clip from that screenshot. The capture step now inspects the page before acting (is a login form actually present?), confirms a login actually completed instead of assuming a click worked, lets a job hide noisy elements or scope the shot to one element, and estimates clip duration from the amount of text in the captured scene rather than a fixed guess.
 
 ## Milestone 4: animation workflow
 

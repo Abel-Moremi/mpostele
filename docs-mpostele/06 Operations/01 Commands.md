@@ -32,6 +32,21 @@ python -m pipeline.first_render --url https://example.com --base-dir artifacts/l
 
 Prefer the `MPOSTELE_PASSWORD` environment variable over `--password` for login flows — it keeps the credential out of shell history and process listings (`ps`/`tasklist`). The frontend's "Run capture locally" button (see [frontend/README.md](../../frontend/README.md#running-the-capture-job-from-the-ui)) already does this automatically when it triggers this command on your behalf.
 
+Additional capture flags:
+
+```bash
+# Scope the screenshot to one element and hide an extra banner selector
+python -m pipeline.first_render --url https://example.com --capture-selector "#hero" --hide-selector ".promo-banner"
+
+# Skip the content-based duration estimate and force a fixed clip length
+python -m pipeline.first_render --url https://example.com --duration 5
+
+# Tune the reading-speed heuristic used to estimate duration
+python -m pipeline.first_render --url https://example.com --words-per-second 2.5 --min-duration 3 --max-duration 8
+```
+
+If `--username`/`--password` are supplied but no password field is found on the page, or a login is submitted but cannot be verified (URL unchanged, password field still visible, or an error message detected), the command fails fast with a clear error instead of producing a bad screenshot.
+
 ## Notes
 
 Add commands here as they are validated in the real workflow.

@@ -6,7 +6,12 @@ This is the core motion-generation stage. It converts static assets into animate
 
 ### 1. FFmpeg motion filters
 
-Use zoom, pan, and parallax effects to add motion to a still image or screenshot.
+Use zoom, pan, and parallax effects to add motion to a still image or screenshot. `pipeline/first_render.py` implements this as a set of selectable `zoompan` motion presets (`--motion-preset`, default `zoom_in`):
+
+- `zoom_in` / `zoom_out` -- slow push in or ease back out
+- `pan_left_to_right` / `pan_right_to_left` -- fixed mild zoom, camera slides horizontally
+- `pan_top_to_bottom` / `pan_bottom_to_top` -- fixed mild zoom, camera slides vertically
+- `static` -- no motion, for dense/text-heavy scenes where camera movement hurts readability
 
 ### 2. Playwright animation
 

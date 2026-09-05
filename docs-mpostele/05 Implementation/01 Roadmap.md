@@ -14,13 +14,13 @@ The repo has completed the documentation foundation and a frontend prototype. Th
 
 ## Phase 2: Capture
 
-- [ ] set up Playwright browser automation
-- [ ] capture screenshots and landing page states
-- [ ] build a reliable visual asset pipeline
+- [x] set up Playwright browser automation
+- [x] capture screenshots and landing page states
+- [x] build a reliable visual asset pipeline (platform detection, verified login completion, hide/scope selectors, content-based duration estimate)
 
 ## Phase 3: Motion
 
-- [ ] add FFmpeg zoom and pan presets
+- [x] add FFmpeg zoom and pan presets (`zoom_in`, `zoom_out`, 4x pan directions, `static`)
 - [ ] integrate Manim overlays for text and emphasis
 - [ ] test browser-based motion sequences
 
