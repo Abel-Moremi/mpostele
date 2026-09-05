@@ -402,6 +402,66 @@ input[aria-invalid='true'] {
   cursor: not-allowed;
 }
 
+.run-actions {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.run-actions .primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.run-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+
+.run-status {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+}
+
+.run-status-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.run-status.success .run-status-title {
+  color: var(--citron-strong);
+}
+
+.run-status.error .run-status-title {
+  color: #c9435a;
+}
+
+.run-log {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(18, 16, 22, 0.96);
+  color: #e6e1f0;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.run-log-error {
+  color: #f5b2c0;
+}
+
 .steps-panel {
   padding: 0;
 }

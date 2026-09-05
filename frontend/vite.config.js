@@ -1,7 +1,8 @@
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
+import { captureRunPlugin } from './server/capture-run-plugin.js'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), captureRunPlugin()],
 })

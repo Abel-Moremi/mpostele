@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -207,9 +208,19 @@ def main() -> None:
     parser.add_argument("--width", type=int, default=1280, help="Capture width in pixels")
     parser.add_argument("--height", type=int, default=720, help="Capture height in pixels")
     parser.add_argument("--username", default="", help="Optional username or email for a login flow")
-    parser.add_argument("--password", default="", help="Optional password for a login flow")
+    parser.add_argument(
+        "--password",
+        default="",
+        help=(
+            "Optional password for a login flow. Prefer the MPOSTELE_PASSWORD "
+            "environment variable instead of this flag so the value doesn't "
+            "appear in process listings (ps/tasklist)."
+        ),
+    )
     parser.add_argument("--target-path", default="", help="Optional page path to navigate after login")
     args = parser.parse_args()
+
+    password = args.password or os.environ.get("MPOSTELE_PASSWORD", "")
 
     image_path, video_path = gather_output_paths(args.base_dir)
     capture_page(
@@ -218,7 +229,7 @@ def main() -> None:
         width=args.width,
         height=args.height,
         username=args.username,
-        password=args.password,
+        password=password,
         target_path=args.target_path,
     )
     render_motion_video(image_path, video_path, duration=args.duration, width=args.width, height=args.height)

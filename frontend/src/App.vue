@@ -38,6 +38,11 @@ const isOutputDirValid = computed(() => captureJob.value.outputDir.trim().length
 
 const isJobValid = computed(() => isUrlValid.value && isOutputDirValid.value)
 
+// 'idle' | 'running' | 'success' | 'error'
+const runState = ref('idle')
+const runResult = ref(null)
+const isRunning = computed(() => runState.value === 'running')
+
 function buildCommandParts(mask) {
   const parts = [
     'python -m pipeline.first_render',
@@ -63,6 +68,38 @@ const displayCommand = computed(() => buildCommandParts(!showPassword.value))
 function copyCommand() {
   if (!isJobValid.value) return
   navigator.clipboard?.writeText(jobCommand.value)
+}
+
+// Triggers the actual local capture job by asking the Vite dev/preview
+// server's /api/run-capture endpoint (see server/capture-run-plugin.js) to
+// spawn `python -m pipeline.first_render` on this machine. The endpoint only
+// accepts loopback requests and never puts the password on the command line.
+async function runCapture() {
+  if (!isJobValid.value || isRunning.value) return
+
+  runState.value = 'running'
+  runResult.value = null
+
+  try {
+    const response = await fetch('/api/run-capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        platformUrl: captureJob.value.platformUrl,
+        username: captureJob.value.username,
+        password: captureJob.value.password,
+        targetPath: captureJob.value.targetPath,
+        outputDir: captureJob.value.outputDir,
+      }),
+    })
+
+    const data = await response.json()
+    runResult.value = data
+    runState.value = response.ok && data.code === 0 ? 'success' : 'error'
+  } catch (err) {
+    runResult.value = { error: err instanceof Error ? err.message : String(err) }
+    runState.value = 'error'
+  }
 }
 
 // Use the light-background logo variant in light mode and the dark-background variant in dark mode.
@@ -178,7 +215,7 @@ watch(
             This pipeline logs in, navigates to a target page, captures the state, and renders a lightweight local motion video without relying on a heavy cloud stack.
           </p>
           <div class="hero-actions">
-            <button class="primary-btn" type="button" @click="goToSection('capture')">Run locally</button>
+            <button class="primary-btn" type="button" @click="goToSection('capture')">Get started</button>
             <button class="secondary-btn" type="button" :disabled="!isJobValid" @click="copyCommand">Copy command</button>
           </div>
         </div>
@@ -251,6 +288,23 @@ watch(
           <p v-if="captureJob.password" class="command-warning">
             The copied command includes your password in plain text. Only copy or paste it on a trusted machine.
           </p>
+        </div>
+
+        <div class="run-actions">
+          <button class="primary-btn" type="button" :disabled="!isJobValid || isRunning" @click="runCapture">
+            {{ isRunning ? 'Running…' : 'Run capture locally' }}
+          </button>
+          <p class="run-hint">Runs the command above directly on this machine via the local dev server. Nothing leaves your computer.</p>
+        </div>
+
+        <div v-if="runResult" class="run-status" :class="runState">
+          <p class="run-status-title">
+            <template v-if="runState === 'success'">Capture finished successfully.</template>
+            <template v-else-if="runResult.error">Failed to run: {{ runResult.error }}</template>
+            <template v-else>Process exited with code {{ runResult.code }}.</template>
+          </p>
+          <pre v-if="runResult.stdout" class="run-log">{{ runResult.stdout }}</pre>
+          <pre v-if="runResult.stderr" class="run-log run-log-error">{{ runResult.stderr }}</pre>
         </div>
       </section>
 
