@@ -1,0 +1,13 @@
+# Obsidian vault metadata
+.obsidian/
+.obsidian/**
+
+# Optional: if you use local temp or trash folders
+.trash/
+
+# Common OS/editor noise
+.DS_Store
+Thumbs.db
+
+# Keep your actual notes tracked
+# Do not ignore *.md files unless you intentionally want that.
