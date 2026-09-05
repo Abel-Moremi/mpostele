@@ -10,6 +10,15 @@ This folder contains the current frontend prototype for the mpostele project: a 
 - a theme toggle and design system styling
 - a dark/light UI treatment based on a shared token palette
 - a capture command builder that validates the platform URL and output folder, and masks the password by default (with an explicit "show password" toggle) so it isn't exposed on screen by default
+- a theme-aware favicon that follows the OS color scheme by default and switches instantly when the in-app theme toggle is used
+
+## Data persistence
+
+Settings (theme choice, platform URL, username, target path, output folder) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
+
+The password field is intentionally **never persisted**: it's excluded from the stored JSON and starts empty on every reload. This avoids writing a plaintext credential to disk-backed browser storage.
+
+See [src/db/sqlite.js](src/db/sqlite.js) for the persistence module (a small `settings(key, value)` table) and the `onMounted`/`watch` wiring in [src/App.vue](src/App.vue) for how fields are loaded and saved.
 
 ## Why it exists
 

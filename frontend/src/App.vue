@@ -1,9 +1,13 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import logoLight from './assets/mpostele-logo-light.png'
 import logoDark from './assets/mpostele-logo-dark.png'
+import { getSetting, setSetting } from './db/sqlite'
 
 const theme = ref('light')
+// Guards against persisting the defaults back to the database before the
+// real stored values (if any) have finished loading.
+const settingsLoaded = ref(false)
 const activeNav = ref('overview')
 const showPassword = ref(false)
 const captureJob = ref({
@@ -64,9 +68,21 @@ function copyCommand() {
 // Use the light-background logo variant in light mode and the dark-background variant in dark mode.
 const logoSrc = computed(() => (theme.value === 'light' ? logoLight : logoDark))
 
+// The <link> favicons in index.html default to matching the OS color scheme
+// via `prefers-color-scheme` media queries. Once the app's manual theme
+// toggle is used, force the matching favicon regardless of OS preference by
+// flipping each link's `media` between 'all' and 'not all'.
+function syncFavicon(mode) {
+  const lightIcon = document.getElementById('favicon-light')
+  const darkIcon = document.getElementById('favicon-dark')
+  if (lightIcon) lightIcon.media = mode === 'light' ? 'all' : 'not all'
+  if (darkIcon) darkIcon.media = mode === 'dark' ? 'all' : 'not all'
+}
+
 function toggleTheme() {
   theme.value = theme.value === 'light' ? 'dark' : 'light'
   document.documentElement.setAttribute('data-theme', theme.value)
+  syncFavicon(theme.value)
 }
 
 function goToSection(id) {
@@ -74,9 +90,38 @@ function goToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const [storedTheme, storedJob] = await Promise.all([
+    getSetting('theme'),
+    getSetting('captureJob'),
+  ])
+
+  if (storedTheme) theme.value = storedTheme
+  if (storedJob) {
+    // The password is intentionally never persisted, so it's simply absent
+    // from the stored JSON and untouched here.
+    Object.assign(captureJob.value, JSON.parse(storedJob))
+  }
+
   document.documentElement.setAttribute('data-theme', theme.value)
+  syncFavicon(theme.value)
+  settingsLoaded.value = true
 })
+
+watch(theme, (value) => {
+  if (!settingsLoaded.value) return
+  setSetting('theme', value)
+})
+
+watch(
+  captureJob,
+  (job) => {
+    if (!settingsLoaded.value) return
+    const { password, ...persistable } = job
+    setSetting('captureJob', JSON.stringify(persistable))
+  },
+  { deep: true }
+)
 </script>
 
 <template>
