@@ -121,6 +121,22 @@ class CaptureResult:
     login_verified: bool
 
 
+# In-page interactions `capture_motion_sequence` can trigger before/while
+# recording, so the captured clip shows genuine CSS/JS motion (a real hover
+# state, a real click-driven transition) instead of a static frame animated
+# after the fact. "none" just records the page as-is (useful for pages with
+# an animation that runs automatically, e.g. on load).
+MOTION_TRIGGERS: tuple[str, ...] = ("hover", "click", "scroll", "none")
+
+
+@dataclass
+class MotionSequenceResult:
+    video_path: Path
+    duration: float
+    page_title: str
+    login_verified: bool
+
+
 def estimate_duration_from_word_count(
     word_count: int,
     words_per_second: float = 3.0,
@@ -450,6 +466,96 @@ def _extract_scene_text(page, selector: str = "") -> str:
         return ""
 
 
+def _navigate_and_authenticate(
+    page,
+    url: str,
+    username: str,
+    password: str,
+    target_path: str,
+) -> bool:
+    """Loads `url`, performs a login if credentials are supplied, and
+    navigates to `target_path` afterwards. Returns whether a login was
+    verified. Shared by `capture_page` and `capture_motion_sequence` so the
+    navigation/login flow only has one implementation."""
+    page.goto(url, wait_until="domcontentloaded", timeout=60000)
+    _wait_for_network_idle(page)
+
+    # Understand the platform before acting on it: is this actually a
+    # login page, and which fields does it expose?
+    context = _detect_page_context(page)
+    login_verified = False
+
+    if username or password:
+        if not context.has_login_form:
+            # The landing page itself may not show a login form; try
+            # clicking a 'Log in'/'Sign in' entry point (modal trigger or
+            # link to a dedicated /login page) before giving up.
+            if _open_login_form(page):
+                context = _detect_page_context(page)
+
+        if not context.has_login_form:
+            raise CaptureError(
+                f"Login was requested for {url!r} but no password field was "
+                "found on the page (including after trying to click a "
+                "'Log in'/'Sign in' link), so the login form could not be "
+                "identified. Pass --target-path or a direct login URL if "
+                "the form lives elsewhere."
+            )
+
+        pre_login_url = page.url
+        if username:
+            _fill_login_field(page, EMAIL_SELECTORS, username)
+        if password:
+            _fill_login_field(page, PASSWORD_SELECTORS, password)
+        _click_login_button(page)
+        _verify_login_success(page, pre_login_url, context.password_selector)
+        login_verified = True
+
+    if target_path:
+        if target_path.startswith("http://") or target_path.startswith("https://"):
+            next_url = target_path
+        else:
+            next_url = urljoin(url.rstrip("/") + "/", target_path.lstrip("/"))
+        page.goto(next_url, wait_until="domcontentloaded", timeout=60000)
+        _wait_for_network_idle(page)
+
+    return login_verified
+
+
+def _apply_motion_trigger(page, trigger: str, trigger_selector: str) -> None:
+    """Triggers a real, in-page CSS/JS interaction (a hover state, a
+    click-driven transition, or a scroll-triggered reveal) so the recording
+    that follows captures genuine UI motion instead of a static frame.
+    Best-effort: if the target selector can't be found in time, recording
+    proceeds without a trigger rather than failing the whole capture."""
+    if trigger == "none":
+        return
+
+    if trigger == "scroll":
+        try:
+            if trigger_selector:
+                page.locator(trigger_selector).first.scroll_into_view_if_needed(timeout=10000)
+            else:
+                viewport = page.viewport_size
+                page.mouse.wheel(0, viewport["height"] if viewport else 720)
+        except Exception:
+            pass
+        return
+
+    if not trigger_selector:
+        return
+
+    try:
+        locator = page.locator(trigger_selector).first
+        locator.wait_for(state="visible", timeout=10000)
+        if trigger == "hover":
+            locator.hover()
+        elif trigger == "click":
+            locator.click()
+    except Exception:
+        pass
+
+
 def capture_page(
     url: str,
     output_path: Path | str,
@@ -472,72 +578,33 @@ def capture_page(
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page(
-            viewport={"width": width, "height": height},
-            device_scale_factor=device_scale_factor,
-        )
-        page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        _wait_for_network_idle(page)
+        try:
+            page = browser.new_page(
+                viewport={"width": width, "height": height},
+                device_scale_factor=device_scale_factor,
+            )
+            login_verified = _navigate_and_authenticate(page, url, username, password, target_path)
 
-        # Understand the platform before acting on it: is this actually a
-        # login page, and which fields does it expose?
-        context = _detect_page_context(page)
-        login_verified = False
+            # Decide what NOT to record: hide noisy overlays (cookie/consent
+            # banners by default, plus anything the caller wants hidden)
+            # before the screenshot is taken.
+            hide_selectors = list(DEFAULT_HIDE_SELECTORS) if hide_common_overlays else []
+            hide_selectors.extend(extra_hide_selectors)
+            _hide_elements(page, hide_selectors)
 
-        if username or password:
-            if not context.has_login_form:
-                # The landing page itself may not show a login form; try
-                # clicking a 'Log in'/'Sign in' entry point (modal trigger or
-                # link to a dedicated /login page) before giving up.
-                if _open_login_form(page):
-                    context = _detect_page_context(page)
-
-            if not context.has_login_form:
-                browser.close()
-                raise CaptureError(
-                    f"Login was requested for {url!r} but no password field was "
-                    "found on the page (including after trying to click a "
-                    "'Log in'/'Sign in' link), so the login form could not be "
-                    "identified. Pass --target-path or a direct login URL if "
-                    "the form lives elsewhere."
-                )
-
-            pre_login_url = page.url
-            if username:
-                _fill_login_field(page, EMAIL_SELECTORS, username)
-            if password:
-                _fill_login_field(page, PASSWORD_SELECTORS, password)
-            _click_login_button(page)
-            _verify_login_success(page, pre_login_url, context.password_selector)
-            login_verified = True
-
-        if target_path:
-            if target_path.startswith("http://") or target_path.startswith("https://"):
-                next_url = target_path
+            # Decide what TO record: either a specific element/region, or the
+            # full viewport.
+            if capture_selector:
+                locator = page.locator(capture_selector).first
+                locator.wait_for(state="visible", timeout=15000)
+                locator.screenshot(path=str(target))
             else:
-                next_url = urljoin(url.rstrip("/") + "/", target_path.lstrip("/"))
-            page.goto(next_url, wait_until="domcontentloaded", timeout=60000)
-            _wait_for_network_idle(page)
+                page.screenshot(path=str(target), full_page=False)
 
-        # Decide what NOT to record: hide noisy overlays (cookie/consent
-        # banners by default, plus anything the caller wants hidden) before
-        # the screenshot is taken.
-        hide_selectors = list(DEFAULT_HIDE_SELECTORS) if hide_common_overlays else []
-        hide_selectors.extend(extra_hide_selectors)
-        _hide_elements(page, hide_selectors)
-
-        # Decide what TO record: either a specific element/region, or the
-        # full viewport.
-        if capture_selector:
-            locator = page.locator(capture_selector).first
-            locator.wait_for(state="visible", timeout=15000)
-            locator.screenshot(path=str(target))
-        else:
-            page.screenshot(path=str(target), full_page=False)
-
-        scene_text = _extract_scene_text(page, capture_selector)
-        page_title = page.title()
-        browser.close()
+            scene_text = _extract_scene_text(page, capture_selector)
+            page_title = page.title()
+        finally:
+            browser.close()
 
     word_count = len(scene_text.split())
     duration = estimate_duration_from_word_count(
@@ -551,6 +618,95 @@ def capture_page(
         screenshot_path=target,
         duration=duration,
         word_count=word_count,
+        page_title=page_title,
+        login_verified=login_verified,
+    )
+
+
+def capture_motion_sequence(
+    url: str,
+    output_dir: Path | str,
+    width: int = 1280,
+    height: int = 720,
+    device_scale_factor: int = 1,
+    username: str = "",
+    password: str = "",
+    target_path: str = "",
+    extra_hide_selectors: tuple[str, ...] | list[str] = (),
+    hide_common_overlays: bool = True,
+    motion_trigger: str = "hover",
+    trigger_selector: str = "",
+    record_seconds: float = 4.0,
+) -> MotionSequenceResult:
+    """Records a short clip of real in-page motion (a hover state, a
+    click-driven transition, or a scroll-triggered reveal) using Playwright's
+    built-in video recorder, instead of animating a static screenshot
+    afterwards. This captures genuine CSS/JS transitions that FFmpeg zoompan
+    or a composited Manim overlay can't reproduce.
+
+    Recording happens at the browser-context level (Chromium's own video
+    encoder), so this stays as lightweight as the existing screenshot-based
+    capture -- no extra GPU/model dependency.
+    """
+    from playwright.sync_api import sync_playwright
+
+    if motion_trigger not in MOTION_TRIGGERS:
+        raise ValueError(
+            f"Unknown motion_trigger {motion_trigger!r}. Expected one of: "
+            f"{', '.join(MOTION_TRIGGERS)}"
+        )
+
+    target_dir = Path(output_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=True)
+        try:
+            context = browser.new_context(
+                viewport={"width": width, "height": height},
+                device_scale_factor=device_scale_factor,
+                record_video_dir=str(target_dir),
+                record_video_size={"width": width, "height": height},
+            )
+            try:
+                page = context.new_page()
+                login_verified = _navigate_and_authenticate(page, url, username, password, target_path)
+
+                hide_selectors = list(DEFAULT_HIDE_SELECTORS) if hide_common_overlays else []
+                hide_selectors.extend(extra_hide_selectors)
+                _hide_elements(page, hide_selectors)
+
+                _apply_motion_trigger(page, motion_trigger, trigger_selector)
+                page.wait_for_timeout(int(record_seconds * 1000))
+
+                page_title = page.title()
+                video = page.video
+            finally:
+                # Closing the context is what finalizes the recorded video
+                # file on disk; `video.path()` below must happen before the
+                # `sync_playwright()` block exits, since it needs the
+                # underlying event loop to still be running.
+                context.close()
+
+            if video is None:
+                raise CaptureError(
+                    "Playwright did not attach a video recorder to the page; "
+                    "record_video_dir may not be supported by this browser context."
+                )
+            recorded_path = Path(video.path())
+        finally:
+            browser.close()
+
+    if not recorded_path.exists():
+        raise CaptureError(f"Expected a recorded video at {recorded_path}, but it was not found.")
+
+    final_path = target_dir / "motion_sequence.webm"
+    if recorded_path != final_path:
+        recorded_path.replace(final_path)
+
+    return MotionSequenceResult(
+        video_path=final_path,
+        duration=record_seconds,
         page_title=page_title,
         login_verified=login_verified,
     )
@@ -573,6 +729,30 @@ def render_motion_video(
         height=height,
         motion_preset=motion_preset,
     )
+    subprocess.run(command, check=True)
+    return target
+
+
+def build_transcode_command(input_path: Path | str, output_path: Path | str) -> list[str]:
+    """Re-encodes a recorded clip (e.g. Playwright's `.webm`) to H.264/mp4 so
+    it matches the format the rest of the pipeline (Manim overlay
+    compositing, final export) already expects."""
+    return [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(input_path),
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        str(output_path),
+    ]
+
+
+def transcode_to_mp4(input_path: Path | str, output_path: Path | str) -> Path:
+    target = ensure_parent_dir(output_path)
+    command = build_transcode_command(input_path, target)
     subprocess.run(command, check=True)
     return target
 
@@ -633,11 +813,63 @@ def main() -> None:
         choices=MOTION_PRESETS,
         help="Ken Burns-style camera motion to apply to the captured screenshot.",
     )
+    parser.add_argument(
+        "--capture-mode",
+        default="screenshot",
+        choices=("screenshot", "motion"),
+        help=(
+            "'screenshot' (default) takes a single still image and applies an "
+            "FFmpeg camera-motion preset afterwards. 'motion' instead records "
+            "a short clip of real in-page CSS/JS motion (hover/click/scroll) "
+            "with Playwright's built-in video recorder."
+        ),
+    )
+    parser.add_argument(
+        "--motion-trigger",
+        default="hover",
+        choices=MOTION_TRIGGERS,
+        help="Only used with --capture-mode motion. In-page interaction to trigger before/while recording.",
+    )
+    parser.add_argument(
+        "--trigger-selector",
+        default="",
+        help="CSS selector the --motion-trigger acts on. Required for the hover/click triggers.",
+    )
+    parser.add_argument(
+        "--record-seconds",
+        type=float,
+        default=4.0,
+        help="Only used with --capture-mode motion. How long to record after the trigger fires.",
+    )
     args = parser.parse_args()
 
     password = args.password or os.environ.get("MPOSTELE_PASSWORD", "")
 
     image_path, video_path = gather_output_paths(args.base_dir)
+
+    if args.capture_mode == "motion":
+        motion_result = capture_motion_sequence(
+            args.url,
+            args.base_dir,
+            width=args.width,
+            height=args.height,
+            username=args.username,
+            password=password,
+            target_path=args.target_path,
+            extra_hide_selectors=args.hide_selectors,
+            hide_common_overlays=args.hide_common_overlays,
+            motion_trigger=args.motion_trigger,
+            trigger_selector=args.trigger_selector,
+            record_seconds=args.record_seconds,
+        )
+        transcode_to_mp4(motion_result.video_path, video_path)
+        print(
+            f"Recorded a live '{args.motion_trigger}' motion sequence "
+            f"(login_verified={motion_result.login_verified}) and transcoded it to "
+            f"{video_path} at {motion_result.duration:.1f}s."
+        )
+        return
+
     result = capture_page(
         args.url,
         image_path,

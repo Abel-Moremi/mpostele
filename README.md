@@ -114,6 +114,22 @@ python -m pipeline.overlays \
 
 `--overlay-type` is `title` (a fading title card) or `callout` (a highlight box with a label, positioned with `--callout-x`/`--callout-y`). The overlay is rendered transparent and composited over the base clip with FFmpeg. Install Manim and Playwright with `pip install -r requirements.txt` (FFmpeg itself is a separate system dependency).
 
+## Browser-based motion sequences
+
+By default `pipeline/first_render.py` takes a single screenshot and animates it afterwards with an FFmpeg `zoompan` preset. `--capture-mode motion` instead records a short clip of a genuine in-page CSS/JS interaction using Playwright's built-in video recorder:
+
+```bash
+python -m pipeline.first_render \
+  --url http://localhost:5173 \
+  --base-dir artifacts/motion_job \
+  --capture-mode motion \
+  --motion-trigger hover \
+  --trigger-selector "button:has-text('Get started')" \
+  --record-seconds 3
+```
+
+`--motion-trigger` is `hover`, `click`, `scroll`, or `none`. The recorded `.webm` is transcoded to `motion.mp4` with FFmpeg, so it works as a drop-in replacement for the screenshot-based `motion.mp4` (e.g. as input to `pipeline.overlays`).
+
 ## Related docs
 
 - [docs-mpostele/00 Home.md](docs-mpostele/00%20Home.md)

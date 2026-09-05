@@ -26,8 +26,9 @@ The first local proof uses Playwright to capture a page and FFmpeg to export a s
 - [x] add low-memory animation presets (FFmpeg `zoompan` motion presets)
 - [x] test FFmpeg motion effects
 - [x] add Manim overlays for callouts and titles
+- [x] test browser-based motion sequences (Playwright video recording of a real hover/click/scroll interaction)
 
-Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`, `zoom_out`, four pan directions, `static`). Overlays live in `pipeline/overlays.py` + `pipeline/manim_scenes.py`: a `title` card and a `callout` highlight box, rendered transparent with Manim and composited over the base clip with FFmpeg's `overlay` filter.
+Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`, `zoom_out`, four pan directions, `static`). Overlays live in `pipeline/overlays.py` + `pipeline/manim_scenes.py`: a `title` card and a `callout` highlight box, rendered transparent with Manim and composited over the base clip with FFmpeg's `overlay` filter. `--capture-mode motion` on the same script records genuine in-page CSS/JS motion (a hover state, a click transition, a scroll reveal) with Playwright's built-in video recorder instead of animating a still image, then transcodes the result to mp4 with FFmpeg so it slots into the same downstream pipeline (e.g. `pipeline.overlays`) unchanged.
 
 ## Milestone 5: voiceover workflow
 

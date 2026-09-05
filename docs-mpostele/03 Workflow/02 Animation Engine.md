@@ -15,7 +15,7 @@ Use zoom, pan, and parallax effects to add motion to a still image or screenshot
 
 ### 2. Playwright animation
 
-Inject CSS, JS, or transitions into a page to create smooth UI motion before capture.
+Inject CSS, JS, or transitions into a page to create smooth UI motion before capture. Implemented as `capture_motion_sequence` in `pipeline/first_render.py` (`--capture-mode motion`): triggers a real in-page interaction (`--motion-trigger hover|click|scroll`) on a target selector, then records the live result with Playwright's built-in browser-context video recorder (no FFmpeg zoompan needed since the motion is genuine, not simulated). The recorded `.webm` is transcoded to `.mp4` with FFmpeg so it matches the format the rest of the pipeline expects.
 
 ### 3. Manim overlays
 

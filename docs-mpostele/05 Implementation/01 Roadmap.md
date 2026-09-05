@@ -22,7 +22,7 @@ The repo has completed the documentation foundation and a frontend prototype. Th
 
 - [x] add FFmpeg zoom and pan presets (`zoom_in`, `zoom_out`, 4x pan directions, `static`)
 - [x] integrate Manim overlays for text and emphasis (`title`, `callout`, composited over the base clip with FFmpeg)
-- [ ] test browser-based motion sequences
+- [x] test browser-based motion sequences (`--capture-mode motion`: Playwright records a real hover/click/scroll interaction, transcoded to mp4 with FFmpeg)
 
 ## Phase 4: Audio
 

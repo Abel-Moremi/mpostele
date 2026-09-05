@@ -4,11 +4,14 @@ from pathlib import Path
 from pipeline.first_render import (
     build_capture_command,
     build_ffmpeg_command,
+    build_transcode_command,
+    capture_motion_sequence,
     ensure_parent_dir,
     estimate_duration_from_word_count,
     gather_output_paths,
     LOGIN_ERROR_TEXT_PATTERN,
     MOTION_PRESETS,
+    MOTION_TRIGGERS,
 )
 
 
@@ -162,6 +165,28 @@ class FirstRenderTests(unittest.TestCase):
         self.assertIsNotNone(LOGIN_ERROR_TEXT_PATTERN.search("Invalid email or password"))
         self.assertIsNotNone(LOGIN_ERROR_TEXT_PATTERN.search("Incorrect password, please try again"))
         self.assertIsNotNone(LOGIN_ERROR_TEXT_PATTERN.search("Login failed"))
+
+    def test_build_transcode_command_reencodes_to_h264_mp4(self):
+        cmd = build_transcode_command(
+            input_path=Path("artifacts/motion_job/motion_sequence.webm"),
+            output_path=Path("artifacts/motion_job/motion.mp4"),
+        )
+        joined = " ".join(cmd)
+
+        self.assertIn("motion_sequence.webm", joined)
+        self.assertIn("motion.mp4", joined)
+        self.assertIn("libx264", cmd)
+
+    def test_motion_triggers_include_expected_options(self):
+        self.assertEqual(set(MOTION_TRIGGERS), {"hover", "click", "scroll", "none"})
+
+    def test_capture_motion_sequence_rejects_unknown_trigger(self):
+        with self.assertRaises(ValueError):
+            capture_motion_sequence(
+                url="http://localhost:5173",
+                output_dir="artifacts/motion_job",
+                motion_trigger="not-a-real-trigger",
+            )
 
 
 if __name__ == "__main__":
