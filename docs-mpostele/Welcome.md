@@ -1,5 +1,11 @@
-This is your new *vault*.
+# Welcome
 
-Make a note of something, [[create a link]], or try [the Importer](https://help.obsidian.md/Plugins/Importer)!
+This vault has been organized around the mpostele workflow and project documentation.
 
-When you're ready, delete this note and make the vault your own.
+Start here:
+
+- [[00 Home]]
+- [[01 Project Overview]]
+- [[02 Architecture]]
+
+For the full project structure, see the workflow, research, implementation, and operations sections in the vault.
