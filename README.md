@@ -4,7 +4,6 @@ mpostele is a local-first concept for creating animated product and social conte
 
 - a design and planning knowledge base under [docs-mpostele](docs-mpostele)
 - a browser-based prototype UI in [frontend](frontend)
-- a shared design token set in [tokens](tokens)
 
 This is not yet a complete end-to-end video-generation product. The automation pipeline described in the research notes is the target architecture, but the implementation is still in progress.
 
@@ -14,7 +13,6 @@ This is not yet a complete end-to-end video-generation product. The automation p
 
 - research notes and architecture docs for a low-memory animation workflow
 - a Vue + Vite frontend mockup for a content planner / campaign dashboard
-- design tokens for typography, spacing, and theme system
 
 ### What is still planned
 
@@ -54,8 +52,6 @@ mpostele/
 │   ├── vite.config.js
 │   ├── src/
 │   └── README.md
-├── tokens/
-│   └── design tokens for the UI system
 └── .gitignore
 ```
 
