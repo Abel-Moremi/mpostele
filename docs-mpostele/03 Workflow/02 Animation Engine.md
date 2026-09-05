@@ -19,7 +19,7 @@ Inject CSS, JS, or transitions into a page to create smooth UI motion before cap
 
 ### 3. Manim overlays
 
-Create high-quality animated text, circles, arrows, charts, and product visual accents on transparent or solid backgrounds.
+Create high-quality animated text, circles, arrows, charts, and product visual accents on transparent or solid backgrounds. Implemented in `pipeline/overlays.py` (`--overlay-type title|callout`), rendered transparent and composited over the FFmpeg motion clip with the `overlay` filter.
 
 ## Why this is important
 

@@ -16,9 +16,6 @@ This is not yet a complete end-to-end video-generation product. The automation p
 
 ### What is still planned
 
-- Playwright-based capture workflow for product screens or landing pages
-- FFmpeg motion presets and compositing pipeline
-- Manim or browser-based motion overlays for callouts and titles
 - local voiceover generation and export automation
 - a working CLI or Python orchestration layer for end-to-end video jobs
 
@@ -103,6 +100,19 @@ python -m pipeline.first_render \
 The frontend also includes a basic capture form in [frontend/src/App.vue](frontend/src/App.vue) that accepts the platform URL, credentials, and target route before generating the command for the local automation job.
 
 This is the first milestone in the architecture: proving the capture -> motion -> export path works without a heavy model stack.
+
+## Motion overlays
+
+[pipeline/overlays.py](pipeline/overlays.py) adds a Manim-based overlay layer on top of the base motion clip:
+
+```bash
+python -m pipeline.overlays \
+  --base-video artifacts/first_scene/motion.mp4 \
+  --overlay-type title \
+  --text "New feature"
+```
+
+`--overlay-type` is `title` (a fading title card) or `callout` (a highlight box with a label, positioned with `--callout-x`/`--callout-y`). The overlay is rendered transparent and composited over the base clip with FFmpeg. Install Manim and Playwright with `pip install -r requirements.txt` (FFmpeg itself is a separate system dependency).
 
 ## Related docs
 

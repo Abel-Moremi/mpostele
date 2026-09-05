@@ -1,0 +1,11 @@
+# Pipeline dependencies for mpostele's local capture -> motion -> overlay flow.
+# Install with: pip install -r requirements.txt
+# FFmpeg itself is a separate system dependency (not pip-installable) --
+# see docs-mpostele/05 Implementation/03 Setup Checklist.md.
+
+# Browser capture (pipeline/first_render.py)
+playwright==1.62.0
+
+# Overlay rendering (pipeline/overlays.py, pipeline/manim_scenes.py).
+# CPU-only (Cairo rasterization) -- no CUDA/GPU requirement.
+manim==0.19.0

@@ -23,9 +23,11 @@ The first local proof uses Playwright to capture a page and FFmpeg to export a s
 
 ## Milestone 4: animation workflow
 
-- [ ] add low-memory animation presets
-- [ ] test FFmpeg motion effects
-- [ ] add Manim overlays for callouts and titles
+- [x] add low-memory animation presets (FFmpeg `zoompan` motion presets)
+- [x] test FFmpeg motion effects
+- [x] add Manim overlays for callouts and titles
+
+Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`, `zoom_out`, four pan directions, `static`). Overlays live in `pipeline/overlays.py` + `pipeline/manim_scenes.py`: a `title` card and a `callout` highlight box, rendered transparent with Manim and composited over the base clip with FFmpeg's `overlay` filter.
 
 ## Milestone 5: voiceover workflow
 

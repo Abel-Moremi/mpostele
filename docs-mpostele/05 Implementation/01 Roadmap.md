@@ -21,7 +21,7 @@ The repo has completed the documentation foundation and a frontend prototype. Th
 ## Phase 3: Motion
 
 - [x] add FFmpeg zoom and pan presets (`zoom_in`, `zoom_out`, 4x pan directions, `static`)
-- [ ] integrate Manim overlays for text and emphasis
+- [x] integrate Manim overlays for text and emphasis (`title`, `callout`, composited over the base clip with FFmpeg)
 - [ ] test browser-based motion sequences
 
 ## Phase 4: Audio

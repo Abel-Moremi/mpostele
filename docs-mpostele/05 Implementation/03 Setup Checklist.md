@@ -15,6 +15,7 @@ The remaining production pipeline work is still pending:
 - [ ] verify Python version and dependencies for the pipeline
 - [ ] install Playwright and browser runtime
 - [ ] install FFmpeg and confirm codec support
+- [x] install Manim for overlay rendering (`pip install -r requirements.txt`, CPU-only)
 - [ ] install TTS tooling such as Kokoro
 - [ ] verify PCIe and GPU acceleration support for NVENC
 
