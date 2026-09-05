@@ -1,0 +1,28 @@
+:root {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--mp-background);
+  color: var(--mp-text-primary);
+}
+
+::selection {
+  background: var(--mp-background-selected);
+}
+
+:focus-visible {
+  outline: 2px solid var(--mp-focus);
+  outline-offset: -2px;
+}
+
+a {
+  color: var(--mp-link-primary);
+  text-decoration: underline;
+}
+
+a:hover { color: var(--mp-link-primary-hover); }

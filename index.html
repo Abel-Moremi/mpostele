@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mpostele Design System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand-wrap">
+          <div class="brand-mark">M</div>
+          <div class="brand-copy">
+            <div class="brand-name">Mpostele</div>
+            <div class="brand-sub">Planner</div>
+          </div>
+        </div>
+
+        <nav class="top-nav" aria-label="Primary navigation">
+          <button class="nav-action is-selected">Overview</button>
+          <button class="nav-action">Calendar</button>
+          <button class="nav-action">Composer</button>
+          <button class="nav-action">Insights</button>
+        </nav>
+
+        <div class="header-actions">
+          <button class="icon-button" aria-label="Toggle theme" id="theme-toggle">
+            ☼
+          </button>
+          <button class="mp-btn mp-btn--primary">Schedule</button>
+        </div>
+      </header>
+
+      <aside class="side-rail" aria-label="Channel rail">
+        <div class="rail-title">Channels</div>
+        <div class="rail-item is-active">
+          <span class="rail-dot rail-dot--magenta"></span>
+          <span>All</span>
+        </div>
+        <div class="rail-item">
+          <span class="rail-dot rail-dot--lilac"></span>
+          <span>Instagram</span>
+        </div>
+        <div class="rail-item">
+          <span class="rail-dot rail-dot--tan"></span>
+          <span>LinkedIn</span>
+        </div>
+        <div class="rail-item">
+          <span class="rail-dot rail-dot--rose"></span>
+          <span>X</span>
+        </div>
+        <div class="rail-item">
+          <span class="rail-dot rail-dot--wheat"></span>
+          <span>Facebook</span>
+        </div>
+        <div class="rail-item">
+          <span class="rail-dot rail-dot--citron"></span>
+          <span>YouTube</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="page-header">
+          <div>
+            <p class="mp-label-01 page-overline">WEEK 37 · 8–14 SEPTEMBER</p>
+            <h1 class="mp-heading-04">24 posts scheduled across five channels</h1>
+          </div>
+          <div class="page-actions">
+            <button class="mp-btn mp-btn--secondary">Approve all</button>
+            <button class="mp-btn mp-btn--primary">Schedule</button>
+          </div>
+        </section>
+
+        <section class="kpi-grid" aria-label="Key metrics">
+          <article class="metric-card">
+            <p class="mp-label-01">Reach</p>
+            <div class="metric-row">
+              <h2 class="mp-heading-05">137k</h2>
+              <span class="mp-tag mp-tag--magenta">+42%</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <p class="mp-label-01">Engagement</p>
+            <div class="metric-row">
+              <h2 class="mp-heading-05">8.4%</h2>
+              <span class="mp-tag mp-tag--lilac">+1.2%</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <p class="mp-label-01">Best slot</p>
+            <div class="metric-row">
+              <h2 class="mp-heading-05">08:30</h2>
+              <span class="mp-tag mp-tag--wheat">Instagram</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <p class="mp-label-01">Spend</p>
+            <div class="metric-row">
+              <h2 class="mp-heading-05">P790</h2>
+              <span class="mp-tag mp-tag--gray">Budget</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="panel panel--wide">
+            <div class="panel-header">
+              <h2 class="mp-heading-03">Content calendar</h2>
+              <div class="segmented-control" aria-label="View options">
+                <button class="segmented is-selected">Month</button>
+                <button class="segmented">Week</button>
+                <button class="segmented">List</button>
+              </div>
+            </div>
+
+            <div class="calendar-grid" aria-label="Calendar preview">
+              <div class="calendar-day muted">Mon</div>
+              <div class="calendar-day muted">Tue</div>
+              <div class="calendar-day muted">Wed</div>
+              <div class="calendar-day muted">Thu</div>
+              <div class="calendar-day muted">Fri</div>
+              <div class="calendar-day muted">Sat</div>
+              <div class="calendar-day muted">Sun</div>
+
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--magenta"><span>Launch</span><small>08:30</small></div>
+              <div class="slot slot--lilac"><span>Story</span><small>10:15</small></div>
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--rose"><span>Trend</span><small>13:00</small></div>
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--tan"><span>Case</span><small>16:40</small></div>
+
+              <div class="slot slot--tan"><span>Photo</span><small>09:10</small></div>
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--wheat"><span>Event</span><small>11:45</small></div>
+              <div class="slot slot--citron"><span>Video</span><small>18:05</small></div>
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--magenta"><span>UGC</span><small>07:55</small></div>
+              <div class="slot slot--empty"> </div>
+
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--lilac"><span>Carousel</span><small>09:35</small></div>
+              <div class="slot slot--rose"><span>Reply</span><small>12:20</small></div>
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--wheat"><span>Feature</span><small>14:15</small></div>
+              <div class="slot slot--empty"> </div>
+              <div class="slot slot--citron"><span>Promo</span><small>19:00</small></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <h2 class="mp-heading-03">Best times</h2>
+              <button class="text-link">View all</button>
+            </div>
+            <ul class="channel-list">
+              <li><span>Instagram</span><strong>08:30</strong></li>
+              <li><span>LinkedIn</span><strong>09:20</strong></li>
+              <li><span>X</span><strong>12:15</strong></li>
+              <li><span>Facebook</span><strong>14:45</strong></li>
+              <li><span>YouTube</span><strong>18:05</strong></li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel-header">
+            <h2 class="mp-heading-03">Draft queue</h2>
+            <button class="mp-btn mp-btn--secondary">Review</button>
+          </div>
+
+          <table class="mp-table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Channel</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th>Reach</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Product launch story</td>
+                <td><span class="mp-tag mp-tag--lilac">Instagram</span></td>
+                <td>08:30</td>
+                <td><span class="mp-tag mp-tag--magenta">Queued</span></td>
+                <td>42k</td>
+              </tr>
+              <tr>
+                <td>Customer win recap</td>
+                <td><span class="mp-tag mp-tag--tan">LinkedIn</span></td>
+                <td>09:20</td>
+                <td><span class="mp-tag mp-tag--gray">Draft</span></td>
+                <td>18k</td>
+              </tr>
+              <tr>
+                <td>Founder note</td>
+                <td><span class="mp-tag mp-tag--rose">X</span></td>
+                <td>12:15</td>
+                <td><span class="mp-tag mp-tag--wheat">Review</span></td>
+                <td>7k</td>
+              </tr>
+              <tr>
+                <td>Monthly roundup</td>
+                <td><span class="mp-tag mp-tag--wheat">Facebook</span></td>
+                <td>14:45</td>
+                <td><span class="mp-tag mp-tag--citron">Ready</span></td>
+                <td>31k</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

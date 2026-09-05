@@ -1,0 +1,116 @@
+:root,
+html[data-theme='light'] {
+  --mp-background: #ffffff;
+  --mp-background-hover: rgba(143, 139, 139, 0.12);
+  --mp-background-active: rgba(143, 139, 139, 0.5);
+  --mp-background-selected: rgba(143, 139, 139, 0.2);
+  --mp-background-inverse: #3c3838;
+  --mp-layer-01: #f7f3f2;
+  --mp-layer-02: #ffffff;
+  --mp-layer-03: #f7f3f2;
+  --mp-layer-hover-01: #f0e8e6;
+  --mp-layer-hover-02: #f0e8e6;
+  --mp-layer-accent-01: #e5e0df;
+  --mp-field-01: #f7f3f2;
+  --mp-field-02: #ffffff;
+  --mp-border-subtle-01: #e5e0df;
+  --mp-border-subtle-02: #cac5c4;
+  --mp-border-strong-01: #8f8b8b;
+  --mp-border-interactive: #db2777;
+  --mp-text-primary: #171414;
+  --mp-text-secondary: #565151;
+  --mp-text-helper: #726e6e;
+  --mp-text-placeholder: #ada8a8;
+  --mp-text-on-color: #ffffff;
+  --mp-text-disabled: rgba(23, 20, 20, 0.25);
+  --mp-icon-primary: #171414;
+  --mp-link-primary: #db2777;
+  --mp-link-primary-hover: #9f1853;
+  --mp-focus: #db2777;
+  --mp-focus-inset: #ffffff;
+  --mp-overlay: rgba(23, 20, 20, 0.5);
+
+  --mp-button-primary: #db2777;
+  --mp-button-primary-hover: #c31f6a;
+  --mp-button-primary-active: #9f1853;
+  --mp-button-secondary: #f7f3f2;
+  --mp-button-secondary-hover: #e5e0df;
+  --mp-button-secondary-active: #cac5c4;
+  --mp-button-tertiary: transparent;
+  --mp-button-danger: #da1e28;
+  --mp-button-danger-hover: #b91b27;
+  --mp-button-disabled: rgba(143, 139, 139, 0.24);
+
+  --mp-tag-bg-gray: #e5e0df;
+  --mp-tag-fg-gray: #3c3838;
+  --mp-tag-bg-magenta: #ffd6e8;
+  --mp-tag-fg-magenta: #740937;
+  --mp-tag-bg-lilac: #efe2f1;
+  --mp-tag-fg-lilac: #6e5470;
+  --mp-tag-bg-rose: #f2e0dd;
+  --mp-tag-fg-rose: #74544f;
+  --mp-tag-bg-tan: #f1e1d3;
+  --mp-tag-fg-tan: #7a5b3d;
+  --mp-tag-bg-wheat: #f5ebc5;
+  --mp-tag-fg-wheat: #6b5a12;
+  --mp-tag-bg-citron: #f7f6c9;
+  --mp-tag-fg-citron: #5c5900;
+}
+
+html[data-theme='dark'] {
+  --mp-background: #171414;
+  --mp-background-hover: rgba(202, 197, 196, 0.16);
+  --mp-background-active: rgba(202, 197, 196, 0.4);
+  --mp-background-selected: rgba(202, 197, 196, 0.24);
+  --mp-background-inverse: #f7f3f2;
+  --mp-layer-01: #272525;
+  --mp-layer-02: #3c3838;
+  --mp-layer-03: #565151;
+  --mp-layer-hover-01: #343232;
+  --mp-layer-hover-02: #4c4848;
+  --mp-layer-accent-01: #3c3838;
+  --mp-field-01: #272525;
+  --mp-field-02: #3c3838;
+  --mp-border-subtle-01: #3c3838;
+  --mp-border-subtle-02: #565151;
+  --mp-border-strong-01: #8f8b8b;
+  --mp-border-interactive: #ff7eb6;
+  --mp-text-primary: #f7f3f2;
+  --mp-text-secondary: #cac5c4;
+  --mp-text-helper: #ada8a8;
+  --mp-text-placeholder: #726e6e;
+  --mp-text-on-color: #ffffff;
+  --mp-text-disabled: rgba(247, 243, 242, 0.25);
+  --mp-icon-primary: #f7f3f2;
+  --mp-link-primary: #ff7eb6;
+  --mp-link-primary-hover: #ffafd2;
+  --mp-focus: #f8f272;
+  --mp-focus-inset: #171414;
+  --mp-overlay: rgba(0, 0, 0, 0.65);
+
+  --mp-button-primary: #db2777;
+  --mp-button-primary-hover: #c31f6a;
+  --mp-button-primary-active: #9f1853;
+  --mp-button-secondary: #3c3838;
+  --mp-button-secondary-hover: #4c4848;
+  --mp-button-secondary-active: #565151;
+  --mp-button-tertiary: transparent;
+  --mp-button-danger: #ff8389;
+  --mp-button-danger-hover: #ff9aa1;
+  --mp-button-disabled: rgba(247, 243, 242, 0.12);
+
+  --mp-tag-bg-gray: #565151;
+  --mp-tag-fg-gray: #f7f3f2;
+  --mp-tag-bg-magenta: #510224;
+  --mp-tag-fg-magenta: #ffd6e8;
+  --mp-tag-bg-lilac: #6e5470;
+  --mp-tag-fg-lilac: #f5eef8;
+  --mp-tag-bg-rose: #74544f;
+  --mp-tag-fg-rose: #f4e2de;
+  --mp-tag-bg-tan: #7a5b3d;
+  --mp-tag-fg-tan: #f1e1d3;
+  --mp-tag-bg-wheat: #6b5a12;
+  --mp-tag-fg-wheat: #f5ebc5;
+  --mp-tag-bg-citron: #5c5900;
+  --mp-tag-fg-citron: #f7f6c9;
+}

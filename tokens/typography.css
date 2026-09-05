@@ -1,0 +1,72 @@
+:root {
+  --mp-size-01: 12px;
+  --mp-size-02: 14px;
+  --mp-size-03: 16px;
+  --mp-size-04: 18px;
+  --mp-size-05: 20px;
+  --mp-size-06: 24px;
+  --mp-size-07: 28px;
+  --mp-size-08: 32px;
+  --mp-size-09: 36px;
+  --mp-size-10: 42px;
+  --mp-size-11: 48px;
+  --mp-size-12: 54px;
+  --mp-size-13: 60px;
+  --mp-size-14: 68px;
+  --mp-size-15: 76px;
+  --mp-size-16: 84px;
+  --mp-size-17: 92px;
+}
+
+.mp-display-04,
+.mp-display-03,
+.mp-display-01,
+.mp-heading-07,
+.mp-heading-06,
+.mp-heading-05,
+.mp-heading-04,
+.mp-heading-03,
+.mp-heading-02,
+.mp-heading-01,
+.mp-heading-compact-01,
+.mp-body-02,
+.mp-body-01,
+.mp-body-compact-01,
+.mp-body-compact-02,
+.mp-label-02,
+.mp-label-01,
+.mp-code-02,
+.mp-code-01 {
+  margin: 0;
+}
+
+.mp-display-04 { font-size: 92px; line-height: 1.11; font-weight: 300; letter-spacing: -0.64px; }
+.mp-display-03 { font-size: 60px; line-height: 1.16; font-weight: 300; letter-spacing: -0.64px; }
+.mp-display-01 { font-size: 42px; line-height: 1.19; font-weight: 300; }
+.mp-heading-07 { font-size: 54px; line-height: 1.19; font-weight: 300; }
+.mp-heading-06 { font-size: 42px; line-height: 1.199; font-weight: 300; }
+.mp-heading-05 { font-size: 32px; line-height: 1.25; font-weight: 400; }
+.mp-heading-04 { font-size: 28px; line-height: 1.29; font-weight: 400; }
+.mp-heading-03 { font-size: 20px; line-height: 1.4; font-weight: 400; }
+.mp-heading-02 { font-size: 16px; line-height: 1.5; font-weight: 600; }
+.mp-heading-01 { font-size: 14px; line-height: 1.43; font-weight: 600; letter-spacing: 0.16px; }
+.mp-heading-compact-01 { font-size: 14px; line-height: 1.29; font-weight: 600; letter-spacing: 0.16px; }
+.mp-body-02 { font-size: 16px; line-height: 1.5; font-weight: 400; }
+.mp-body-01 { font-size: 14px; line-height: 1.43; font-weight: 400; letter-spacing: 0.16px; }
+.mp-body-compact-01 { font-size: 14px; line-height: 1.29; font-weight: 400; letter-spacing: 0.16px; }
+.mp-body-compact-02 { font-size: 16px; line-height: 1.375; font-weight: 400; }
+.mp-label-02 { font-size: 14px; line-height: 1.29; font-weight: 400; letter-spacing: 0.16px; }
+.mp-label-01 { font-size: 12px; line-height: 1.33; font-weight: 400; letter-spacing: 0.32px; text-transform: uppercase; }
+.mp-code-02 { font-size: 14px; line-height: 1.43; font-family: var(--mp-font-mono); font-weight: 500; letter-spacing: 0.32px; }
+.mp-code-01 { font-size: 12px; line-height: 1.33; font-family: var(--mp-font-mono); font-weight: 500; letter-spacing: 0.32px; }
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--mp-font-sans);
+  font-size: 14px;
+  line-height: 1.43;
+  letter-spacing: 0;
+}
