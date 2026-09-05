@@ -80,6 +80,28 @@ The long-term goal remains a local-first animation pipeline for product storytel
 
 The current repo is the foundation for that goal: architecture notes, research, and a working prototype UI are in place and should be expanded into the actual capture, animation, and export pipeline next.
 
+## First local pipeline proof
+
+The project now includes an initial capture-and-render script in [pipeline/first_render.py](pipeline/first_render.py). It intentionally stays small and local:
+
+- open a target page with Playwright
+- capture a screenshot into an asset folder
+- render a short zoom-pan clip with FFmpeg
+- save output as a reproducible local asset for later compositing
+
+Run it against the frontend app like this:
+
+```bash
+cd frontend
+npm install
+npm run dev
+
+cd ..
+python -m pipeline.first_render --url http://localhost:5173 --base-dir artifacts/first_scene --duration 3.0
+```
+
+This is the first milestone in the architecture: proving the capture -> motion -> export path works without a heavy model stack.
+
 ## Related docs
 
 - [docs-mpostele/00 Home.md](docs-mpostele/00%20Home.md)

@@ -34,9 +34,11 @@ The remaining production pipeline work is still pending:
 
 ## Validation
 
-- [ ] test first short video render
+- [x] test first short video render
 - [ ] verify memory usage stays within target limits
 - [ ] check output quality and playback stability
+
+The first render proof is now in place with a local Playwright capture and FFmpeg zoom-pan export flow. This establishes the minimum viable architecture before adding richer motion overlays and audio.
 
 ## Related notes
 

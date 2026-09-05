@@ -9,5 +9,9 @@
 .DS_Store
 Thumbs.db
 
+# Generated local media artifacts
+artifacts/
+**/artifacts/
+
 # Keep your actual notes tracked
 # Do not ignore *.md files unless you intentionally want that.

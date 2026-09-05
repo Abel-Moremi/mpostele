@@ -14,9 +14,11 @@
 
 ## Milestone 3: screenshot workflow
 
-- [ ] create a Playwright capture flow
-- [ ] collect and organize product visual assets
-- [ ] build a screenshot-to-scene abstraction
+- [x] create a Playwright capture flow
+- [x] collect and organize product visual assets
+- [x] build a screenshot-to-scene abstraction
+
+The first local proof uses Playwright to capture a page and FFmpeg to export a short motion clip from that screenshot.
 
 ## Milestone 4: animation workflow
 
