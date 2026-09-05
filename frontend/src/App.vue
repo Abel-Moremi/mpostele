@@ -1,218 +1,229 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import logoLight from './assets/mpostele-logo-light.png'
+import logoDark from './assets/mpostele-logo-dark.png'
 
 const theme = ref('light')
+const activeNav = ref('overview')
+const showPassword = ref(false)
+const captureJob = ref({
+  platformUrl: 'https://example.com',
+  username: '',
+  password: '',
+  targetPath: '/dashboard',
+  outputDir: 'artifacts/login_job',
+})
 
-const navItems = ['Overview', 'Calendar', 'Composer', 'Insights']
-const channels = [
-  { name: 'All', tone: 'magenta', active: true },
-  { name: 'Instagram', tone: 'lilac' },
-  { name: 'LinkedIn', tone: 'tan' },
-  { name: 'X', tone: 'rose' },
-  { name: 'Facebook', tone: 'wheat' },
-  { name: 'YouTube', tone: 'citron' },
+const pipelineSteps = [
+  { title: 'Login & route', text: 'Open a protected page with a supplied username and password.', tone: 'magenta' },
+  { title: 'Capture', text: 'Take a clean screenshot of the target product state.', tone: 'lilac' },
+  { title: 'Motion render', text: 'Apply the local FFmpeg-based Ken Burns style movement.', tone: 'tan' },
+  { title: 'Export', text: 'Write a final social-ready clip into the artifacts folder.', tone: 'citron' },
 ]
 
-const metrics = [
-  { label: 'Reach', value: '137k', badge: '+42%', tone: 'magenta' },
-  { label: 'Engagement', value: '8.4%', badge: '+1.2%', tone: 'lilac' },
-  { label: 'Best slot', value: '08:30', badge: 'Instagram', tone: 'wheat' },
-  { label: 'Spend', value: 'P790', badge: 'Budget', tone: 'gray' },
-]
+const isUrlValid = computed(() => {
+  try {
+    new URL(captureJob.value.platformUrl)
+    return true
+  } catch {
+    return false
+  }
+})
 
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const isOutputDirValid = computed(() => captureJob.value.outputDir.trim().length > 0)
 
-const calendarSlots = [
-  { label: 'Launch', time: '08:30', tone: 'magenta' },
-  { label: 'Story', time: '10:15', tone: 'lilac' },
-  { label: 'Trend', time: '13:00', tone: 'rose' },
-  { label: 'Case', time: '16:40', tone: 'tan' },
-  { label: 'Photo', time: '09:10', tone: 'tan' },
-  { label: 'Event', time: '11:45', tone: 'wheat' },
-  { label: 'Video', time: '18:05', tone: 'citron' },
-  { label: 'UGC', time: '07:55', tone: 'magenta' },
-  { label: 'Carousel', time: '09:35', tone: 'lilac' },
-  { label: 'Reply', time: '12:20', tone: 'rose' },
-  { label: 'Feature', time: '14:15', tone: 'wheat' },
-  { label: 'Promo', time: '19:00', tone: 'citron' },
-]
+const isJobValid = computed(() => isUrlValid.value && isOutputDirValid.value)
 
-const draftQueue = [
-  { campaign: 'Product launch story', channel: 'Instagram', tone: 'lilac', due: '08:30', status: 'Queued', statusTone: 'magenta', reach: '42k' },
-  { campaign: 'Customer win recap', channel: 'LinkedIn', tone: 'tan', due: '09:20', status: 'Draft', statusTone: 'gray', reach: '18k' },
-  { campaign: 'Founder note', channel: 'X', tone: 'rose', due: '12:15', status: 'Review', statusTone: 'wheat', reach: '7k' },
-  { campaign: 'Monthly roundup', channel: 'Facebook', tone: 'wheat', due: '14:45', status: 'Ready', statusTone: 'citron', reach: '31k' },
-]
+function buildCommandParts(mask) {
+  const parts = [
+    'python -m pipeline.first_render',
+    `--url ${captureJob.value.platformUrl}`,
+    `--base-dir ${captureJob.value.outputDir}`,
+  ]
 
-const bestTimes = [
-  { label: 'Instagram', value: '08:30' },
-  { label: 'LinkedIn', value: '09:20' },
-  { label: 'X', value: '12:15' },
-  { label: 'Facebook', value: '14:45' },
-  { label: 'YouTube', value: '18:05' },
-]
+  if (captureJob.value.username) parts.push(`--username ${captureJob.value.username}`)
+  if (captureJob.value.password) {
+    parts.push(`--password ${mask ? '••••••••' : captureJob.value.password}`)
+  }
+  if (captureJob.value.targetPath) parts.push(`--target-path ${captureJob.value.targetPath}`)
+
+  return parts.join(' ')
+}
+
+// Real command used for copying/running; may contain the plaintext password.
+const jobCommand = computed(() => buildCommandParts(false))
+
+// Masked command shown on screen so the password isn't exposed to shoulder-surfing or screenshots.
+const displayCommand = computed(() => buildCommandParts(!showPassword.value))
+
+function copyCommand() {
+  if (!isJobValid.value) return
+  navigator.clipboard?.writeText(jobCommand.value)
+}
+
+// Use the light-background logo variant in light mode and the dark-background variant in dark mode.
+const logoSrc = computed(() => (theme.value === 'light' ? logoLight : logoDark))
 
 function toggleTheme() {
   theme.value = theme.value === 'light' ? 'dark' : 'light'
   document.documentElement.setAttribute('data-theme', theme.value)
 }
 
+function goToSection(id) {
+  activeNav.value = id
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 onMounted(() => {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light'
-  theme.value = currentTheme
+  document.documentElement.setAttribute('data-theme', theme.value)
 })
 </script>
 
 <template>
-  <div class="app-shell">
-    <header class="app-header">
+  <div class="site-shell">
+    <header class="topbar">
       <div class="brand-wrap">
-        <div class="brand-mark">M</div>
+        <img class="brand-mark" :src="logoSrc" alt="Mpostele logo" />
         <div class="brand-copy">
           <div class="brand-name">Mpostele</div>
-          <div class="brand-sub">Planner</div>
+          <div class="brand-sub">Local capture studio</div>
         </div>
       </div>
 
-      <nav class="top-nav" aria-label="Primary navigation">
+      <nav class="main-nav" aria-label="Main navigation">
         <button
-          v-for="(item, index) in navItems"
-          :key="item"
-          class="nav-action"
-          :class="{ 'is-selected': index === 0 }"
+          class="nav-link"
+          :class="{ 'is-active': activeNav === 'overview' }"
+          :aria-current="activeNav === 'overview' ? 'page' : undefined"
           type="button"
-        >
-          {{ item }}
-        </button>
+          @click="goToSection('overview')"
+        >Overview</button>
+        <button
+          class="nav-link"
+          :class="{ 'is-active': activeNav === 'capture' }"
+          :aria-current="activeNav === 'capture' ? 'page' : undefined"
+          type="button"
+          @click="goToSection('capture')"
+        >Capture</button>
+        <button
+          class="nav-link"
+          :class="{ 'is-active': activeNav === 'docs' }"
+          :aria-current="activeNav === 'docs' ? 'page' : undefined"
+          type="button"
+          @click="goToSection('docs')"
+        >Docs</button>
       </nav>
 
-      <div class="header-actions">
-        <button class="icon-button" aria-label="Toggle theme" type="button" @click="toggleTheme">
-          {{ theme === 'light' ? '☼' : '☾' }}
-        </button>
-        <button class="mp-btn mp-btn--primary" type="button">Schedule</button>
-      </div>
+      <button
+        class="theme-switch"
+        type="button"
+        :aria-label="theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'"
+        @click="toggleTheme"
+      >
+        {{ theme === 'light' ? '☾' : '☀' }}
+      </button>
     </header>
 
-    <aside class="side-rail" aria-label="Channel rail">
-      <div class="rail-title">Channels</div>
-
-      <div
-        v-for="channel in channels"
-        :key="channel.name"
-        class="rail-item"
-        :class="{ 'is-active': channel.active }"
-      >
-        <span class="rail-dot" :class="`rail-dot--${channel.tone}`"></span>
-        <span>{{ channel.name }}</span>
-      </div>
-    </aside>
-
-    <main class="workspace">
-      <section class="page-header">
-        <div>
-          <p class="mp-label-01 page-overline">WEEK 37 · 8–14 SEPTEMBER</p>
-          <h1 class="mp-heading-04">24 posts scheduled across five channels</h1>
-        </div>
-
-        <div class="page-actions">
-          <button class="mp-btn mp-btn--secondary" type="button">Approve all</button>
-          <button class="mp-btn mp-btn--primary" type="button">Schedule</button>
-        </div>
-      </section>
-
-      <section class="kpi-grid" aria-label="Key metrics">
-        <article v-for="metric in metrics" :key="metric.label" class="metric-card">
-          <p class="mp-label-01">{{ metric.label }}</p>
-          <div class="metric-row">
-            <h2 class="mp-heading-05">{{ metric.value }}</h2>
-            <span class="mp-tag" :class="`mp-tag--${metric.tone}`">{{ metric.badge }}</span>
+    <main class="page">
+      <section id="overview" class="hero section-card">
+        <div class="hero-copy">
+          <p class="eyebrow">Local-first workflow</p>
+          <h1>Capture product pages and turn them into motion-ready clips.</h1>
+          <p class="hero-text">
+            This pipeline logs in, navigates to a target page, captures the state, and renders a lightweight local motion video without relying on a heavy cloud stack.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-btn" type="button" @click="goToSection('capture')">Run locally</button>
+            <button class="secondary-btn" type="button" :disabled="!isJobValid" @click="copyCommand">Copy command</button>
           </div>
-        </article>
-      </section>
+        </div>
 
-      <section class="content-grid">
-        <article class="panel panel--wide">
-          <div class="panel-header">
-            <h2 class="mp-heading-03">Content calendar</h2>
-            <div class="segmented-control" aria-label="View options">
-              <button class="segmented is-selected" type="button">Month</button>
-              <button class="segmented" type="button">Week</button>
-              <button class="segmented" type="button">List</button>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="mock-window">
+            <div class="mock-toolbar">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="mock-body">
+              <aside class="mock-sidebar"></aside>
+              <div class="mock-content">
+                <div class="mock-row long"></div>
+                <div class="mock-grid">
+                  <div class="mock-card"></div>
+                  <div class="mock-card"></div>
+                  <div class="mock-card large"></div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div class="calendar-grid" aria-label="Calendar preview">
-            <div v-for="day in weekDays" :key="day" class="calendar-day muted">{{ day }}</div>
-
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--magenta"><span>Launch</span><small>08:30</small></div>
-            <div class="slot slot--lilac"><span>Story</span><small>10:15</small></div>
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--rose"><span>Trend</span><small>13:00</small></div>
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--tan"><span>Case</span><small>16:40</small></div>
-
-            <div class="slot slot--tan"><span>Photo</span><small>09:10</small></div>
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--wheat"><span>Event</span><small>11:45</small></div>
-            <div class="slot slot--citron"><span>Video</span><small>18:05</small></div>
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--magenta"><span>UGC</span><small>07:55</small></div>
-            <div class="slot slot--empty" aria-hidden="true"></div>
-
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--lilac"><span>Carousel</span><small>09:35</small></div>
-            <div class="slot slot--rose"><span>Reply</span><small>12:20</small></div>
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--wheat"><span>Feature</span><small>14:15</small></div>
-            <div class="slot slot--empty" aria-hidden="true"></div>
-            <div class="slot slot--citron"><span>Promo</span><small>19:00</small></div>
-          </div>
-        </article>
-
-        <article class="panel">
-          <div class="panel-header">
-            <h2 class="mp-heading-03">Best times</h2>
-            <button class="text-link" type="button">View all</button>
-          </div>
-
-          <ul class="channel-list">
-            <li v-for="time in bestTimes" :key="time.label">
-              <span>{{ time.label }}</span>
-              <strong>{{ time.value }}</strong>
-            </li>
-          </ul>
-        </article>
+        </div>
       </section>
 
-      <section class="panel table-panel">
-        <div class="panel-header">
-          <h2 class="mp-heading-03">Draft queue</h2>
-          <button class="mp-btn mp-btn--secondary" type="button">Review</button>
+      <section id="capture" class="capture-panel section-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Capture setup</p>
+            <h2>Platform login and target route</h2>
+          </div>
         </div>
 
-        <table class="mp-table">
-          <thead>
-            <tr>
-              <th>Campaign</th>
-              <th>Channel</th>
-              <th>Due</th>
-              <th>Status</th>
-              <th>Reach</th>
-            </tr>
-          </thead>
+        <div class="form-grid">
+          <label>
+            Platform URL
+            <input v-model="captureJob.platformUrl" type="url" placeholder="https://example.com" :aria-invalid="!isUrlValid" />
+            <span v-if="!isUrlValid" class="field-error">Enter a valid URL, e.g. https://example.com</span>
+          </label>
 
-          <tbody>
-            <tr v-for="item in draftQueue" :key="item.campaign">
-              <td>{{ item.campaign }}</td>
-              <td><span class="mp-tag" :class="`mp-tag--${item.tone}`">{{ item.channel }}</span></td>
-              <td>{{ item.due }}</td>
-              <td><span class="mp-tag" :class="`mp-tag--${item.statusTone}`">{{ item.status }}</span></td>
-              <td>{{ item.reach }}</td>
-            </tr>
-          </tbody>
-        </table>
+          <label>
+            Username / email
+            <input v-model="captureJob.username" type="text" placeholder="name@example.com" />
+          </label>
+
+          <label>
+            Password
+            <input v-model="captureJob.password" type="password" placeholder="••••••••" autocomplete="new-password" />
+          </label>
+
+          <label>
+            Target path
+            <input v-model="captureJob.targetPath" type="text" placeholder="/dashboard" />
+          </label>
+
+          <label>
+            Output folder
+            <input v-model="captureJob.outputDir" type="text" placeholder="artifacts/login_job" :aria-invalid="!isOutputDirValid" />
+            <span v-if="!isOutputDirValid" class="field-error">Output folder cannot be empty</span>
+          </label>
+        </div>
+
+        <div class="command-box">
+          <pre>{{ displayCommand }}</pre>
+          <label v-if="captureJob.password" class="reveal-toggle">
+            <input v-model="showPassword" type="checkbox" />
+            Show password in command
+          </label>
+          <p v-if="captureJob.password" class="command-warning">
+            The copied command includes your password in plain text. Only copy or paste it on a trusted machine.
+          </p>
+        </div>
+      </section>
+
+      <section id="docs" class="steps-panel">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow">Implemented flow</p>
+            <h2>What the project does today</h2>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <article v-for="step in pipelineSteps" :key="step.title" class="step-card" :class="`tone-${step.tone}`">
+            <span class="step-dot" :class="`step-dot--${step.tone}`"></span>
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.text }}</p>
+          </article>
+        </div>
       </section>
     </main>
   </div>

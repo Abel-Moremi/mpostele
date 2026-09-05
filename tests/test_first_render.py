@@ -1,7 +1,12 @@
 import unittest
 from pathlib import Path
 
-from pipeline.first_render import build_ffmpeg_command, ensure_parent_dir, gather_output_paths
+from pipeline.first_render import (
+    build_capture_command,
+    build_ffmpeg_command,
+    ensure_parent_dir,
+    gather_output_paths,
+)
 
 
 class FirstRenderTests(unittest.TestCase):
@@ -29,6 +34,24 @@ class FirstRenderTests(unittest.TestCase):
 
         self.assertEqual(screenshot_path.name, "capture.png")
         self.assertEqual(video_path.name, "motion.mp4")
+
+    def test_build_capture_command_includes_credentials_and_target_url(self):
+        cmd = build_capture_command(
+            url="https://example.com/login",
+            username="user@example.com",
+            password="secret123",
+            target_path="/dashboard",
+            output_dir="artifacts/login_job",
+        )
+
+        self.assertIn("--url", cmd)
+        self.assertIn("https://example.com/login", cmd)
+        self.assertIn("--username", cmd)
+        self.assertIn("user@example.com", cmd)
+        self.assertIn("--password", cmd)
+        self.assertIn("secret123", cmd)
+        self.assertIn("--target-path", cmd)
+        self.assertIn("/dashboard", cmd)
 
 
 if __name__ == "__main__":

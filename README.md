@@ -89,16 +89,18 @@ The project now includes an initial capture-and-render script in [pipeline/first
 - render a short zoom-pan clip with FFmpeg
 - save output as a reproducible local asset for later compositing
 
-Run it against the frontend app like this:
+The capture flow also supports a simple login-driven session for authenticated pages. The same script can accept a platform URL, credentials, and a target path:
 
 ```bash
-cd frontend
-npm install
-npm run dev
-
-cd ..
-python -m pipeline.first_render --url http://localhost:5173 --base-dir artifacts/first_scene --duration 3.0
+python -m pipeline.first_render \
+  --url https://example.com/login \
+  --username user@example.com \
+  --password secret123 \
+  --target-path /dashboard \
+  --base-dir artifacts/login_job
 ```
+
+The frontend also includes a basic capture form in [frontend/src/App.vue](frontend/src/App.vue) that accepts the platform URL, credentials, and target route before generating the command for the local automation job.
 
 This is the first milestone in the architecture: proving the capture -> motion -> export path works without a heavy model stack.
 

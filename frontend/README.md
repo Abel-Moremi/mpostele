@@ -9,6 +9,7 @@ This folder contains the current frontend prototype for the mpostele project: a 
 - a draft queue with scheduling data
 - a theme toggle and design system styling
 - a dark/light UI treatment based on a shared token palette
+- a capture command builder that validates the platform URL and output folder, and masks the password by default (with an explicit "show password" toggle) so it isn't exposed on screen by default
 
 ## Why it exists
 
