@@ -1,0 +1,22 @@
+.mp-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: var(--mp-radius-tag);
+  font-size: 12px;
+  line-height: 1.33;
+  font-weight: 600;
+  letter-spacing: 0.16px;
+  border: 1px solid transparent;
+}
+
+.mp-tag--gray { background: var(--mp-tag-bg-gray); color: var(--mp-tag-fg-gray); }
+.mp-tag--magenta { background: var(--mp-tag-bg-magenta); color: var(--mp-tag-fg-magenta); }
+.mp-tag--lilac { background: var(--mp-tag-bg-lilac); color: var(--mp-tag-fg-lilac); }
+.mp-tag--rose { background: var(--mp-tag-bg-rose); color: var(--mp-tag-fg-rose); }
+.mp-tag--tan { background: var(--mp-tag-bg-tan); color: var(--mp-tag-fg-tan); }
+.mp-tag--wheat { background: var(--mp-tag-bg-wheat); color: var(--mp-tag-fg-wheat); }
+.mp-tag--citron { background: var(--mp-tag-bg-citron); color: var(--mp-tag-fg-citron); }

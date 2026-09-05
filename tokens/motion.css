@@ -1,0 +1,15 @@
+:root {
+  --mp-duration-fast-01: 70ms;
+  --mp-duration-fast-02: 110ms;
+  --mp-duration-moderate-01: 150ms;
+  --mp-duration-moderate-02: 240ms;
+  --mp-duration-slow-01: 400ms;
+  --mp-duration-slow-02: 700ms;
+
+  --mp-easing-standard-productive: cubic-bezier(.2, 0, .38, .9);
+  --mp-easing-standard-expressive: cubic-bezier(.4, .14, .3, 1);
+  --mp-easing-entrance-productive: cubic-bezier(0, 0, .38, .9);
+  --mp-easing-entrance-expressive: cubic-bezier(0, 0, .3, 1);
+  --mp-easing-exit-productive: cubic-bezier(.2, 0, 1, .9);
+  --mp-easing-exit-expressive: cubic-bezier(.4, .14, 1, 1);
+}
