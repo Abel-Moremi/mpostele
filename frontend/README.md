@@ -1,5 +1,34 @@
-# Vue 3 + Vite
+# Mpostele frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+This folder contains the current frontend prototype for the mpostele project: a Vite + Vue interface for planning and previewing social content workflows.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## What this prototype includes
+
+- a content calendar dashboard
+- channel and campaign summary metrics
+- a draft queue with scheduling data
+- a theme toggle and design system styling
+- a dark/light UI treatment based on a shared token palette
+
+## Why it exists
+
+This UI is a design and interaction prototype for the broader mpostele concept. It demonstrates the planning experience for short-form product content while the underlying capture, motion, and compositing pipeline is still being built.
+
+## Run locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Verify the production build
+
+```bash
+cd frontend
+npm run build
+```
+
+## Current status
+
+This frontend is a working prototype, not the final end-to-end video automation stack. The long-term pipeline still needs the actual browser capture, motion generation, FFmpeg composition, and export logic described in the project docs.

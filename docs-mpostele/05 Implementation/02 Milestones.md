@@ -2,33 +2,39 @@
 
 ## Milestone 1: repo and docs foundation
 
-- initialize the project structure
-- create the vault and core notes
-- document the architecture and design constraints
+- [x] initialize the project structure
+- [x] create the vault and core notes
+- [x] document the architecture and design constraints
 
-## Milestone 2: screenshot workflow
+## Milestone 2: frontend prototype
 
-- create a Playwright capture flow
-- collect and organize product visual assets
-- build a screenshot-to-scene abstraction
+- [x] create a browser-based planning dashboard
+- [x] define the shared token and theme system
+- [x] establish the visual storytelling foundation for product marketing UI
 
-## Milestone 3: animation workflow
+## Milestone 3: screenshot workflow
 
-- add low-memory animation presets
-- test FFmpeg motion effects
-- add Manim overlays for callouts and titles
+- [ ] create a Playwright capture flow
+- [ ] collect and organize product visual assets
+- [ ] build a screenshot-to-scene abstraction
 
-## Milestone 4: voiceover workflow
+## Milestone 4: animation workflow
 
-- generate script-based narration
-- tune voice pacing and timing
-- integrate audio into video layers
+- [ ] add low-memory animation presets
+- [ ] test FFmpeg motion effects
+- [ ] add Manim overlays for callouts and titles
 
-## Milestone 5: final pipeline
+## Milestone 5: voiceover workflow
 
-- assemble full video sequences
-- generate final exports
-- confirm the workflow works end to end
+- [ ] generate script-based narration
+- [ ] tune voice pacing and timing
+- [ ] integrate audio into video layers
+
+## Milestone 6: final pipeline
+
+- [ ] assemble full video sequences
+- [ ] generate final exports
+- [ ] confirm the workflow works end to end
 
 ## Related notes
 

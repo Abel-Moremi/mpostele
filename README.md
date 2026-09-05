@@ -1,118 +1,93 @@
 # mpostele
 
-mpostele is a lightweight, open-source pipeline for generating animated social-media product videos entirely on a local machine without relying on expensive GPU-heavy AI models.
+mpostele is a local-first concept for creating animated product and social content on modest hardware. The repository currently contains two layers of work:
 
-This project is designed around a real hardware constraint: a GTX 1050 Ti with 4GB VRAM and 8GB system RAM. The goal is to stay practical, offline, and affordable by using programmatic animation and browser-based motion instead of heavy diffusion or video-generation models that require tens of GB of VRAM.
+- a design and planning knowledge base under [docs-mpostele](docs-mpostele)
+- a browser-based prototype UI in [frontend](frontend)
+- a shared design token set in [tokens](tokens)
 
-## Why this project exists
+This is not yet a complete end-to-end video-generation product. The automation pipeline described in the research notes is the target architecture, but the implementation is still in progress.
 
-Heavy local AI video generators such as SVD or AnimateDiff often require 8GB to 12GB of VRAM or more just to render a few seconds of output. For a $0 workflow on a modest laptop, the better approach is to build motion using:
+## Current repo state
 
-- browser automation and screenshot capture
-- code-driven motion graphics
-- lightweight FFmpeg filters
-- local TTS and compositing
+### What exists now
 
-This keeps the stack within the limits of small hardware while still producing polished, animated product videos.
+- research notes and architecture docs for a low-memory animation workflow
+- a Vue + Vite frontend mockup for a content planner / campaign dashboard
+- design tokens for typography, spacing, and theme system
 
-## Architecture overview
+### What is still planned
 
-Animation fits directly into the media construction stage of a sequential pipeline. Instead of relying only on static screen recordings, the system transforms screenshots, UI captures, and overlays into dynamic motion before FFmpeg assembles the final output.
+- Playwright-based capture workflow for product screens or landing pages
+- FFmpeg motion presets and compositing pipeline
+- Manim or browser-based motion overlays for callouts and titles
+- local voiceover generation and export automation
+- a working CLI or Python orchestration layer for end-to-end video jobs
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    SINGLE-CONTAINER WORKFLOW                            │
-│                                                                         │
-│  1. SCRIPT & VOICE  ──>  2. SCREENSHOT CAPTURE  ──>  3. ANIMATION ENGINE│
-│   (Ollama + Kokoro)          (Playwright)             (Manim / Motion)  │
-│                                                                         │
-│  4. COMPOSITING & ENCODING  ──>  5. FINAL POSTING                     │
-│      (FFmpeg + h264_nvenc + subtitles + voice sync)                    │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+## Design intent
 
-## Low-memory animation options
+The project is intentionally optimized for offline, low-memory workflows rather than heavy cloud or GPU-intensive generative stacks. The core approach remains:
 
-Depending on the style of motion needed, these are the best open-source options for a constrained system.
+- capture product UI states or screenshots
+- generate motion with lightweight tools
+- animate with browser, CSS, FFmpeg, or minimal overlays
+- composite final output locally
 
-### 1. Code-driven 2D motion graphics: Manim or Motion Canvas
-
-- How it works: programmatically creates motion graphics, text animations, UI highlights, overlays, and lower-thirds
-- Why it fits: Manim and Motion Canvas typically run comfortably on CPU/GPU and use far less than 500MB of RAM in normal usage
-- Best for: animated logos, text popups, feature callouts, chart motion, and simple UI emphasis
-
-### 2. Animated web screenshots: Playwright CSS/JS animation
-
-- How it works: injects CSS or JavaScript animations into a webpage before recording the motion
-- Why it fits: uses Chromium rendering rather than heavy AI inference
-- Best for: pulsing CTAs, smooth scrolling, zooming into product pages, transitions between sections, floating design motion
-
-### 3. Image pan/zoom and Ken Burns effect: FFmpeg motion filters
-
-- How it works: applies slow camera movement to a still image or screenshot
-- Why it fits: can be hardware accelerated by the GTX 1050 Ti using NVENC and uses minimal system RAM
-- Best for: transforming static screenshots into lively video backgrounds for Shorts or Reels
-
-## Execution flow
-
-When an animation job runs, the pipeline executes in a clear sequence:
-
-1. Asset capture: Playwright captures high-resolution screenshots of the product UI or feature area.
-2. Animation generation: Python calls Manim or another motion engine to generate an animated overlay such as a title card, arrow, badge, or lower-third.
-3. Motion enhancement: FFmpeg applies a smooth zoom-and-pan or parallax effect to the screenshot when needed.
-4. Voice sync and compositing: FFmpeg combines the animated UI video, overlay graphics, and Kokoro TTS voice track into a single polished output using h264_nvenc.
-
-## Recommended directory structure
+## Repository structure
 
 ```text
-ai-social-poster/
-├── app/
-│   ├── main.py
-│   ├── agent/
-│   ├── media/
-│   │   ├── recorder.py      # Playwright screen recorder
-│   │   ├── tts.py           # Kokoro-82M TTS
-│   │   ├── animator.py      # Manim / FFmpeg motion engine
-│   │   ├── composer.py      # FFmpeg final output assembly
-│   │   └── assets/
-│   │       ├── screenshots/
-│   │       ├── overlays/
-│   │       └── audio/
-│   └── config/
-│       └── settings.py
-├── requirements.txt
+mpostele/
+├── AGENTS.md
 ├── README.md
 ├── LICENSE
-└── docs/
+├── docs-mpostele/
+│   ├── 00 Home.md
+│   ├── 01 Project Overview.md
+│   ├── 02 Architecture.md
+│   ├── 03 Workflow/
+│   ├── 04 Research/
+│   ├── 05 Implementation/
+│   ├── 06 Operations/
+│   └── 07 Reference/
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── src/
+│   └── README.md
+├── tokens/
+│   └── design tokens for the UI system
+└── .gitignore
 ```
 
-## Why this approach works on a 1050 Ti + 8GB RAM system
+## Frontend prototype
 
-By using code-driven motion graphics instead of heavy neural diffusion models, the project avoids the most common failure point: VRAM exhaustion. The stack is designed to stay lightweight, local, and fully offline while still producing modern, animated marketing content.
+The frontend app is a Vite + Vue dashboard concept that demonstrates a content-planning and publishing workflow. It is useful as a design and UX reference for the broader product direction, but it is not the final automated video pipeline.
 
-The result is a practical setup for generating product videos, feature showcases, and short-form social clips without needing a high-end workstation or cloud GPU rental.
+To run the frontend locally:
 
-## Project goals
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-- generate animated product videos locally
-- keep the stack free and open source
-- work within modest laptop hardware limits
-- avoid GPU-heavy AI models where possible
-- support offline content creation for marketing and product storytelling
+To verify the app builds cleanly:
 
-## Future direction
+```bash
+cd frontend
+npm run build
+```
 
-The project can evolve by adding:
+## Project direction
 
-- a CLI for generating video jobs from a product brief
-- a Playwright capture module for UI and landing page screenshots
-- FFmpeg-based motion presets for different content styles
-- Manim overlays for titles, highlights, and feature annotations
-- automated output packaging for Shorts, Reels, and TikTok exports
+The long-term goal remains a local-first animation pipeline for product storytelling and short-form content, aiming to work on modest hardware such as a GTX 1050 Ti + 8GB RAM system without depending on heavy video diffusion models.
 
-## Summary
+The current repo is the foundation for that goal: architecture notes, research, and a working prototype UI are in place and should be expanded into the actual capture, animation, and export pipeline next.
 
-This repo is built around a realistic local-first AI video workflow: capture the product, animate it programmatically, sync voice, and composite the final output with FFmpeg. It favors efficiency, accessibility, and offline trust over heavy model inference.
+## Related docs
 
-That makes it a strong fit for developers and creators working with small hardware while still wanting polished, modern animated video output.
+- [docs-mpostele/00 Home.md](docs-mpostele/00%20Home.md)
+- [docs-mpostele/01 Project Overview.md](docs-mpostele/01%20Project%20Overview.md)
+- [docs-mpostele/02 Architecture.md](docs-mpostele/02%20Architecture.md)
+- [frontend/README.md](frontend/README.md)
 

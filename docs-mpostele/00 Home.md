@@ -1,17 +1,24 @@
 # mpostele
 
-This vault is the knowledge base for a local-first, low-memory workflow for generating animated product videos without expensive cloud GPU services.
+This vault is the working knowledge base for a local-first, low-memory workflow for animated product marketing. It documents the target architecture and research direction for the project, while the repository currently also includes a front-end prototype and shared design tokens.
+
+## Current status
+
+The repo is in an early-to-mid stage:
+
+- the research, constraints, and workflow notes are in place
+- the project direction is clearly documented
+- a Vite + Vue prototype exists for the planning UI
+- the end-to-end production pipeline is still a planned implementation, not a shipped feature set
 
 ## Core idea
 
-The project focuses on automated video generation for short-form product marketing using only modest hardware such as a GTX 1050 Ti with 4GB VRAM and 8GB system RAM.
+The project aims to create short-form product content using modest hardware such as a GTX 1050 Ti with 4GB VRAM and 8GB system RAM. The preferred approach is to avoid heavy diffusion-style video generation and instead rely on:
 
-Instead of relying on heavy diffusion or AI video models, the system uses:
-
-- Playwright for screenshot capture
-- lightweight animation tooling such as Manim or FFmpeg motion filters
-- local voice synthesis with Kokoro
-- FFmpeg for compositing and final delivery
+- Playwright for browser capture and UI automation
+- lightweight animations via CSS, JS, or FFmpeg-based motion
+- optional Manim overlays for titles and highlights
+- local voice synthesis and final compositing in FFmpeg
 
 ## Workflow
 
@@ -48,6 +55,6 @@ Instead of relying on heavy diffusion or AI video models, the system uses:
 - [[07 Reference/01 Links]]
 - [[07 Reference/02 Notes Archive]]
 
-## Why this project exists
+## Repository context
 
-The main design constraint is to avoid memory-heavy AI tooling that cannot run comfortably on older laptop hardware. The goal is to produce polished automated product content using accessible, open-source tools that work on local machines.
+This repository is best understood as a combination of design documentation and a prototype front-end, not yet as a full production pipeline. The long-term goal is still to turn these notes into a reusable, local-first generation workflow for marketing videos and short-form social content.

@@ -1,8 +1,18 @@
 # Setup Checklist
 
+## Current status
+
+The repository currently includes:
+
+- [x] project documentation and architecture notes
+- [x] a Vite + Vue frontend prototype
+- [x] shared design tokens and styling foundation
+
+The remaining production pipeline work is still pending:
+
 ## Environment
 
-- [ ] verify Python version and dependencies
+- [ ] verify Python version and dependencies for the pipeline
 - [ ] install Playwright and browser runtime
 - [ ] install FFmpeg and confirm codec support
 - [ ] install TTS tooling such as Kokoro
@@ -10,9 +20,10 @@
 
 ## Project files
 
-- [ ] create the application structure
+- [ ] create the application structure for automation scripts
 - [ ] plan the media asset directories
 - [ ] prepare configuration defaults
+- [ ] add the first production-oriented CLI entry point
 
 ## Production flow
 
