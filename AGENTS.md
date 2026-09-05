@@ -81,6 +81,12 @@ Before implementing a feature or fix, the agent should check whether it supports
 
 If a proposed change fails those checks, the agent should suggest a simpler or more efficient alternative.
 
+### Mandatory documentation update rule
+
+After every implementation, the agent must update the relevant documentation in the same change set. This includes any affected files in README.md, docs-mpostele, and any operational notes that describe architecture, workflow, setup, or usage.
+
+The documentation update is not optional and is considered part of the implementation itself. If a change modifies behavior, configuration, assumptions, commands, or workflows, the docs must reflect that change before the work is considered complete.
+
 ## Communication style for future agents
 
 - Be concise and practical
@@ -110,3 +116,5 @@ Less suitable directions include:
 ## Final rule
 
 This repo is best understood as a pragmatic, local-first animation pipeline for content creation under hardware limits. The agent should always choose the path that preserves that spirit: efficient, understandable, and functional on modest machines.
+
+The agent must treat documentation as part of the implementation. No change is complete until the relevant documentation has been reviewed and updated to match the new state of the project.
