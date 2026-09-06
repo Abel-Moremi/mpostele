@@ -1,8 +1,8 @@
-# Roadmap
+ # Roadmap
 
 ## Current status
 
-The repo has completed the documentation foundation and a frontend prototype. The actual media-generation pipeline remains the next major implementation milestone.
+The repo now has a working local media pipeline from capture through multi-scene export. Local TTS, real-world platform validation, and frontend support for render manifests remain the next major milestones.
 
 ## Phase 1: Foundation
 
@@ -34,15 +34,15 @@ The repo has completed the documentation foundation and a frontend prototype. Th
 ## Phase 5: Composite and export
 
 - [x] merge a single motion/overlay clip with supplied voiceover
-- [ ] merge multiple clips, overlays, and voiceover into a complete sequence
+- [x] merge multiple clips, overlays, and voiceover into a complete sequence
 - [ ] test final output for platform compatibility
-- [ ] finalize export presets for social videos
+- [x] add landscape, vertical, and square export presets
 
 ## Phase 6: Automation
 
-- [ ] build a simple CLI or Python orchestrator
-- [ ] automate repeated rendering jobs
-- [ ] package the workflow for reuse
+- [x] build a simple JSON-driven Python orchestrator (`pipeline/render_job.py`)
+- [x] automate repeated rendering jobs while retaining inspectable intermediate files
+- [ ] expose multi-scene jobs in the frontend and package the workflow for reuse
 
 ## Related notes
 

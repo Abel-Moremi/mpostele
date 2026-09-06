@@ -5,9 +5,11 @@
 # Optional: if you use local temp or trash folders
 .trash/
 
-# Common OS/editor noise
+# Common OS/editor/runtime noise
 .DS_Store
 Thumbs.db
+__pycache__/
+*.py[cod]
 
 # Generated local media artifacts
 artifacts/

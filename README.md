@@ -1,11 +1,12 @@
 # mpostele
 
-mpostele is a local-first concept for creating animated product and social content on modest hardware. The repository currently contains two layers of work:
+mpostele is a local-first toolkit for creating animated product and social content on modest hardware. The repository contains:
 
 - a design and planning knowledge base under [docs-mpostele](docs-mpostele)
 - a browser-based prototype UI in [frontend](frontend)
+- a Python media pipeline under [pipeline](pipeline)
 
-This is not yet a complete end-to-end video-generation product. The automation pipeline described in the research notes is the target architecture, but the implementation is still in progress.
+The pipeline can produce multi-scene videos, but local TTS, frontend orchestration, and real-platform export validation are still in progress.
 
 ## Current repo state
 
@@ -14,12 +15,13 @@ This is not yet a complete end-to-end video-generation product. The automation p
 - research notes and architecture docs for a low-memory animation workflow
 - a Vue + Vite frontend mockup for a content planner / campaign dashboard
 - local Playwright capture, FFmpeg motion, Manim overlays, and narration compositing modules
+- a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
 
 ### What is still planned
 
-- local text-to-speech generation
-- multi-scene export automation
-- a working CLI or Python orchestration layer for end-to-end video jobs
+- local text-to-speech generation and voice-pacing integration
+- end-to-end testing against representative social-platform uploads
+- frontend controls for multi-scene render jobs
 
 ## Design intent
 
@@ -56,7 +58,7 @@ mpostele/
 
 ## Frontend prototype
 
-The frontend app is a Vite + Vue local control surface for capture and narration-compositing jobs. It can run both Python stages through loopback-only Vite endpoints and display their logs, but it is not yet a complete multi-scene automation pipeline.
+The frontend app is a Vite + Vue local control surface for capture and narration-compositing jobs. It can run both Python stages through loopback-only Vite endpoints and display their logs. Multi-scene jobs currently run through the Python CLI rather than the frontend.
 
 To run the frontend locally:
 
@@ -77,7 +79,7 @@ npm run build
 
 The long-term goal remains a local-first animation pipeline for product storytelling and short-form content, aiming to work on modest hardware such as a GTX 1050 Ti + 8GB RAM system without depending on heavy video diffusion models.
 
-The current repo is the foundation for that goal: architecture notes, research, and a working prototype UI are in place and should be expanded into the actual capture, animation, and export pipeline next.
+The current repository provides that foundation plus a working capture, animation, narration-compositing, and multi-scene export pipeline. The next work is production validation and lightweight local narration generation.
 
 ## First local pipeline proof
 
@@ -94,12 +96,11 @@ The capture flow also supports a simple login-driven session for authenticated p
 python -m pipeline.first_render \
   --url https://example.com/login \
   --username user@example.com \
-  --password secret123 \
   --target-path /dashboard \
   --base-dir artifacts/login_job
 ```
 
-The frontend also includes a basic capture form in [frontend/src/App.vue](frontend/src/App.vue) that accepts the platform URL, credentials, and target route before generating the command for the local automation job.
+Set `MPOSTELE_PASSWORD` in the environment before authenticated command-line captures so the password is not written into shell history. The frontend also includes a basic capture form in [frontend/src/App.vue](frontend/src/App.vue) that accepts the platform URL, credentials, and target route before generating the command for the local automation job.
 
 This is the first milestone in the architecture: proving the capture -> motion -> export path works without a heavy model stack.
 
@@ -146,6 +147,20 @@ python -m pipeline.audio \
 The visual is trimmed or its final frame is held to match the narration. Audio receives lightweight one-pass loudness normalization by default; pass `--no-normalize-audio` to preserve the source level. This stage intentionally accepts an existing audio file so a future local TTS adapter does not become a hard dependency.
 
 The same operation is available in the frontend's **Audio** panel. Its local `/api/run-audio` endpoint validates that all media paths stay inside the repository before invoking the Python module without a shell.
+
+## Multi-scene render jobs
+
+[pipeline/render_job.py](pipeline/render_job.py) turns the individual stages into one manifest-driven workflow. Each scene uses exactly one source: a URL, an image, or a video. It can then add an optional title/callout and local narration before all scenes are normalized and concatenated.
+
+Run a job with:
+
+```bash
+python -m pipeline.render_job path/to/job.json
+```
+
+The manifest supports `landscape_720p`, `vertical_1080p`, and `square_1080p` export presets. Paths are resolved relative to the manifest file. Intermediate captures and encoded scenes stay in `work_dir` so a failed render can be inspected without opaque cache state. Login passwords are deliberately excluded from manifests; set `MPOSTELE_PASSWORD` in the environment when an authenticated URL scene needs one.
+
+See [the commands note](docs-mpostele/06%20Operations/01%20Commands.md#multi-scene-render-job) for a complete manifest example.
 
 ## Related docs
 

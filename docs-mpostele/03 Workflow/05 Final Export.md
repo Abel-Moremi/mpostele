@@ -18,11 +18,24 @@ This project targets export styles suitable for:
 - TikTok
 - LinkedIn style product clips
 
+## Implemented export flow
+
+`pipeline/render_job.py` normalizes every scene before concatenation so the final stream-copy pass receives matching H.264 video and AAC stereo audio. Scenes without audio receive a silent 48 kHz track. This avoids expensive final re-encoding while keeping scene boundaries compatible.
+
+Available presets are:
+
+- `landscape_720p`: 1280x720
+- `vertical_1080p`: 1080x1920
+- `square_1080p`: 1080x1080
+
+Custom manifest width and height values may override a preset. Inputs preserve their aspect ratio and receive black padding where their shape differs from the export canvas. Intermediate normalized scenes remain in the job work directory.
+
 ## Export considerations
 
-- use a vertical or square format depending on platform
+- use the vertical preset for Shorts, Reels, and TikTok, or square/landscape where appropriate
 - keep file sizes manageable for local storage
-- test playback on a lower-end machine before publishing
+- test playback and upload compatibility on target platforms before publishing
+- consider a future hardware-encoder option only after the CPU path is verified and remains the portable default
 
 ## Related notes
 

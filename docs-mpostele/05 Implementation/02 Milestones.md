@@ -42,9 +42,11 @@ Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`,
 
 ## Milestone 6: final pipeline
 
-- [ ] assemble full video sequences
-- [ ] generate final exports
-- [ ] confirm the workflow works end to end
+- [x] assemble full video sequences from a JSON manifest
+- [x] generate normalized H.264/AAC exports in landscape, vertical, or square formats
+- [ ] confirm the workflow end to end with representative production assets and platform uploads
+
+`pipeline/render_job.py` accepts URL, image, and existing-video scenes; reuses the capture, motion, overlay, and narration stages; adds silent audio when a scene has none; normalizes every scene to one resolution/frame-rate/audio profile; and concatenates the results. Intermediate files remain under the configured `work_dir` for deterministic inspection. Manifest-relative paths keep jobs portable, while login secrets remain outside JSON in `MPOSTELE_PASSWORD`.
 
 ## Related notes
 

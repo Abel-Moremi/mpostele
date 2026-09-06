@@ -38,7 +38,9 @@ A local TTS model such as Kokoro can produce narration that matches the script a
 
 ### 5. Compositing and encoding
 
-FFmpeg merges the generated visuals, voiceover, and overlays into a final video using a practical encoder profile such as `h264_nvenc` when available.
+`pipeline/render_job.py` coordinates the existing modules from a local JSON manifest. It renders each URL, image, or video scene; applies optional overlays and narration; then uses FFmpeg to normalize all scenes to matching H.264/AAC streams and concatenate them. The default `libx264` path is portable and does not require a GPU. Hardware encoding can remain an optional future optimization rather than an architectural dependency.
+
+The orchestrator leaves captures, overlays, narrated clips, normalized scenes, and the concat list in a visible work directory. This makes reruns and failures understandable on modest hardware instead of hiding state in a service or opaque cache.
 
 ## Practical fit
 
