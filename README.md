@@ -6,7 +6,8 @@ mpostele is a local-first toolkit for creating animated product and social conte
 - a browser-based prototype UI in [frontend](frontend)
 - a Python media pipeline under [pipeline](pipeline)
 
-The pipeline and frontend can produce multi-scene videos; local TTS and real-platform export validation are still in progress.
+The pipeline and frontend can produce multi-scene videos with supplied or locally generated narration; real-platform export validation is still in progress.
+
 
 ## Current repo state
 
@@ -14,13 +15,15 @@ The pipeline and frontend can produce multi-scene videos; local TTS and real-pla
 
 - research notes and architecture docs for a low-memory animation workflow
 - a Vue + Vite frontend mockup for a content planner / campaign dashboard
-- local Playwright capture, FFmpeg motion, Manim overlays, and narration compositing modules
+- local Playwright capture, FFmpeg motion, Manim overlays, narration compositing, and optional Kokoro TTS modules
 - a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
+
 
 ### What is still planned
 
-- local text-to-speech generation and voice-pacing integration
+- voice-pacing validation with representative scripts
 - end-to-end testing against representative social-platform uploads
+
 - additional production presets and reusable render-job templates
 
 ## Design intent
@@ -79,7 +82,8 @@ npm run build
 
 The long-term goal remains a local-first animation pipeline for product storytelling and short-form content, aiming to work on modest hardware such as a GTX 1050 Ti + 8GB RAM system without depending on heavy video diffusion models.
 
-The current repository provides that foundation plus a working capture, animation, narration-compositing, and multi-scene export pipeline. The next work is production validation and lightweight local narration generation.
+The current repository provides that foundation plus a working capture, animation, optional local narration generation, narration-compositing, and multi-scene export pipeline. The next work is production and platform validation.
+
 
 ## First local pipeline proof
 
@@ -144,13 +148,27 @@ python -m pipeline.audio \
   --output artifacts/first_scene/final.mp4
 ```
 
-The visual is trimmed or its final frame is held to match the narration. Audio receives lightweight one-pass loudness normalization by default; pass `--no-normalize-audio` to preserve the source level. This stage intentionally accepts an existing audio file so a future local TTS adapter does not become a hard dependency.
+The visual is trimmed or its final frame is held to match the narration. Audio receives lightweight one-pass loudness normalization by default; pass `--no-normalize-audio` to preserve the source level. This stage continues to accept existing recordings, so TTS never becomes mandatory.
+
 
 The same operation is available in the frontend's **Audio** panel. Its local `/api/run-audio` endpoint validates that all media paths stay inside the repository before invoking the Python module without a shell.
 
+## Optional local text to speech
+
+[pipeline/tts.py](pipeline/tts.py) generates narration WAV files with Kokoro. Its dependencies stay separate so the normal capture/render installation remains lightweight:
+
+```bash
+pip install -r requirements-tts.txt
+python -m pipeline.tts --text "Plan and publish from one place." --output artifacts/voiceover.wav
+```
+
+The first Kokoro use may need network access to populate its local model/voice cache; synthesis is local after those assets are cached. Generated scene narration is keyed by script, voice, speed, and language settings and reused on unchanged rerenders.
+
 ## Multi-scene render jobs
 
-[pipeline/render_job.py](pipeline/render_job.py) turns the individual stages into one manifest-driven workflow. Each scene uses exactly one source: a URL, an image, or a video. It can then add an optional title/callout and local narration before all scenes are normalized and concatenated.
+
+[pipeline/render_job.py](pipeline/render_job.py) turns the individual stages into one manifest-driven workflow. Each scene uses exactly one source: a URL, an image, or a video. It can then add an optional title/callout and either a local narration file or a TTS `script` before all scenes are normalized and concatenated.
+
 
 Run a job with:
 

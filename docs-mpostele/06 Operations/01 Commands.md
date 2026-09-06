@@ -59,6 +59,23 @@ The output duration defaults to the narration duration. A short visual holds its
 
 To run this from the frontend, start Vite, open the **Audio** panel, enter repository-contained paths for the base video, narration, and output, then select **Create narrated video**. The local `/api/run-audio` endpoint rejects paths outside the project and reports FFmpeg output in the panel.
 
+## Local text to speech
+
+Kokoro is optional and is not installed by the base requirements. Install it only on machines that need script-based voice generation:
+
+```bash
+pip install -r requirements-tts.txt
+python -m pipeline.tts --text "Plan and publish from one place." --output artifacts/voiceover.wav
+```
+
+For longer text, use a UTF-8 file:
+
+```bash
+python -m pipeline.tts --text-file scripts/intro.txt --voice af_heart --speed 1.0 --lang-code a --output artifacts/intro.wav
+```
+
+The default settings are voice `af_heart`, speed `1.0`, and Kokoro language code `a` (American English). `--force` bypasses the cache. Otherwise, an existing WAV is reused when its adjacent `.tts-cache.json` key matches the text, voice, speed, and language. Kokoro may download model and voice assets on first use; prepare that cache while online before expecting fully offline synthesis.
+
 ## Multi-scene render job
 
 Create a JSON manifest and run it through the orchestrator:
@@ -93,9 +110,15 @@ Example manifest:
     {
       "id": "feature",
       "image": "../assets/feature.png",
-      "duration": 5,
+            "duration": 5,
       "motion_preset": "pan_left_to_right",
-      "narration": "../assets/feature.wav"
+
+      "script": "Show every campaign in one focused workspace.",
+      "tts": {
+        "voice": "af_heart",
+        "speed": 1.0,
+                "lang_code": "a"
+      }
     },
     {
       "id": "demo",
@@ -107,11 +130,13 @@ Example manifest:
 
 Every scene must define exactly one of `url`, `image`, or `video`. URL scenes support `capture.mode` (`screenshot` or `motion`), `username`, `target_path`, `selector`, `hide_selectors`, `hide_common_overlays`, `motion_trigger`, `trigger_selector`, and timing controls. Use `MPOSTELE_PASSWORD` for authenticated scenes; passwords are rejected in manifest files to avoid storing secrets in plaintext.
 
+A scene may define either `narration` for an existing audio file or `script` for generated speech, but not both. Script scenes accept optional `tts.voice`, `tts.speed`, and `tts.lang_code` settings. Their generated WAV and cache record remain in that scene's work folder, so an unchanged rerender skips speech inference.
+
 Available export presets are `landscape_720p` (1280x720), `vertical_1080p` (1080x1920), and `square_1080p` (1080x1080). Explicit `export.width` and `export.height` values override the preset. All paths are relative to the manifest directory unless absolute. Scene intermediates and `concat.txt` remain in `work_dir` for inspection. Existing files are overwritten by FFmpeg.
 
-A scene `duration` controls screenshot/image motion length and live browser recording length. It also trims a supplied video when no narration is present. If narration is supplied, its probed duration controls that scene instead.
+A scene `duration` controls screenshot/image motion length and live browser recording length. It also trims a supplied video when no narration is present. If supplied or generated narration is present, its probed duration controls that scene instead.
 
-The same workflow is available in the frontend **Render** panel. Start Vite, add or reorder scenes, select source and processing options, and choose **Render complete video**. The loopback-only `/api/run-render-job` endpoint converts project-relative paths to validated repository-contained paths, saves `frontend-job.json` in the work folder, passes any password only through `MPOSTELE_PASSWORD`, and invokes `pipeline.render_job` without a shell. The browser persists render settings locally but never stores the password.
+The same workflow is available in the frontend **Render** panel. Start Vite, add or reorder scenes, choose no narration, a local audio file, or a generated script, select the remaining processing options, and choose **Render complete video**. The loopback-only `/api/run-render-job` endpoint converts project-relative paths to validated repository-contained paths, saves `frontend-job.json` in the work folder, passes any password only through `MPOSTELE_PASSWORD`, and invokes `pipeline.render_job` without a shell. The browser persists render settings locally but never stores the password.
 
 ## Notes
 

@@ -1,0 +1,9 @@
+# Optional local text-to-speech dependencies.
+# Install only when script-based narration is needed:
+#   pip install -r requirements-tts.txt
+#
+# Kokoro runs locally and can use CPU. Model/voice assets may be downloaded by
+# the package on first use; subsequent synthesis can run from the local cache.
+kokoro>=0.9.4,<1.0
+soundfile>=0.13,<1.0
+numpy>=1.26,<3.0

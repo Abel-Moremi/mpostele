@@ -32,13 +32,15 @@ Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`,
 
 ## Milestone 5: voiceover workflow
 
-- [ ] generate script-based narration
+- [x] generate script-based narration with optional local Kokoro TTS
+
 - [x] use narration duration to time a visual clip
 - [x] integrate supplied local audio into a video layer
 - [x] normalize narration and encode it as AAC
 - [ ] tune generated voice pacing and timing
 
-`pipeline/audio.py` is the lightweight composition boundary: it accepts any local narration file, probes duration with FFprobe, trims or extends the visual to match, and writes an H.264/AAC MP4. TTS remains a separate future adapter that can produce `voiceover.wav` without making model inference a requirement for audio composition.
+`pipeline/audio.py` remains the lightweight composition boundary: it accepts any local narration file, probes duration with FFprobe, trims or extends the visual to match, and writes an H.264/AAC MP4. `pipeline/tts.py` is an optional Kokoro adapter that generates cached WAV files from scripts. The separate `requirements-tts.txt` keeps model inference out of the default capture and composition installation. Render manifests and the frontend can select either a supplied narration file or a generated script per scene.
+
 
 ## Milestone 6: final pipeline
 
@@ -46,7 +48,8 @@ Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`,
 - [x] generate normalized H.264/AAC exports in landscape, vertical, or square formats
 - [ ] confirm the workflow end to end with representative production assets and platform uploads
 
-`pipeline/render_job.py` accepts URL, image, and existing-video scenes; reuses the capture, motion, overlay, and narration stages; adds silent audio when a scene has none; normalizes every scene to one resolution/frame-rate/audio profile; and concatenates the results. Intermediate files remain under the configured `work_dir` for deterministic inspection. Manifest-relative paths keep jobs portable, while login secrets remain outside JSON in `MPOSTELE_PASSWORD`.
+`pipeline/render_job.py` accepts URL, image, and existing-video scenes; reuses the capture, motion, overlay, supplied narration, and optional script-to-speech stages; adds silent audio when a scene has none; normalizes every scene to one resolution/frame-rate/audio profile; and concatenates the results. Intermediate files remain under the configured `work_dir` for deterministic inspection. Manifest-relative paths keep jobs portable, while login secrets remain outside JSON in `MPOSTELE_PASSWORD`.
+
 
 ## Related notes
 

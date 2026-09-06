@@ -26,6 +26,7 @@ from pipeline.first_render import (
     transcode_to_mp4,
 )
 from pipeline.overlays import OVERLAY_SCENES, composite_overlay, render_overlay
+from pipeline.tts import DEFAULT_LANG_CODE, DEFAULT_SPEED, DEFAULT_VOICE, TTSError, synthesize_speech
 
 EXPORT_PRESETS: dict[str, tuple[int, int]] = {
     "landscape_720p": (1280, 720),
@@ -57,6 +58,10 @@ class Scene:
     capture: dict[str, Any]
     overlay: dict[str, Any] | None
     narration: Path | None
+    script: str | None
+    tts_voice: str
+    tts_speed: float
+    tts_lang_code: str
     normalize_audio: bool
 
 
@@ -170,12 +175,41 @@ def load_render_job(manifest_path: Path | str) -> RenderJob:
                 raise RenderJobError(f"{label}.overlay.text must be a non-empty string")
 
         narration_value = item.get("narration")
+        script_value = item.get("script")
+        if narration_value is not None and script_value is not None:
+            raise RenderJobError(f"{label} may define narration or script, not both")
         narration = None if narration_value is None else _path(base, narration_value, f"{label}.narration")
+        if script_value is not None and (not isinstance(script_value, str) or not script_value.strip()):
+            raise RenderJobError(f"{label}.script must be a non-empty string")
+        script = script_value.strip() if isinstance(script_value, str) else None
+
+        if "tts" in item and script is None:
+            raise RenderJobError(f"{label}.tts requires a script")
+        tts = item.get("tts", {})
+        if not isinstance(tts, dict):
+            raise RenderJobError(f"{label}.tts must be an object")
+        unknown_tts_fields = set(tts) - {"voice", "speed", "lang_code"}
+        if unknown_tts_fields:
+            raise RenderJobError(f"Unknown {label}.tts fields: {', '.join(sorted(unknown_tts_fields))}")
+        tts_voice = tts.get("voice", DEFAULT_VOICE)
+        tts_lang_code = tts.get("lang_code", DEFAULT_LANG_CODE)
+        if not isinstance(tts_voice, str) or not tts_voice.strip():
+            raise RenderJobError(f"{label}.tts.voice must be a non-empty string")
+        if not isinstance(tts_lang_code, str) or not tts_lang_code.strip():
+            raise RenderJobError(f"{label}.tts.lang_code must be a non-empty string")
+        tts_speed = _positive(tts.get("speed", DEFAULT_SPEED), f"{label}.tts.speed")
+
         normalize_audio = item.get("normalize_audio", True)
         if not isinstance(normalize_audio, bool):
             raise RenderJobError(f"{label}.normalize_audio must be true or false")
 
-        scenes.append(Scene(scene_id, source_type, source, duration, motion_preset, dict(capture), dict(overlay) if overlay else None, narration, normalize_audio))
+        scenes.append(
+            Scene(
+                scene_id, source_type, source, duration, motion_preset, dict(capture),
+                dict(overlay) if overlay else None, narration, script, tts_voice.strip(),
+                float(tts_speed), tts_lang_code.strip(), normalize_audio,
+            )
+        )
 
     return RenderJob(manifest, work_dir, export, tuple(scenes))
 
@@ -322,15 +356,29 @@ def render_job(job: RenderJob) -> Path:
             )
             current = composite_overlay(current, layer, scene_dir / "with-overlay.mp4")
 
-        if scene.narration:
-            current = composite_narration(current, scene.narration, scene_dir / "with-narration.mp4", normalize_audio=scene.normalize_audio)
+        narration = scene.narration
+        if scene.script:
+            narration = synthesize_speech(
+                scene.script,
+                scene_dir / "generated-narration.wav",
+                voice=scene.tts_voice,
+                speed=scene.tts_speed,
+                lang_code=scene.tts_lang_code,
+            )
+        if narration:
+            current = composite_narration(
+                current,
+                narration,
+                scene_dir / "with-narration.mp4",
+                normalize_audio=scene.normalize_audio,
+            )
 
         output = scene_dir / "normalized.mp4"
         # A generated lavfi silence source is infinite. Always cap unnarrated
         # scenes to the requested or probed visual duration so -shortest does
         # not gain encoder-buffer padding at scene boundaries.
         normalize_duration = None
-        if scene.narration is None:
+        if scene.narration is None and scene.script is None:
             normalize_duration = scene.duration or _probe_duration(current)
         subprocess.run(
             build_scene_normalize_command(
@@ -354,7 +402,7 @@ def main() -> None:
     try:
         job = load_render_job(args.manifest)
         output = render_job(job)
-    except (RenderJobError, FileNotFoundError) as exc:
+    except (RenderJobError, TTSError, FileNotFoundError) as exc:
         parser.error(str(exc))
     print(f"Rendered {len(job.scenes)} scenes to {output}.")
 

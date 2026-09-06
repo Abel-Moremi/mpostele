@@ -6,7 +6,7 @@ This folder contains the local Vite + Vue control surface for running capture, n
 
 - a local capture command builder and runner
 - a narration-compositing form for combining a generated clip with local audio
-- a multi-scene editor with URL, image, and video sources; ordering; motion; overlays; narration; and export presets
+- a multi-scene editor with URL, image, and video sources; ordering; motion; overlays; supplied or generated narration; and export presets
 - validation and status logs for capture, audio, and full render jobs
 - a theme toggle and responsive dark/light design system
 - password masking and non-persistence for capture credentials
@@ -48,9 +48,9 @@ The endpoint is loopback-only, invokes Python without a shell, limits request an
 
 ## Running a multi-scene render from the UI
 
-The **Render** panel builds the JSON accepted by `pipeline.render_job`. Add and reorder scenes, select a URL/image/video source, configure motion and browser capture, add optional title/callout overlays and narration, then choose a vertical, landscape, or square export preset.
+The **Render** panel builds the JSON accepted by `pipeline.render_job`. Add and reorder scenes, select a URL/image/video source, configure motion and browser capture, add optional title/callout overlays, then choose no narration, a local audio file, or **Generate from script**. Script mode exposes Kokoro voice, speed, and language settings. Install `requirements-tts.txt` before rendering a script scene.
 
-Selecting **Render complete video** calls the loopback-only `/api/run-render-job` endpoint from [server/render-job-run-plugin.js](server/render-job-run-plugin.js). The server validates that local media, narration, output, and work paths remain inside the repository, writes `frontend-job.json` into the selected work folder, and starts Python without a shell. A login password is sent only in `MPOSTELE_PASSWORD`, is not included in the manifest, and is not persisted by the browser. Jobs time out after 15 minutes; intermediate scene files and the generated manifest remain available for inspection.
+Selecting **Render complete video** calls the loopback-only `/api/run-render-job` endpoint from [server/render-job-run-plugin.js](server/render-job-run-plugin.js). The server validates that local media, narration, output, and work paths remain inside the repository, validates script/TTS fields, writes `frontend-job.json` into the selected work folder, and starts Python without a shell. A login password is sent only in `MPOSTELE_PASSWORD`, is not included in the manifest, and is not persisted by the browser. Jobs time out after 15 minutes; intermediate scene files, generated narration/cache files, and the generated manifest remain available for inspection.
 
 ## Why it exists
 
@@ -72,8 +72,8 @@ npm test
 npm run build
 ```
 
-The Node tests cover repository path containment and local-source validation for the render-job endpoint.
+The Node tests cover repository path containment, local-source validation, and script/TTS validation for the render-job endpoint.
 
 ## Current status
 
-This frontend is a working local control surface for single-clip capture, narration composition, and multi-scene assembly with platform-oriented export presets. Local TTS and real-world platform upload validation remain future work.
+This frontend is a working local control surface for single-clip capture, narration composition, optional local script-to-speech, and multi-scene assembly with platform-oriented export presets. Real-world platform upload validation remains future work.

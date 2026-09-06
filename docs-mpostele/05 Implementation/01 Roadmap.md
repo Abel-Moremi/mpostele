@@ -2,7 +2,8 @@
 
 ## Current status
 
-The repo now has a working local media pipeline and frontend from capture through multi-scene export. Local TTS and real-world platform validation remain the next major milestones.
+The repo now has a working local media pipeline and frontend from capture through optional local TTS and multi-scene export. Real-world pacing, hardware, and platform validation are the next major milestones.
+
 
 ## Phase 1: Foundation
 
@@ -26,7 +27,8 @@ The repo now has a working local media pipeline and frontend from capture throug
 
 ## Phase 4: Audio
 
-- [ ] configure Kokoro TTS workflow
+- [x] configure an optional Kokoro TTS workflow with deterministic WAV caching
+
 - [x] align supplied local narration with scene timing (`pipeline/audio.py` probes duration, then trims or extends the visual)
 - [x] add lightweight narration normalization and AAC encoding
 - [ ] tune generated narration pacing and background clean-up

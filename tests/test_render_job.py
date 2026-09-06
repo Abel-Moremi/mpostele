@@ -87,6 +87,42 @@ class RenderJobTests(unittest.TestCase):
             with self.assertRaises(RenderJobError):
                 load_render_job(manifest)
 
+    def test_loads_script_and_tts_settings(self):
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = self._write_manifest(
+                Path(temp),
+                {
+                    "scenes": [{
+                        "image": "a.png",
+                        "script": "A short local narration.",
+                        "tts": {"voice": "af_sky", "speed": 1.1, "lang_code": "a"},
+                    }]
+                },
+            )
+            scene = load_render_job(manifest).scenes[0]
+            self.assertEqual(scene.script, "A short local narration.")
+            self.assertEqual(scene.tts_voice, "af_sky")
+            self.assertEqual(scene.tts_speed, 1.1)
+            self.assertEqual(scene.tts_lang_code, "a")
+
+    def test_rejects_narration_file_and_script_together(self):
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = self._write_manifest(
+                Path(temp),
+                {"scenes": [{"image": "a.png", "narration": "voice.wav", "script": "Hello"}]},
+            )
+            with self.assertRaisesRegex(RenderJobError, "not both"):
+                load_render_job(manifest)
+
+    def test_rejects_invalid_tts_speed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = self._write_manifest(
+                Path(temp),
+                {"scenes": [{"image": "a.png", "script": "Hello", "tts": {"speed": 0}}]},
+            )
+            with self.assertRaises(RenderJobError):
+                load_render_job(manifest)
+
     def test_normalize_command_adds_silence_when_scene_has_no_audio(self):
         command = build_scene_normalize_command("scene.mp4", "normalized.mp4", 1080, 1920, 30, False)
         joined = " ".join(command)

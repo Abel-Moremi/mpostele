@@ -17,7 +17,12 @@ function newScene(id = `scene-${nextSceneNumber++}`) {
     source: 'http://localhost:5173',
     duration: 4,
     motionPreset: 'zoom_in',
+    narrationMode: 'none',
     narration: '',
+    script: '',
+    ttsVoice: 'af_heart',
+    ttsSpeed: 1,
+    ttsLangCode: 'a',
     normalizeAudio: true,
     captureMode: 'screenshot',
     username: '',
@@ -55,8 +60,16 @@ function sceneToManifest(scene) {
     motion_preset: scene.motionPreset,
   }
   if (scene.duration !== '' && scene.duration !== null) result.duration = Number(scene.duration)
-  if (scene.narration.trim()) {
+  if (scene.narrationMode === 'file') {
     result.narration = scene.narration.trim()
+    result.normalize_audio = scene.normalizeAudio
+  } else if (scene.narrationMode === 'script') {
+    result.script = scene.script.trim()
+    result.tts = {
+      voice: scene.ttsVoice.trim(),
+      speed: Number(scene.ttsSpeed),
+      lang_code: scene.ttsLangCode.trim(),
+    }
     result.normalize_audio = scene.normalizeAudio
   }
   if (scene.sourceType === 'url') {
@@ -108,7 +121,11 @@ const isValid = computed(() => {
       }
     }
     const durationValid = scene.duration === '' || scene.duration === null || Number(scene.duration) > 0
-    return idValid && sourceValid && durationValid &&
+    const narrationValid = scene.narrationMode === 'none' ||
+      (scene.narrationMode === 'file' && Boolean(scene.narration.trim())) ||
+      (scene.narrationMode === 'script' && Boolean(scene.script.trim()) &&
+        Boolean(scene.ttsVoice.trim()) && Boolean(scene.ttsLangCode.trim()) && Number(scene.ttsSpeed) > 0)
+    return idValid && sourceValid && durationValid && narrationValid &&
       (!scene.overlayEnabled || (scene.overlayText.trim() && Number(scene.overlayHold) > 0))
   })
 })
@@ -161,7 +178,11 @@ onMounted(async () => {
     try {
       const parsed = JSON.parse(stored)
       const storedScenes = parsed.scenes?.length
-        ? parsed.scenes.map((scene, index) => ({ ...newScene(scene.id || `scene-${index + 1}`), ...scene }))
+        ? parsed.scenes.map((scene, index) => ({
+            ...newScene(scene.id || `scene-${index + 1}`),
+            ...scene,
+            narrationMode: scene.narrationMode || (scene.narration ? 'file' : 'none'),
+          }))
         : job.value.scenes
       Object.assign(job.value, parsed, { password: '', scenes: storedScenes })
       nextSceneNumber = job.value.scenes.length + 1
@@ -220,9 +241,27 @@ watch(job, (value) => {
           <label>Motion preset
             <select v-model="scene.motionPreset"><option v-for="preset in motionPresets" :key="preset" :value="preset">{{ preset }}</option></select>
           </label>
-          <label>Narration path (optional)<input v-model="scene.narration" type="text" placeholder="assets/voiceover.wav" /></label>
-          <label v-if="scene.narration" class="inline-checkbox"><input v-model="scene.normalizeAudio" type="checkbox" /> Normalize narration</label>
+          <label>Narration
+            <select v-model="scene.narrationMode">
+              <option value="none">None</option>
+              <option value="file">Local audio file</option>
+              <option value="script">Generate from script</option>
+            </select>
+          </label>
+          <label v-if="scene.narrationMode === 'file'">Narration path<input v-model="scene.narration" type="text" placeholder="assets/voiceover.wav" /></label>
+          <label v-if="scene.narrationMode !== 'none'" class="inline-checkbox"><input v-model="scene.normalizeAudio" type="checkbox" /> Normalize narration</label>
         </div>
+
+        <fieldset v-if="scene.narrationMode === 'script'" class="scene-options">
+          <legend>Local text to speech</legend>
+          <div class="form-grid scene-grid">
+            <label class="wide-field">Narration script<textarea v-model="scene.script" rows="4" placeholder="Describe this scene clearly and briefly."></textarea></label>
+            <label>Kokoro voice<input v-model="scene.ttsVoice" type="text" placeholder="af_heart" /></label>
+            <label>Speech speed<input v-model.number="scene.ttsSpeed" type="number" min="0.1" step="0.05" /></label>
+            <label>Language code<input v-model="scene.ttsLangCode" type="text" placeholder="a" /></label>
+          </div>
+          <p class="run-hint">Requires the optional dependencies in requirements-tts.txt. Generated audio is cached in the scene work folder.</p>
+        </fieldset>
 
         <fieldset v-if="scene.sourceType === 'url'" class="scene-options">
           <legend>Browser capture</legend>
@@ -252,7 +291,7 @@ watch(job, (value) => {
       </article>
     </div>
 
-    <div v-if="!isValid" class="field-error render-error">Complete all required paths and valid scene IDs; durations and enabled overlays must be valid.</div>
+    <div v-if="!isValid" class="field-error render-error">Complete all required paths, narration settings, and valid scene IDs; durations and enabled overlays must be valid.</div>
     <details class="manifest-preview"><summary>Preview generated manifest</summary><pre>{{ manifestPreview }}</pre></details>
 
     <div class="run-actions">

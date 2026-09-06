@@ -56,9 +56,20 @@ export function prepareManifest(input) {
       scene[source] = resolveContained(scene[source], `scene ${index + 1}.${source}`)
       if (!existsSync(scene[source])) throw new Error(`scene ${index + 1} source file was not found`)
     }
+    if (scene.narration && scene.script) throw new Error(`scene ${index + 1} cannot define both narration and script`)
     if (scene.narration) {
       scene.narration = resolveContained(scene.narration, `scene ${index + 1}.narration`)
       if (!existsSync(scene.narration)) throw new Error(`scene ${index + 1} narration file was not found`)
+    }
+    if (scene.tts !== undefined && scene.script === undefined) throw new Error(`scene ${index + 1} TTS settings require a script`)
+    if (scene.script !== undefined) {
+      if (typeof scene.script !== 'string' || !scene.script.trim()) throw new Error(`scene ${index + 1} script is required`)
+      if (scene.tts !== undefined) {
+        if (!scene.tts || typeof scene.tts !== 'object' || Array.isArray(scene.tts)) throw new Error(`scene ${index + 1} tts settings must be an object`)
+        if (scene.tts.voice !== undefined && (typeof scene.tts.voice !== 'string' || !scene.tts.voice.trim())) throw new Error(`scene ${index + 1} TTS voice must be non-empty`)
+        if (scene.tts.lang_code !== undefined && (typeof scene.tts.lang_code !== 'string' || !scene.tts.lang_code.trim())) throw new Error(`scene ${index + 1} TTS language code must be non-empty`)
+        if (scene.tts.speed !== undefined && (typeof scene.tts.speed !== 'number' || scene.tts.speed <= 0)) throw new Error(`scene ${index + 1} TTS speed must be positive`)
+      }
     }
   })
   return manifest
