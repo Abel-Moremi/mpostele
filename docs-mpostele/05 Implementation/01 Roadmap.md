@@ -2,7 +2,8 @@
 
 ## Current status
 
-The repo now has a working local media pipeline and frontend from capture through optional local TTS and multi-scene export. A supplied-narration render has passed technical and memory validation on the target laptop class. Final voice pacing and real-platform uploads are the next major milestones.
+The repo now has a working local media pipeline and frontend from capture through optional local TTS and multi-scene export. It also has the first evidence-first site discovery agent foundation: bounded same-domain exploration, conservative action policy, local reasoning adapter, and reusable SQLite/JSON knowledge storage. Deeper form-based flows, content-plan generation, final voice pacing, and real-platform uploads remain future milestones.
+
 
 ## Phase 1: Foundation
 
@@ -48,7 +49,19 @@ The repo now has a working local media pipeline and frontend from capture throug
 - [x] package an initial reusable local vertical render-job template
 - [ ] package additional production render-job templates
 
+## Phase 7: Site understanding agents
+
+- [x] define a versioned shared knowledge schema for pages, states, actions, transitions, and findings
+- [x] add a bounded Playwright discovery loop with deterministic URL and action safety checks
+- [x] add local llama.cpp and deterministic heuristic reasoning providers
+- [x] preserve screenshots, accessibility evidence, decision logs, SQLite state, and portable JSON snapshots
+- [ ] add declarative authenticated and form-based workflow scenarios
+- [ ] add deeper nested UI-state exploration and resume scheduling from the persisted frontier
+- [ ] generate evidence-backed content plans for downstream recording agents
+- [ ] expose discovery configuration and graph review in the frontend
+
 ## Related notes
+
 
 - [[05 Implementation/02 Milestones]]
 - [[05 Implementation/03 Setup Checklist]]

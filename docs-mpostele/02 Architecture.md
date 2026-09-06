@@ -3,9 +3,11 @@
 ## High-level pipeline
 
 ```text
-Script & Voice
+Site Discovery Agent
     ↓
-Screenshot Capture
+Evidence Graph & Content Planning
+    ↓
+Script, Voice & Screenshot Capture
     ↓
 Animation Engine
     ↓
@@ -14,17 +16,29 @@ Compositing & Encoding
 Final Posting / Export
 ```
 
+
 ## Components
 
-### 1. Script and narrative generation
+### 1. Site discovery and shared knowledge
+
+`pipeline/site_agent` runs a bounded observe-plan-act-verify loop over one allowed website domain. Playwright gathers semantic DOM data, accessibility snapshots, screenshots, and controls. A deterministic policy blocks destructive, consequential, external, and unknown interactions before the reasoning provider can select an action.
+
+Observed pages, UI states, controls, and verified transitions are stored in local SQLite. Agent interpretations are separate `findings` records with evidence references and confidence. `snapshot.json` is a versioned portable handoff contract for future content-planning, recording, and rendering agents; `decisions.jsonl` preserves reasoning and fallback events for debugging. The default semantic provider is a local OpenAI-compatible llama.cpp server, while a deterministic heuristic provider supports testing and model-free runs.
+
+The first implementation crawls links and selected reversible controls sequentially. It intentionally does not submit forms, perform destructive actions, claim complete coverage, or automatically create videos. Authenticated discovery accepts a pre-created Playwright storage-state file rather than storing credentials.
+
+### 2. Script and narrative generation
+
 
 This stage defines the story, tone, and pacing. It may use a local model or a structured prompt pipeline to generate the talking points and scene plan.
 
-### 2. Screenshot capture
+### 3. Screenshot capture
+
 
 Playwright can record product screens, landing pages, or feature interactions. These frames become the base visual elements for the final video.
 
-### 3. Animation engine
+### 4. Animation engine
+
 
 This is where motion is created using low-memory tools:
 
@@ -32,12 +46,14 @@ This is where motion is created using low-memory tools:
 - CSS or JS animation in a browser
 - Manim overlays for text and feature highlights
 
-### 4. Voice & audio
+### 5. Voice & audio
+
 
 `pipeline/tts.py` optionally uses local Kokoro synthesis to produce a cached WAV from a scene script. The dependency is lazy and separate from the base requirements, while `pipeline/audio.py` continues to accept any supplied narration recording.
 
 
-### 5. Compositing and encoding
+### 6. Compositing and encoding
+
 
 `pipeline/render_job.py` coordinates the existing modules from a local JSON manifest. It renders each URL, image, or video scene; applies optional overlays; uses either supplied narration or a generated script; then uses FFmpeg to normalize all scenes to matching H.264/AAC streams and concatenate them. The default `libx264` path is portable and does not require a GPU. Hardware encoding can remain an optional future optimization rather than an architectural dependency.
 

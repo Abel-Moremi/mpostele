@@ -16,9 +16,11 @@ The pipeline and frontend can produce multi-scene videos with supplied or locall
 - a Vue + Vite frontend mockup for a content planner / campaign dashboard
 - local Playwright capture, FFmpeg motion, Manim overlays, narration compositing, and optional Kokoro TTS modules
 - a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
+- an evidence-first website discovery agent with safe navigation, local reasoning, SQLite knowledge storage, and portable JSON snapshots
 - a fast FFprobe-based export validator, dependency-free render benchmark, and reusable local vertical-video job
 
 ### What is still planned
+
 
 - voice-pacing validation with representative scripts
 - end-to-end testing against representative social-platform uploads
@@ -81,6 +83,34 @@ npm run build
 The long-term goal remains a local-first animation pipeline for product storytelling and short-form content, aiming to work on modest hardware such as a GTX 1050 Ti + 8GB RAM system without depending on heavy video diffusion models.
 
 The current repository provides that foundation plus a working capture, animation, optional local narration generation, narration-compositing, and multi-scene export pipeline. A narrated vertical render on the target i5-7300HQ/8 GB/GTX 1050 Ti laptop completed in 46.518 seconds with a measured 661.96 MiB peak render-process working set. Final voice review and real-platform uploads remain pending.
+
+## Website discovery agent
+
+`pipeline.site_agent` provides the first autonomous discovery layer before capture planning. It visits same-domain pages, records compact DOM/accessibility observations and screenshots, classifies unsafe controls deterministically, asks a local reasoning provider to interpret each state, verifies selected reversible interactions, and stores observations separately from inferred findings.
+
+Create a manifest such as:
+
+```json
+{
+  "start_url": "http://localhost:5173",
+  "output_dir": "artifacts/site-analysis/local-frontend",
+  "allowed_domains": ["localhost"],
+  "max_pages": 20,
+  "max_interactions": 10,
+  "max_depth": 3
+}
+```
+
+Run the included local-frontend manifest without an LLM to validate discovery and storage:
+
+```bash
+python -m pipeline.site_agent.cli jobs/site-discovery-local.json --provider heuristic
+```
+
+
+For semantic analysis, start a local OpenAI-compatible `llama-server` with a compact instruct model such as Qwen3 4B GGUF, then omit `--provider heuristic`. The agent falls back to deterministic analysis if the local model cannot be reached. Generated `knowledge.sqlite`, `snapshot.json`, `decisions.jsonl`, screenshots, accessibility snapshots, and `reports/coverage.md` stay under the configured output directory. The versioned JSON snapshot is the supported handoff format for future content-planning and recording agents.
+
+The initial safety level is deliberately conservative: internal links, tabs, disclosure controls, and clearly reversible buttons may be explored; destructive or consequential labels are blocked; unknown buttons require review and are not clicked. Authentication can use a Playwright `storage_state` file, which should remain local and untracked.
 
 ## First local pipeline proof
 

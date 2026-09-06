@@ -24,9 +24,43 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Site discovery agent
+
+Create a JSON manifest outside tracked source if it references an authenticated Playwright state file:
+
+```json
+{
+  "start_url": "http://localhost:5173",
+  "output_dir": "artifacts/site-analysis/local-frontend",
+  "allowed_domains": ["localhost"],
+  "max_pages": 20,
+  "max_interactions": 10,
+  "max_depth": 3,
+  "width": 1280,
+  "height": 720,
+  "storage_state": ""
+}
+```
+
+The repository includes this configuration as `jobs/site-discovery-local.json`. Start the frontend, then use the deterministic provider to test traversal without an LLM:
+
+```powershell Terminal
+python -m pipeline.site_agent.cli jobs/site-discovery-local.json --provider heuristic
+```
+
+
+For local semantic analysis, start an OpenAI-compatible llama.cpp server separately with the selected Qwen3 4B Instruct GGUF model, then run:
+
+```powershell Terminal
+python -m pipeline.site_agent.cli site-agent.json --provider llama.cpp --endpoint http://127.0.0.1:8080/v1/chat/completions --model qwen3-4b-instruct
+```
+
+If the model endpoint fails during a state analysis, the run records the error in `decisions.jsonl` and uses deterministic heuristic analysis for that state. Outputs include `knowledge.sqlite`, versioned `snapshot.json`, screenshots, accessibility snapshots, and `reports/coverage.md`. The agent only visits configured domains and only clicks controls classified as safe and reversible; form submission and ambiguous or consequential buttons remain unexecuted. `storage_state` is passed directly to Playwright and may contain secrets, so keep that file in an ignored local location such as `artifacts/`.
+
 ## First render pipeline
 
 ```bash
+
 python -m pipeline.first_render --url https://example.com --base-dir artifacts/login_job
 ```
 

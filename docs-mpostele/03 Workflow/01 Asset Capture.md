@@ -26,9 +26,14 @@ Capture clean, high-quality product screenshots or interface frames that can lat
 - ensure consistent viewport sizes for comparison shots
 - capture multiple variant frames for motion and transition effects
 
-## Understanding the platform before recording
+## Discovery before recording
 
-[pipeline/first_render.py](../../pipeline/first_render.py) inspects the page before acting on it instead of guessing blindly:
+[`pipeline/site_agent`](../../pipeline/site_agent) can perform a bounded discovery pass before individual scenes are chosen. It records each observed page and UI state, visible controls, screenshots, accessibility snapshots, safety classifications, verified transitions, and evidence-linked interpretations. Its canonical run state is `knowledge.sqlite`; the versioned `snapshot.json` export is intended for later content and recording agents. `reports/coverage.md` identifies blocked and unexplored controls so incomplete exploration stays visible.
+
+Discovery is read-only and conservative by default. Same-domain links, tabs, disclosure controls, and clearly reversible buttons are eligible; destructive or consequential labels are blocked, and ambiguous buttons are marked for review instead of clicked. Authenticated runs may reference a local Playwright `storage_state` file without putting credentials in the manifest.
+
+After discovery, [pipeline/first_render.py](../../pipeline/first_render.py) captures an approved page or interaction. It also inspects the page before acting on it instead of guessing blindly:
+
 
 - waits for `domcontentloaded`, then best-effort `networkidle` so animations/content have settled
 - detects whether a login form is actually present (a password field) before attempting to fill or click anything

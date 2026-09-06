@@ -8,6 +8,8 @@ The repository currently includes:
 - [x] a Vite + Vue frontend prototype
 - [x] shared design tokens and styling foundation
 - [x] JSON-driven multi-scene pipeline and frontend editor
+- [x] evidence-first site discovery agent and versioned knowledge export
+
 
 The remaining environment and production validation work is still pending:
 
@@ -20,6 +22,8 @@ The remaining environment and production validation work is still pending:
 - [x] define optional Kokoro installation (`pip install -r requirements-tts.txt`)
 - [ ] populate and verify the Kokoro model/voice cache on the production machine
 - [ ] verify PCIe and GPU acceleration support for NVENC
+- [ ] download and benchmark a Qwen3 4B GGUF model with local llama.cpp (optional; heuristic discovery remains available)
+
 
 ## Project files
 
@@ -27,6 +31,8 @@ The remaining environment and production validation work is still pending:
 - [x] plan visible work and output directories through render manifests
 - [x] prepare configuration defaults and export presets
 - [x] add a production-oriented multi-scene CLI entry point
+- [x] add a site-agent manifest CLI, SQLite evidence store, JSON snapshot exporter, and decision log
+
 
 ## Production flow
 

@@ -1,0 +1,12 @@
+{
+  "start_url": "http://localhost:5173",
+  "output_dir": "artifacts/site-analysis/local-frontend",
+  "allowed_domains": ["localhost"],
+  "max_pages": 20,
+  "max_interactions": 10,
+  "max_depth": 3,
+  "width": 1280,
+  "height": 720,
+  "storage_state": "",
+  "headless": true
+}
