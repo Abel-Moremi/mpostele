@@ -2,7 +2,7 @@
 
 ## Current status
 
-The repo now has a working local media pipeline from capture through multi-scene export. Local TTS, real-world platform validation, and frontend support for render manifests remain the next major milestones.
+The repo now has a working local media pipeline and frontend from capture through multi-scene export. Local TTS and real-world platform validation remain the next major milestones.
 
 ## Phase 1: Foundation
 
@@ -42,7 +42,8 @@ The repo now has a working local media pipeline from capture through multi-scene
 
 - [x] build a simple JSON-driven Python orchestrator (`pipeline/render_job.py`)
 - [x] automate repeated rendering jobs while retaining inspectable intermediate files
-- [ ] expose multi-scene jobs in the frontend and package the workflow for reuse
+- [x] expose multi-scene jobs in the frontend through a loopback-only local endpoint
+- [ ] package reusable render-job templates
 
 ## Related notes
 

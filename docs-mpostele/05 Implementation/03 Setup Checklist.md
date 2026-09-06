@@ -7,8 +7,9 @@ The repository currently includes:
 - [x] project documentation and architecture notes
 - [x] a Vite + Vue frontend prototype
 - [x] shared design tokens and styling foundation
+- [x] JSON-driven multi-scene pipeline and frontend editor
 
-The remaining production pipeline work is still pending:
+The remaining production validation and TTS work is still pending:
 
 ## Environment
 
@@ -21,10 +22,10 @@ The remaining production pipeline work is still pending:
 
 ## Project files
 
-- [ ] create the application structure for automation scripts
-- [ ] plan the media asset directories
-- [ ] prepare configuration defaults
-- [ ] add the first production-oriented CLI entry point
+- [x] create the application structure for automation scripts
+- [x] plan visible work and output directories through render manifests
+- [x] prepare configuration defaults and export presets
+- [x] add a production-oriented multi-scene CLI entry point
 
 ## Production flow
 
@@ -32,7 +33,7 @@ The remaining production pipeline work is still pending:
 - [x] render animation overlays
 - [x] compose a supplied local voiceover with one motion layer
 - [ ] generate voiceover locally from a script
-- [ ] orchestrate multi-scene short-form video output
+- [x] orchestrate multi-scene short-form video output from the CLI and frontend
 
 ## Validation
 
@@ -40,7 +41,7 @@ The remaining production pipeline work is still pending:
 - [ ] verify memory usage stays within target limits
 - [ ] check output quality and playback stability
 
-The first render proof is in place with local Playwright capture and FFmpeg zoom-pan export. Manim provides transparent overlays, and `pipeline/audio.py` now composes a supplied narration file into a duration-matched H.264/AAC MP4. FFmpeg and FFprobe must both be available on `PATH`; local TTS and multi-scene orchestration remain pending.
+The local pipeline now combines Playwright capture, FFmpeg motion, Manim overlays, supplied narration, and normalized multi-scene export. The frontend Render panel creates, validates, persists, and executes render jobs through a loopback-only endpoint. FFmpeg and FFprobe must both be available on `PATH`; local TTS and production platform validation remain pending.
 
 ## Related notes
 

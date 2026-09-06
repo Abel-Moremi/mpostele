@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import logoLight from './assets/mpostele-logo-light.png'
 import logoDark from './assets/mpostele-logo-dark.png'
+import RenderJobPanel from './components/RenderJobPanel.vue'
 import { getSetting, setSetting } from './db/sqlite'
 
 const theme = ref('light')
@@ -263,6 +264,13 @@ watch(
         >Audio</button>
         <button
           class="nav-link"
+          :class="{ 'is-active': activeNav === 'render' }"
+          :aria-current="activeNav === 'render' ? 'page' : undefined"
+          type="button"
+          @click="goToSection('render')"
+        >Render</button>
+        <button
+          class="nav-link"
           :class="{ 'is-active': activeNav === 'docs' }"
           :aria-current="activeNav === 'docs' ? 'page' : undefined"
           type="button"
@@ -437,6 +445,8 @@ watch(
           <pre v-if="audioRunResult.stderr" class="run-log run-log-error">{{ audioRunResult.stderr }}</pre>
         </div>
       </section>
+
+      <RenderJobPanel />
 
       <section id="docs" class="steps-panel">
         <div class="section-head compact">

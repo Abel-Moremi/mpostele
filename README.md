@@ -6,7 +6,7 @@ mpostele is a local-first toolkit for creating animated product and social conte
 - a browser-based prototype UI in [frontend](frontend)
 - a Python media pipeline under [pipeline](pipeline)
 
-The pipeline can produce multi-scene videos, but local TTS, frontend orchestration, and real-platform export validation are still in progress.
+The pipeline and frontend can produce multi-scene videos; local TTS and real-platform export validation are still in progress.
 
 ## Current repo state
 
@@ -21,7 +21,7 @@ The pipeline can produce multi-scene videos, but local TTS, frontend orchestrati
 
 - local text-to-speech generation and voice-pacing integration
 - end-to-end testing against representative social-platform uploads
-- frontend controls for multi-scene render jobs
+- additional production presets and reusable render-job templates
 
 ## Design intent
 
@@ -58,7 +58,7 @@ mpostele/
 
 ## Frontend prototype
 
-The frontend app is a Vite + Vue local control surface for capture and narration-compositing jobs. It can run both Python stages through loopback-only Vite endpoints and display their logs. Multi-scene jobs currently run through the Python CLI rather than the frontend.
+The frontend app is a Vite + Vue local control surface for capture, narration-compositing, and multi-scene render jobs. Its loopback-only endpoints run the Python pipeline locally and display process logs without introducing a cloud service.
 
 To run the frontend locally:
 
@@ -158,7 +158,7 @@ Run a job with:
 python -m pipeline.render_job path/to/job.json
 ```
 
-The manifest supports `landscape_720p`, `vertical_1080p`, and `square_1080p` export presets. Paths are resolved relative to the manifest file. Intermediate captures and encoded scenes stay in `work_dir` so a failed render can be inspected without opaque cache state. Login passwords are deliberately excluded from manifests; set `MPOSTELE_PASSWORD` in the environment when an authenticated URL scene needs one.
+The manifest supports `landscape_720p`, `vertical_1080p`, and `square_1080p` export presets. Paths are resolved relative to the manifest file. Intermediate captures and encoded scenes stay in `work_dir` so a failed render can be inspected without opaque cache state. Login passwords are deliberately excluded from manifests; set `MPOSTELE_PASSWORD` in the environment when an authenticated URL scene needs one. The frontend **Render** panel can create and execute the same job visually.
 
 See [the commands note](docs-mpostele/06%20Operations/01%20Commands.md#multi-scene-render-job) for a complete manifest example.
 

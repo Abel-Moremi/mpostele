@@ -1,21 +1,22 @@
 # Mpostele frontend
 
-This folder contains the current frontend prototype for the mpostele project: a Vite + Vue interface for running and reviewing local capture and narration-compositing jobs.
+This folder contains the local Vite + Vue control surface for running capture, narration-compositing, and complete multi-scene render jobs.
 
 ## What this prototype includes
 
 - a local capture command builder and runner
 - a narration-compositing form for combining a generated clip with local audio
-- validation and status logs for both jobs
+- a multi-scene editor with URL, image, and video sources; ordering; motion; overlays; narration; and export presets
+- validation and status logs for capture, audio, and full render jobs
 - a theme toggle and responsive dark/light design system
 - password masking and non-persistence for capture credentials
 - a theme-aware favicon that follows the OS color scheme by default and switches instantly when the in-app theme toggle is used
 
 ## Data persistence
 
-Settings (theme choice, capture fields, audio/video paths, and normalization choice) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
+Settings (theme choice, capture fields, audio/video paths, render scenes, and export choices) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
 
-The password field is intentionally **never persisted**: it's excluded from the stored JSON and starts empty on every reload. This avoids writing a plaintext credential to disk-backed browser storage.
+Password fields are intentionally **never persisted**: they are excluded from stored JSON and start empty on every reload. This avoids writing plaintext credentials to disk-backed browser storage.
 
 See [src/db/sqlite.js](src/db/sqlite.js) for the persistence module (a small `settings(key, value)` table) and the `onMounted`/`watch` wiring in [src/App.vue](src/App.vue) for how fields are loaded and saved.
 
@@ -45,9 +46,15 @@ A typical workflow is:
 
 The endpoint is loopback-only, invokes Python without a shell, limits request and log sizes, and terminates jobs that exceed three minutes.
 
+## Running a multi-scene render from the UI
+
+The **Render** panel builds the JSON accepted by `pipeline.render_job`. Add and reorder scenes, select a URL/image/video source, configure motion and browser capture, add optional title/callout overlays and narration, then choose a vertical, landscape, or square export preset.
+
+Selecting **Render complete video** calls the loopback-only `/api/run-render-job` endpoint from [server/render-job-run-plugin.js](server/render-job-run-plugin.js). The server validates that local media, narration, output, and work paths remain inside the repository, writes `frontend-job.json` into the selected work folder, and starts Python without a shell. A login password is sent only in `MPOSTELE_PASSWORD`, is not included in the manifest, and is not persisted by the browser. Jobs time out after 15 minutes; intermediate scene files and the generated manifest remain available for inspection.
+
 ## Why it exists
 
-This UI is a design and interaction prototype for the broader mpostele concept. It demonstrates the planning experience for short-form product content while the underlying capture, motion, and compositing pipeline is still being built.
+This UI provides a practical local control surface over the lightweight capture, motion, compositing, and multi-scene export pipeline without adding a cloud service or a heavy desktop runtime.
 
 ## Run locally
 
@@ -57,13 +64,16 @@ npm install
 npm run dev
 ```
 
-## Verify the production build
+## Verify the frontend
 
 ```bash
 cd frontend
+npm test
 npm run build
 ```
 
+The Node tests cover repository path containment and local-source validation for the render-job endpoint.
+
 ## Current status
 
-This frontend is a working local control surface for single-clip capture and narration composition, not the final end-to-end automation stack. Local TTS, multi-scene assembly, and platform export presets remain future work.
+This frontend is a working local control surface for single-clip capture, narration composition, and multi-scene assembly with platform-oriented export presets. Local TTS and real-world platform upload validation remain future work.

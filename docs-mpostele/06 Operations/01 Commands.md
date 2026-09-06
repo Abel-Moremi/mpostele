@@ -111,6 +111,8 @@ Available export presets are `landscape_720p` (1280x720), `vertical_1080p` (1080
 
 A scene `duration` controls screenshot/image motion length and live browser recording length. It also trims a supplied video when no narration is present. If narration is supplied, its probed duration controls that scene instead.
 
+The same workflow is available in the frontend **Render** panel. Start Vite, add or reorder scenes, select source and processing options, and choose **Render complete video**. The loopback-only `/api/run-render-job` endpoint converts project-relative paths to validated repository-contained paths, saves `frontend-job.json` in the work folder, passes any password only through `MPOSTELE_PASSWORD`, and invokes `pipeline.render_job` without a shell. The browser persists render settings locally but never stores the password.
+
 ## Notes
 
 Add commands here as they are validated in the real workflow.

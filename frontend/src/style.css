@@ -67,7 +67,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -332,7 +334,9 @@ label {
   color: var(--text-strong);
 }
 
-input {
+input,
+select,
+textarea {
   width: 100%;
   min-height: 46px;
   border: 1px solid var(--line);
@@ -343,7 +347,14 @@ input {
   outline: none;
 }
 
-input:focus {
+textarea {
+  padding-block: 10px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
   border-color: rgba(109, 87, 219, 0.5);
   box-shadow: 0 0 0 4px rgba(109, 87, 219, 0.08);
 }
@@ -480,6 +491,108 @@ input[aria-invalid='true'] {
   color: #f5b2c0;
 }
 
+.render-heading {
+  gap: 16px;
+}
+
+.scene-list {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.scene-editor {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-strong);
+}
+
+.scene-toolbar,
+.scene-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scene-toolbar {
+  margin-bottom: 16px;
+}
+
+.scene-actions button {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--secondary-btn-bg);
+  color: var(--text);
+}
+
+.scene-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.scene-grid {
+  gap: 14px;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
+.scene-options {
+  margin: 18px 0 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.scene-options legend {
+  padding: 0 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.legend-toggle {
+  display: flex;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-toggle input {
+  width: auto;
+  min-height: 0;
+}
+
+.render-error {
+  margin-top: 16px;
+}
+
+.manifest-preview {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--input-bg);
+}
+
+.manifest-preview summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-weight: 600;
+}
+
+.manifest-preview pre {
+  max-height: 320px;
+  margin: 0;
+  padding: 0 14px 14px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  white-space: pre-wrap;
+}
+
 .steps-panel {
   padding: 0;
 }
@@ -552,6 +665,18 @@ input[aria-invalid='true'] {
   .main-nav {
     order: 3;
     width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .render-heading,
+  .scene-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .scene-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
