@@ -8,12 +8,15 @@
 # Common OS/editor/runtime noise
 .DS_Store
 Thumbs.db
+.vite/
 __pycache__/
 *.py[cod]
 
 # Generated local media artifacts
 artifacts/
 **/artifacts/
+outputs/
+**/outputs/
 
 # Keep your actual notes tracked
 # Do not ignore *.md files unless you intentionally want that.

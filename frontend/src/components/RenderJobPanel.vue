@@ -236,7 +236,10 @@ watch(job, (value) => {
           <label>Source type
             <select v-model="scene.sourceType"><option value="url">URL</option><option value="image">Image</option><option value="video">Video</option></select>
           </label>
-          <label class="wide-field">{{ sourceLabel(scene) }}<input v-model="scene.source" type="text" /></label>
+          <label class="wide-field">
+            {{ sourceLabel(scene) }}
+            <input v-model="scene.source" :type="scene.sourceType === 'url' ? 'url' : 'text'" />
+          </label>
           <label>Duration (seconds, optional)<input v-model.number="scene.duration" type="number" min="0.1" step="0.1" /></label>
           <label>Motion preset
             <select v-model="scene.motionPreset"><option v-for="preset in motionPresets" :key="preset" :value="preset">{{ preset }}</option></select>

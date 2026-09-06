@@ -33,7 +33,6 @@ Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`,
 ## Milestone 5: voiceover workflow
 
 - [x] generate script-based narration with optional local Kokoro TTS
-
 - [x] use narration duration to time a visual clip
 - [x] integrate supplied local audio into a video layer
 - [x] normalize narration and encode it as AAC
@@ -41,15 +40,17 @@ Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`,
 
 `pipeline/audio.py` remains the lightweight composition boundary: it accepts any local narration file, probes duration with FFprobe, trims or extends the visual to match, and writes an H.264/AAC MP4. `pipeline/tts.py` is an optional Kokoro adapter that generates cached WAV files from scripts. The separate `requirements-tts.txt` keeps model inference out of the default capture and composition installation. Render manifests and the frontend can select either a supplied narration file or a generated script per scene.
 
-
 ## Milestone 6: final pipeline
 
 - [x] assemble full video sequences from a JSON manifest
 - [x] generate normalized H.264/AAC exports in landscape, vertical, or square formats
+- [x] add a reusable vertical demo manifest and automated technical export validation
+- [x] validate supplied-narration timing and memory use on the target laptop class
 - [ ] confirm the workflow end to end with representative production assets and platform uploads
 
 `pipeline/render_job.py` accepts URL, image, and existing-video scenes; reuses the capture, motion, overlay, supplied narration, and optional script-to-speech stages; adds silent audio when a scene has none; normalizes every scene to one resolution/frame-rate/audio profile; and concatenates the results. Intermediate files remain under the configured `work_dir` for deterministic inspection. Manifest-relative paths keep jobs portable, while login secrets remain outside JSON in `MPOSTELE_PASSWORD`.
 
+`jobs/vertical-local-demo.json` provides a repeatable three-scene local test. `pipeline/validate_export.py` uses FFprobe plus MP4 atom inspection to check dimensions, nominal frame rate, H.264/yuv420p video, AAC 48 kHz stereo audio, duration, and fast-start layout without a full decode. `pipeline/benchmark.py` measured a narrated run at 46.518 seconds and 661.96 MiB peak process-tree working memory on the target i5-7300HQ/8 GB/GTX 1050 Ti laptop. Real service uploads and final production-voice review remain required before the final pipeline milestone is complete.
 
 ## Related notes
 

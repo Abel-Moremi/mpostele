@@ -8,7 +8,6 @@ mpostele is a local-first toolkit for creating animated product and social conte
 
 The pipeline and frontend can produce multi-scene videos with supplied or locally generated narration; real-platform export validation is still in progress.
 
-
 ## Current repo state
 
 ### What exists now
@@ -17,14 +16,13 @@ The pipeline and frontend can produce multi-scene videos with supplied or locall
 - a Vue + Vite frontend mockup for a content planner / campaign dashboard
 - local Playwright capture, FFmpeg motion, Manim overlays, narration compositing, and optional Kokoro TTS modules
 - a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
-
+- a fast FFprobe-based export validator, dependency-free render benchmark, and reusable local vertical-video job
 
 ### What is still planned
 
 - voice-pacing validation with representative scripts
 - end-to-end testing against representative social-platform uploads
-
-- additional production presets and reusable render-job templates
+- additional production presets and reusable render-job templates beyond the initial vertical demo
 
 ## Design intent
 
@@ -82,8 +80,7 @@ npm run build
 
 The long-term goal remains a local-first animation pipeline for product storytelling and short-form content, aiming to work on modest hardware such as a GTX 1050 Ti + 8GB RAM system without depending on heavy video diffusion models.
 
-The current repository provides that foundation plus a working capture, animation, optional local narration generation, narration-compositing, and multi-scene export pipeline. The next work is production and platform validation.
-
+The current repository provides that foundation plus a working capture, animation, optional local narration generation, narration-compositing, and multi-scene export pipeline. A narrated vertical render on the target i5-7300HQ/8 GB/GTX 1050 Ti laptop completed in 46.518 seconds with a measured 661.96 MiB peak render-process working set. Final voice review and real-platform uploads remain pending.
 
 ## First local pipeline proof
 
@@ -150,7 +147,6 @@ python -m pipeline.audio \
 
 The visual is trimmed or its final frame is held to match the narration. Audio receives lightweight one-pass loudness normalization by default; pass `--no-normalize-audio` to preserve the source level. This stage continues to accept existing recordings, so TTS never becomes mandatory.
 
-
 The same operation is available in the frontend's **Audio** panel. Its local `/api/run-audio` endpoint validates that all media paths stay inside the repository before invoking the Python module without a shell.
 
 ## Optional local text to speech
@@ -166,9 +162,7 @@ The first Kokoro use may need network access to populate its local model/voice c
 
 ## Multi-scene render jobs
 
-
 [pipeline/render_job.py](pipeline/render_job.py) turns the individual stages into one manifest-driven workflow. Each scene uses exactly one source: a URL, an image, or a video. It can then add an optional title/callout and either a local narration file or a TTS `script` before all scenes are normalized and concatenated.
-
 
 Run a job with:
 
@@ -179,6 +173,28 @@ python -m pipeline.render_job path/to/job.json
 The manifest supports `landscape_720p`, `vertical_1080p`, and `square_1080p` export presets. Paths are resolved relative to the manifest file. Intermediate captures and encoded scenes stay in `work_dir` so a failed render can be inspected without opaque cache state. Login passwords are deliberately excluded from manifests; set `MPOSTELE_PASSWORD` in the environment when an authenticated URL scene needs one. The frontend **Render** panel can create and execute the same job visually.
 
 See [the commands note](docs-mpostele/06%20Operations/01%20Commands.md#multi-scene-render-job) for a complete manifest example.
+
+## Export validation
+
+[pipeline/validate_export.py](pipeline/validate_export.py) checks an MP4 without decoding it. It verifies the expected dimensions and frame rate, H.264/yuv420p video, AAC 48 kHz stereo audio, positive duration, and fast-start MP4 atom order. Expected frame rates must be finite and positive. A failed check exits with status 1, making the command suitable for scripts:
+
+
+```powershell Terminal
+python -m pipeline.validate_export outputs/vertical-local-demo.mp4 --preset vertical_1080p --fps 30
+```
+
+The reusable [jobs/vertical-local-demo.json](jobs/vertical-local-demo.json) manifest captures three sections of the local frontend and renders a 12-second vertical test. Start the frontend first, render the job, and then run the validator. This technical check does not replace a real upload test; platform upload validation remains pending.
+
+## Render benchmarking
+
+[pipeline/benchmark.py](pipeline/benchmark.py) measures wall time and aggregate process-tree memory without adding a monitoring dependency. It supports memory sampling on Windows and Linux, detects process completion without adding a final full sampling interval, and can save a JSON report:
+
+
+```powershell Terminal
+python -m pipeline.benchmark --report artifacts/render-benchmark.json -- python -m pipeline.render_job jobs/vertical-local-demo.json
+```
+
+See [the production validation record](docs-mpostele/06%20Operations/04%20Production%20Validation.md) for the measured target-hardware baseline and its limitations.
 
 ## Related docs
 

@@ -1,0 +1,49 @@
+{
+  "output": "../outputs/vertical-local-demo.mp4",
+  "work_dir": "../artifacts/vertical-local-demo",
+  "export": {
+    "preset": "vertical_1080p",
+    "fps": 30
+  },
+  "scenes": [
+    {
+      "id": "overview",
+      "url": "http://127.0.0.1:5173",
+      "duration": 4,
+      "motion_preset": "zoom_in",
+      "capture": {
+        "selector": "#overview"
+      },
+      "overlay": {
+        "type": "title",
+        "text": "Create product stories locally",
+        "hold_seconds": 2
+      }
+    },
+    {
+      "id": "capture",
+      "url": "http://127.0.0.1:5173",
+      "duration": 4,
+      "motion_preset": "pan_top_to_bottom",
+      "capture": {
+        "selector": "#capture"
+      },
+      "overlay": {
+        "type": "callout",
+        "text": "Capture",
+        "x": 0,
+        "y": 0,
+        "hold_seconds": 2
+      }
+    },
+    {
+      "id": "render",
+      "url": "http://127.0.0.1:5173",
+      "duration": 4,
+      "motion_preset": "zoom_out",
+      "capture": {
+        "selector": "#render"
+      }
+    }
+  ]
+}

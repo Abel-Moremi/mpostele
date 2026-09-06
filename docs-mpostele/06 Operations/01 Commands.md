@@ -110,14 +110,13 @@ Example manifest:
     {
       "id": "feature",
       "image": "../assets/feature.png",
-            "duration": 5,
+      "duration": 5,
       "motion_preset": "pan_left_to_right",
-
       "script": "Show every campaign in one focused workspace.",
       "tts": {
         "voice": "af_heart",
         "speed": 1.0,
-                "lang_code": "a"
+        "lang_code": "a"
       }
     },
     {
@@ -138,6 +137,45 @@ A scene `duration` controls screenshot/image motion length and live browser reco
 
 The same workflow is available in the frontend **Render** panel. Start Vite, add or reorder scenes, choose no narration, a local audio file, or a generated script, select the remaining processing options, and choose **Render complete video**. The loopback-only `/api/run-render-job` endpoint converts project-relative paths to validated repository-contained paths, saves `frontend-job.json` in the work folder, passes any password only through `MPOSTELE_PASSWORD`, and invokes `pipeline.render_job` without a shell. The browser persists render settings locally but never stores the password.
 
+### Reusable local vertical demo
+
+`jobs/vertical-local-demo.json` is a three-scene, 12-second production-validation job. It captures the Overview, Capture, and Render sections from the local frontend, exercises zoom/pan motion and both overlay types, and writes `outputs/vertical-local-demo.mp4`. It does not require TTS or external media.
+
+Run the frontend in one terminal:
+
+```powershell Terminal-frontend
+npm --prefix frontend run dev
+```
+
+Then render and validate in another terminal:
+
+```powershell Terminal-pipeline
+python -m pipeline.render_job jobs/vertical-local-demo.json
+python -m pipeline.validate_export outputs/vertical-local-demo.mp4 --preset vertical_1080p --fps 30
+```
+
+For voice-pacing validation, copy the manifest and add a `narration` path to one or more scenes. Narration paths are relative to the copied manifest. The narration duration replaces that scene's explicit visual duration.
+
+## Export validation
+
+The validator uses FFprobe metadata and a small MP4 atom scan; it does not decode the full video. The default profile requires one H.264/yuv420p video stream, one AAC 48 kHz stereo audio stream, a positive duration, 30 fps, and fast-start layout. Add a preset to verify dimensions:
+
+```powershell Terminal
+python -m pipeline.validate_export outputs/product-short.mp4 --preset vertical_1080p --fps 30
+```
+
+Use `--json` for machine-readable output. `--allow-no-audio` permits a silent file and `--skip-faststart` disables atom-order checking. The expected frame rate must be a finite positive number; invalid values such as zero, negative values, infinity, and NaN are rejected. The command exits with status 1 when validation fails. Frame-rate validation uses FFprobe's nominal encoded cadence and also reports average FPS, which may differ slightly when narration ends between frame boundaries. Passing these checks establishes technical compatibility, but an actual upload is still required to confirm each platform's current acceptance and playback behavior.
+
+## Render benchmark
+
+`pipeline.benchmark` wraps a command without a shell and samples aggregate resident memory for its process tree using only the standard library. It supports process-tree memory on Windows and Linux and always records wall time and exit status:
+
+```powershell Terminal
+python -m pipeline.benchmark --report artifacts/render-benchmark.json -- python -m pipeline.render_job jobs/vertical-local-demo.json
+```
+
+The wrapped command's output remains visible. The optional report contains elapsed seconds, peak bytes and MiB, sample count, command, and exit code. Memory is sampled at the configured interval, while process completion is detected without waiting out the remainder of that interval so the wall-time result is not rounded up by the sampler. Start any URL source server separately before benchmarking; a separately launched server is intentionally outside the render-process memory measurement.
+
 ## Notes
 
 Add commands here as they are validated in the real workflow.
@@ -146,3 +184,8 @@ Add commands here as they are validated in the real workflow.
 
 - [[06 Operations/02 Troubleshooting]]
 - [[06 Operations/03 Hardware Constraints]]
+- [[06 Operations/04 Production Validation]]
+
+
+
+
