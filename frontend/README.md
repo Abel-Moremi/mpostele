@@ -1,20 +1,19 @@
 # Mpostele frontend
 
-This folder contains the current frontend prototype for the mpostele project: a Vite + Vue interface for planning and previewing social content workflows.
+This folder contains the current frontend prototype for the mpostele project: a Vite + Vue interface for running and reviewing local capture and narration-compositing jobs.
 
 ## What this prototype includes
 
-- a content calendar dashboard
-- channel and campaign summary metrics
-- a draft queue with scheduling data
-- a theme toggle and design system styling
-- a dark/light UI treatment based on a shared token palette
-- a capture command builder that validates the platform URL and output folder, and masks the password by default (with an explicit "show password" toggle) so it isn't exposed on screen by default
+- a local capture command builder and runner
+- a narration-compositing form for combining a generated clip with local audio
+- validation and status logs for both jobs
+- a theme toggle and responsive dark/light design system
+- password masking and non-persistence for capture credentials
 - a theme-aware favicon that follows the OS color scheme by default and switches instantly when the in-app theme toggle is used
 
 ## Data persistence
 
-Settings (theme choice, platform URL, username, target path, output folder) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
+Settings (theme choice, capture fields, audio/video paths, and normalization choice) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
 
 The password field is intentionally **never persisted**: it's excluded from the stored JSON and starts empty on every reload. This avoids writing a plaintext credential to disk-backed browser storage.
 
@@ -32,6 +31,19 @@ This stays local-first and safe by design:
 - **Output directory containment** — the requested output folder is resolved and rejected if it would land outside the repository root, blocking path traversal.
 
 This is a convenience trigger for the same command you could already run by hand — it doesn't add any new capability beyond what the pipeline script already does.
+
+## Running narration composition from the UI
+
+The Audio panel calls `/api/run-audio`, which runs `python -m pipeline.audio` with the selected base video, narration file, output file, and normalization setting. Paths are project-relative by default. All three paths are resolved by the server and rejected if they leave the repository; the two input files must already exist.
+
+A typical workflow is:
+
+1. Run Capture to create `artifacts/login_job/motion.mp4`.
+2. Place a narration file at `artifacts/login_job/voiceover.wav`.
+3. Open Audio and click **Create narrated video**.
+4. Find the result at `artifacts/login_job/final.mp4`.
+
+The endpoint is loopback-only, invokes Python without a shell, limits request and log sizes, and terminates jobs that exceed three minutes.
 
 ## Why it exists
 
@@ -54,4 +66,4 @@ npm run build
 
 ## Current status
 
-This frontend is a working prototype, not the final end-to-end video automation stack. The long-term pipeline still needs the actual browser capture, motion generation, FFmpeg composition, and export logic described in the project docs.
+This frontend is a working local control surface for single-clip capture and narration composition, not the final end-to-end automation stack. Local TTS, multi-scene assembly, and platform export presets remain future work.

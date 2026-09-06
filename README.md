@@ -13,10 +13,12 @@ This is not yet a complete end-to-end video-generation product. The automation p
 
 - research notes and architecture docs for a low-memory animation workflow
 - a Vue + Vite frontend mockup for a content planner / campaign dashboard
+- local Playwright capture, FFmpeg motion, Manim overlays, and narration compositing modules
 
 ### What is still planned
 
-- local voiceover generation and export automation
+- local text-to-speech generation
+- multi-scene export automation
 - a working CLI or Python orchestration layer for end-to-end video jobs
 
 ## Design intent
@@ -54,7 +56,7 @@ mpostele/
 
 ## Frontend prototype
 
-The frontend app is a Vite + Vue dashboard concept that demonstrates a content-planning and publishing workflow. It is useful as a design and UX reference for the broader product direction, but it is not the final automated video pipeline.
+The frontend app is a Vite + Vue local control surface for capture and narration-compositing jobs. It can run both Python stages through loopback-only Vite endpoints and display their logs, but it is not yet a complete multi-scene automation pipeline.
 
 To run the frontend locally:
 
@@ -129,6 +131,21 @@ python -m pipeline.first_render \
 ```
 
 `--motion-trigger` is `hover`, `click`, `scroll`, or `none`. The recorded `.webm` is transcoded to `motion.mp4` with FFmpeg, so it works as a drop-in replacement for the screenshot-based `motion.mp4` (e.g. as input to `pipeline.overlays`).
+
+## Narration compositing
+
+[pipeline/audio.py](pipeline/audio.py) accepts any local narration file, detects its duration with FFprobe, and creates a narrated MP4 with FFmpeg:
+
+```bash
+python -m pipeline.audio \
+  --video artifacts/first_scene/motion.mp4 \
+  --audio artifacts/first_scene/voiceover.wav \
+  --output artifacts/first_scene/final.mp4
+```
+
+The visual is trimmed or its final frame is held to match the narration. Audio receives lightweight one-pass loudness normalization by default; pass `--no-normalize-audio` to preserve the source level. This stage intentionally accepts an existing audio file so a future local TTS adapter does not become a hard dependency.
+
+The same operation is available in the frontend's **Audio** panel. Its local `/api/run-audio` endpoint validates that all media paths stay inside the repository before invoking the Python module without a shell.
 
 ## Related docs
 

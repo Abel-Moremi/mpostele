@@ -17,12 +17,19 @@ const captureJob = ref({
   targetPath: '/dashboard',
   outputDir: 'artifacts/login_job',
 })
+const audioJob = ref({
+  videoPath: 'artifacts/login_job/motion.mp4',
+  audioPath: 'artifacts/login_job/voiceover.wav',
+  outputPath: 'artifacts/login_job/final.mp4',
+  normalizeAudio: true,
+})
 
 const pipelineSteps = [
   { title: 'Login & route', text: 'Open a protected page with a supplied username and password.', tone: 'magenta' },
   { title: 'Capture', text: 'Take a clean screenshot of the target product state.', tone: 'lilac' },
   { title: 'Motion render', text: 'Apply the local FFmpeg-based Ken Burns style movement.', tone: 'tan' },
-  { title: 'Export', text: 'Write a final social-ready clip into the artifacts folder.', tone: 'citron' },
+  { title: 'Narration', text: 'Match a local audio file to the visual and normalize its loudness.', tone: 'citron' },
+  { title: 'Export', text: 'Write an H.264 and AAC clip into the artifacts folder.', tone: 'magenta' },
 ]
 
 const isUrlValid = computed(() => {
@@ -37,11 +44,23 @@ const isUrlValid = computed(() => {
 const isOutputDirValid = computed(() => captureJob.value.outputDir.trim().length > 0)
 
 const isJobValid = computed(() => isUrlValid.value && isOutputDirValid.value)
+const isAudioJobValid = computed(() =>
+  audioJob.value.videoPath.trim().length > 0 &&
+  audioJob.value.audioPath.trim().length > 0 &&
+  audioJob.value.outputPath.trim().length > 0
+)
 
 // 'idle' | 'running' | 'success' | 'error'
 const runState = ref('idle')
 const runResult = ref(null)
 const isRunning = computed(() => runState.value === 'running')
+const audioRunState = ref('idle')
+const audioRunResult = ref(null)
+const isAudioRunning = computed(() => audioRunState.value === 'running')
+
+function quoteArgument(value) {
+  return `"${value.replaceAll('"', '\\"')}"`
+}
 
 function buildCommandParts(mask) {
   const parts = [
@@ -64,6 +83,16 @@ const jobCommand = computed(() => buildCommandParts(false))
 
 // Masked command shown on screen so the password isn't exposed to shoulder-surfing or screenshots.
 const displayCommand = computed(() => buildCommandParts(!showPassword.value))
+const audioCommand = computed(() => {
+  const parts = [
+    'python -m pipeline.audio',
+    `--video ${quoteArgument(audioJob.value.videoPath)}`,
+    `--audio ${quoteArgument(audioJob.value.audioPath)}`,
+    `--output ${quoteArgument(audioJob.value.outputPath)}`,
+  ]
+  if (!audioJob.value.normalizeAudio) parts.push('--no-normalize-audio')
+  return parts.join(' ')
+})
 
 function copyCommand() {
   if (!isJobValid.value) return
@@ -74,6 +103,11 @@ function copyCommand() {
 // server's /api/run-capture endpoint (see server/capture-run-plugin.js) to
 // spawn `python -m pipeline.first_render` on this machine. The endpoint only
 // accepts loopback requests and never puts the password on the command line.
+function copyAudioCommand() {
+  if (!isAudioJobValid.value) return
+  navigator.clipboard?.writeText(audioCommand.value)
+}
+
 async function runCapture() {
   if (!isJobValid.value || isRunning.value) return
 
@@ -99,6 +133,28 @@ async function runCapture() {
   } catch (err) {
     runResult.value = { error: err instanceof Error ? err.message : String(err) }
     runState.value = 'error'
+  }
+}
+
+async function runAudio() {
+  if (!isAudioJobValid.value || isAudioRunning.value) return
+
+  audioRunState.value = 'running'
+  audioRunResult.value = null
+
+  try {
+    const response = await fetch('/api/run-audio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(audioJob.value),
+    })
+
+    const data = await response.json()
+    audioRunResult.value = data
+    audioRunState.value = response.ok && data.code === 0 ? 'success' : 'error'
+  } catch (err) {
+    audioRunResult.value = { error: err instanceof Error ? err.message : String(err) }
+    audioRunState.value = 'error'
   }
 }
 
@@ -128,9 +184,10 @@ function goToSection(id) {
 }
 
 onMounted(async () => {
-  const [storedTheme, storedJob] = await Promise.all([
+  const [storedTheme, storedJob, storedAudioJob] = await Promise.all([
     getSetting('theme'),
     getSetting('captureJob'),
+    getSetting('audioJob'),
   ])
 
   if (storedTheme) theme.value = storedTheme
@@ -139,6 +196,7 @@ onMounted(async () => {
     // from the stored JSON and untouched here.
     Object.assign(captureJob.value, JSON.parse(storedJob))
   }
+  if (storedAudioJob) Object.assign(audioJob.value, JSON.parse(storedAudioJob))
 
   document.documentElement.setAttribute('data-theme', theme.value)
   syncFavicon(theme.value)
@@ -156,6 +214,15 @@ watch(
     if (!settingsLoaded.value) return
     const { password, ...persistable } = job
     setSetting('captureJob', JSON.stringify(persistable))
+  },
+  { deep: true }
+)
+
+watch(
+  audioJob,
+  (job) => {
+    if (!settingsLoaded.value) return
+    setSetting('audioJob', JSON.stringify(job))
   },
   { deep: true }
 )
@@ -187,6 +254,13 @@ watch(
           type="button"
           @click="goToSection('capture')"
         >Capture</button>
+        <button
+          class="nav-link"
+          :class="{ 'is-active': activeNav === 'audio' }"
+          :aria-current="activeNav === 'audio' ? 'page' : undefined"
+          type="button"
+          @click="goToSection('audio')"
+        >Audio</button>
         <button
           class="nav-link"
           :class="{ 'is-active': activeNav === 'docs' }"
@@ -305,6 +379,62 @@ watch(
           </p>
           <pre v-if="runResult.stdout" class="run-log">{{ runResult.stdout }}</pre>
           <pre v-if="runResult.stderr" class="run-log run-log-error">{{ runResult.stderr }}</pre>
+        </div>
+      </section>
+
+      <section id="audio" class="capture-panel section-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Narration setup</p>
+            <h2>Add a local voiceover to the motion clip</h2>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Base video path
+            <input v-model="audioJob.videoPath" type="text" placeholder="artifacts/login_job/motion.mp4" :aria-invalid="!audioJob.videoPath.trim()" />
+            <span v-if="!audioJob.videoPath.trim()" class="field-error">Base video path cannot be empty</span>
+          </label>
+
+          <label>
+            Narration audio path
+            <input v-model="audioJob.audioPath" type="text" placeholder="artifacts/login_job/voiceover.wav" :aria-invalid="!audioJob.audioPath.trim()" />
+            <span v-if="!audioJob.audioPath.trim()" class="field-error">Narration path cannot be empty</span>
+          </label>
+
+          <label>
+            Final output path
+            <input v-model="audioJob.outputPath" type="text" placeholder="artifacts/login_job/final.mp4" :aria-invalid="!audioJob.outputPath.trim()" />
+            <span v-if="!audioJob.outputPath.trim()" class="field-error">Output path cannot be empty</span>
+          </label>
+
+          <label class="inline-checkbox">
+            <input v-model="audioJob.normalizeAudio" type="checkbox" />
+            Normalize narration loudness
+          </label>
+        </div>
+
+        <div class="command-box">
+          <pre>{{ audioCommand }}</pre>
+        </div>
+
+        <div class="run-actions">
+          <button class="primary-btn" type="button" :disabled="!isAudioJobValid || isAudioRunning" @click="runAudio">
+            {{ isAudioRunning ? 'Compositing…' : 'Create narrated video' }}
+          </button>
+          <button class="secondary-btn" type="button" :disabled="!isAudioJobValid" @click="copyAudioCommand">Copy command</button>
+          <p class="run-hint">All paths must stay inside this project. The files are processed locally with FFmpeg.</p>
+        </div>
+
+        <div v-if="audioRunResult" class="run-status" :class="audioRunState">
+          <p class="run-status-title">
+            <template v-if="audioRunState === 'success'">Narrated video created at {{ audioRunResult.outputPath }}.</template>
+            <template v-else-if="audioRunResult.error">Failed to run: {{ audioRunResult.error }}</template>
+            <template v-else>Process exited with code {{ audioRunResult.code }}.</template>
+          </p>
+          <pre v-if="audioRunResult.stdout" class="run-log">{{ audioRunResult.stdout }}</pre>
+          <pre v-if="audioRunResult.stderr" class="run-log run-log-error">{{ audioRunResult.stderr }}</pre>
         </div>
       </section>
 

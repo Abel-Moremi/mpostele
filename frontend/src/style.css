@@ -348,6 +348,24 @@ input:focus {
   box-shadow: 0 0 0 4px rgba(109, 87, 219, 0.08);
 }
 
+.inline-checkbox {
+  display: flex;
+  align-items: center;
+  align-self: end;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--input-bg);
+}
+
+.inline-checkbox input {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}
+
 .command-box {
   margin-top: 18px;
   padding: 16px 18px;
@@ -472,7 +490,7 @@ input[aria-invalid='true'] {
 
 .steps-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 18px;
 }
 

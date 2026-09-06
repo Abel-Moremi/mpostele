@@ -28,10 +28,11 @@ The remaining production pipeline work is still pending:
 
 ## Production flow
 
-- [ ] capture screenshots reliably
-- [ ] render animation overlays
-- [ ] compose voiceover with motion layers
-- [ ] export short-form video output
+- [x] capture screenshots reliably
+- [x] render animation overlays
+- [x] compose a supplied local voiceover with one motion layer
+- [ ] generate voiceover locally from a script
+- [ ] orchestrate multi-scene short-form video output
 
 ## Validation
 
@@ -39,7 +40,7 @@ The remaining production pipeline work is still pending:
 - [ ] verify memory usage stays within target limits
 - [ ] check output quality and playback stability
 
-The first render proof is now in place with a local Playwright capture and FFmpeg zoom-pan export flow. This establishes the minimum viable architecture before adding richer motion overlays and audio.
+The first render proof is in place with local Playwright capture and FFmpeg zoom-pan export. Manim provides transparent overlays, and `pipeline/audio.py` now composes a supplied narration file into a duration-matched H.264/AAC MP4. FFmpeg and FFprobe must both be available on `PATH`; local TTS and multi-scene orchestration remain pending.
 
 ## Related notes
 

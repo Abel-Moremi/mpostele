@@ -47,6 +47,18 @@ python -m pipeline.first_render --url https://example.com --words-per-second 2.5
 
 If `--username`/`--password` are supplied but no password field is found on the page, or a login is submitted but cannot be verified (URL unchanged, password field still visible, or an error message detected), the command fails fast with a clear error instead of producing a bad screenshot.
 
+## Narration composition
+
+FFmpeg and FFprobe must be available on `PATH`. Supply a local narration file and a base motion or overlay clip:
+
+```bash
+python -m pipeline.audio --video artifacts/first_scene/motion.mp4 --audio artifacts/first_scene/voiceover.wav --output artifacts/first_scene/final.mp4
+```
+
+The output duration defaults to the narration duration. A short visual holds its final frame; a long visual is trimmed. Use `--duration 5` to override the detected duration or `--no-normalize-audio` to skip the default one-pass loudness normalization.
+
+To run this from the frontend, start Vite, open the **Audio** panel, enter repository-contained paths for the base video, narration, and output, then select **Create narrated video**. The local `/api/run-audio` endpoint rejects paths outside the project and reports FFmpeg output in the panel.
+
 ## Notes
 
 Add commands here as they are validated in the real workflow.

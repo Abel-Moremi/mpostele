@@ -27,12 +27,14 @@ The repo has completed the documentation foundation and a frontend prototype. Th
 ## Phase 4: Audio
 
 - [ ] configure Kokoro TTS workflow
-- [ ] align audio with the scene timing
-- [ ] tune narration pacing and background clean-up
+- [x] align supplied local narration with scene timing (`pipeline/audio.py` probes duration, then trims or extends the visual)
+- [x] add lightweight narration normalization and AAC encoding
+- [ ] tune generated narration pacing and background clean-up
 
 ## Phase 5: Composite and export
 
-- [ ] merge clips, overlays, and voiceover
+- [x] merge a single motion/overlay clip with supplied voiceover
+- [ ] merge multiple clips, overlays, and voiceover into a complete sequence
 - [ ] test final output for platform compatibility
 - [ ] finalize export presets for social videos
 

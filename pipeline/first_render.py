@@ -644,17 +644,19 @@ def capture_motion_sequence(
     afterwards. This captures genuine CSS/JS transitions that FFmpeg zoompan
     or a composited Manim overlay can't reproduce.
 
-    Recording happens at the browser-context level (Chromium's own video
+        Recording happens at the browser-context level (Chromium's own video
     encoder), so this stays as lightweight as the existing screenshot-based
     capture -- no extra GPU/model dependency.
     """
-    from playwright.sync_api import sync_playwright
-
     if motion_trigger not in MOTION_TRIGGERS:
         raise ValueError(
             f"Unknown motion_trigger {motion_trigger!r}. Expected one of: "
             f"{', '.join(MOTION_TRIGGERS)}"
         )
+
+    # Keep the optional runtime import after argument validation so command
+    # builders and validation tests do not require Playwright to be installed.
+    from playwright.sync_api import sync_playwright
 
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)

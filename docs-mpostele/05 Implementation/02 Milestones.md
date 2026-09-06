@@ -33,8 +33,12 @@ Motion presets live in `pipeline/first_render.py` (`--motion-preset`: `zoom_in`,
 ## Milestone 5: voiceover workflow
 
 - [ ] generate script-based narration
-- [ ] tune voice pacing and timing
-- [ ] integrate audio into video layers
+- [x] use narration duration to time a visual clip
+- [x] integrate supplied local audio into a video layer
+- [x] normalize narration and encode it as AAC
+- [ ] tune generated voice pacing and timing
+
+`pipeline/audio.py` is the lightweight composition boundary: it accepts any local narration file, probes duration with FFprobe, trims or extends the visual to match, and writes an H.264/AAC MP4. TTS remains a separate future adapter that can produce `voiceover.wav` without making model inference a requirement for audio composition.
 
 ## Milestone 6: final pipeline
 
