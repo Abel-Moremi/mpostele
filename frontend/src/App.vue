@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import logoLight from './assets/mpostele-logo-light.png'
 import logoDark from './assets/mpostele-logo-dark.png'
+import DiscoveryPanel from './components/DiscoveryPanel.vue'
 import RenderJobPanel from './components/RenderJobPanel.vue'
 import { getSetting, setSetting } from './db/sqlite'
 
@@ -26,6 +27,7 @@ const audioJob = ref({
 })
 
 const pipelineSteps = [
+  { title: 'Discover', text: 'Map pages, safe interface states, transitions, and evidence-backed product findings.', tone: 'citron' },
   { title: 'Login & route', text: 'Open a protected page with a supplied username and password.', tone: 'magenta' },
   { title: 'Capture', text: 'Take a clean screenshot of the target product state.', tone: 'lilac' },
   { title: 'Motion render', text: 'Apply the local FFmpeg-based Ken Burns style movement.', tone: 'tan' },
@@ -250,6 +252,13 @@ watch(
         >Overview</button>
         <button
           class="nav-link"
+          :class="{ 'is-active': activeNav === 'discovery' }"
+          :aria-current="activeNav === 'discovery' ? 'page' : undefined"
+          type="button"
+          @click="goToSection('discovery')"
+        >Discovery</button>
+        <button
+          class="nav-link"
           :class="{ 'is-active': activeNav === 'capture' }"
           :aria-current="activeNav === 'capture' ? 'page' : undefined"
           type="button"
@@ -292,12 +301,12 @@ watch(
       <section id="overview" class="hero section-card">
         <div class="hero-copy">
           <p class="eyebrow">Local-first workflow</p>
-          <h1>Capture product pages and turn them into motion-ready clips.</h1>
+          <h1>Understand a product, then turn its strongest flows into motion.</h1>
           <p class="hero-text">
-            This pipeline logs in, navigates to a target page, captures the state, and renders a lightweight local motion video without relying on a heavy cloud stack.
+            The local agent maps product pages and safe interface states into reusable structured knowledge before the capture and rendering pipeline creates a video.
           </p>
           <div class="hero-actions">
-            <button class="primary-btn" type="button" @click="goToSection('capture')">Get started</button>
+            <button class="primary-btn" type="button" @click="goToSection('discovery')">Start discovery</button>
             <button class="secondary-btn" type="button" :disabled="!isJobValid" @click="copyCommand">Copy command</button>
           </div>
         </div>
@@ -323,6 +332,8 @@ watch(
           </div>
         </div>
       </section>
+
+      <DiscoveryPanel />
 
       <section id="capture" class="capture-panel section-card">
         <div class="section-head">

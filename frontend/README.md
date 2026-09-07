@@ -1,9 +1,11 @@
 # Mpostele frontend
 
-This folder contains the local Vite + Vue control surface for running capture, narration-compositing, and complete multi-scene render jobs.
+This folder contains the local Vite + Vue control surface for running site discovery, capture, narration-compositing, and complete multi-scene render jobs.
 
 ## What this prototype includes
 
+- a Discovery workspace for configuring and running the evidence-first site agent
+- live discovery progress, stop control, desktop/mobile viewport presets, fallback status, and result summaries with explicit coverage gaps
 - a local capture command builder and runner
 - a narration-compositing form for combining a generated clip with local audio
 - a multi-scene editor with URL, image, and video sources; ordering; motion; overlays; supplied or generated narration; and export presets
@@ -14,11 +16,23 @@ This folder contains the local Vite + Vue control surface for running capture, n
 
 ## Data persistence
 
-Settings (theme choice, capture fields, audio/video paths, render scenes, and export choices) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
+Settings (theme choice, discovery configuration, capture fields, audio/video paths, render scenes, and export choices) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
 
 Password fields are intentionally **never persisted**: they are excluded from stored JSON and start empty on every reload. This avoids writing plaintext credentials to disk-backed browser storage.
 
 See [src/db/sqlite.js](src/db/sqlite.js) for the persistence module (a small `settings(key, value)` table) and the `onMounted`/`watch` wiring in [src/App.vue](src/App.vue) for how fields are loaded and saved.
+
+## Running site discovery from the UI
+
+The **Discovery** panel configures the starting URL, domain allowlist, evidence output folder, Playwright storage-state file, viewport, crawl budgets, and reasoning provider. It supports a local llama.cpp endpoint with Qwen or a deterministic heuristic mode that does not require an LLM.
+
+Selecting **Run discovery agent** calls the loopback-only `/api/run-discovery` endpoint from [server/discovery-run-plugin.js](server/discovery-run-plugin.js). The endpoint validates URL schemes, domains, numeric budgets, repository path containment, and—when selected—the local model endpoint. Model endpoints must use a loopback hostname so observed site evidence cannot accidentally be sent to a remote service. It starts `pipeline.site_agent.cli` without a shell and immediately returns a run ID. The panel polls that run ID for the current page and page/state/action/transition counts; **Stop run** terminates the associated local process.
+
+Each UI launch writes into `<evidence-folder>/runs/<run-id>/`, including its own `frontend-discovery.json`, `progress.json`, database, and snapshot. This prevents reused folders from mixing records and prevents a failed run from presenting a previous snapshot. Completed summaries are only loaded after a zero exit code.
+
+After completion, the frontend shows page, state, action, transition, finding, blocked/review, unexplored-action, failed-event, and model-fallback counts plus page and finding inventories. Finding rows show their evidence state IDs. The complete reusable data remains in `snapshot.json` and `knowledge.sqlite`; the UI intentionally loads a bounded summary rather than the full evidence graph into browser memory. Discovery settings persist locally, but generated evidence remains in the configured project-contained artifact folder. Graph visualization, screenshot browsing, action approval, important-flow marking, and targeted follow-up exploration are not implemented yet.
+
+Authenticated discovery uses an existing Playwright storage-state file. The frontend only stores its path, and the server rejects paths outside the repository or files that do not exist. Keep authentication state under ignored local storage such as `artifacts/`.
 
 ## Running the capture job from the UI
 
@@ -54,7 +68,7 @@ Selecting **Render complete video** calls the loopback-only `/api/run-render-job
 
 ## Why it exists
 
-This UI provides a practical local control surface over the lightweight capture, motion, compositing, and multi-scene export pipeline without adding a cloud service or a heavy desktop runtime.
+This UI provides a practical local control surface over the lightweight discovery, capture, motion, compositing, and multi-scene export pipeline without adding a cloud service or a heavy desktop runtime.
 
 ## Run locally
 
@@ -72,8 +86,8 @@ npm test
 npm run build
 ```
 
-The Node tests cover repository path containment, local-source validation, and script/TTS validation for the render-job endpoint.
+The Node tests cover discovery domain and model-endpoint safety, repository path containment, local-source validation, and script/TTS validation for the render-job endpoint.
 
 ## Current status
 
-This frontend is a working local control surface for single-clip capture, narration composition, optional local script-to-speech, and multi-scene assembly with platform-oriented export presets. Real-world platform upload validation remains future work.
+This frontend is a working local control surface for evidence-first site discovery, single-clip capture, narration composition, optional local script-to-speech, and multi-scene assembly with platform-oriented export presets. Real-world platform upload validation remains future work.

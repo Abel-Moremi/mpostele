@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from pipeline.site_agent.agent import AgentConfig, stable_id
+from pipeline.site_agent.agent import AgentConfig, SiteDiscoveryAgent, stable_id
 from pipeline.site_agent.models import Analysis, Control, Observation, SCHEMA_VERSION, as_record
 from pipeline.site_agent.policy import classify_control, is_allowed_url, normalize_url
 from pipeline.site_agent.reasoning import HeuristicProvider
@@ -92,6 +92,23 @@ class SiteAgentStoreTests(unittest.TestCase):
             self.assertEqual(payload["findings"][0]["status"], "inferred")
             self.assertEqual(payload["findings"][0]["evidence"], [state_id])
             self.assertEqual(payload["events"][0]["status"], "failed")
+
+    def test_progress_file_reports_current_run_counts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            agent = SiteDiscoveryAgent(
+                AgentConfig("https://example.com", output_dir=str(root)),
+                HeuristicProvider(),
+            )
+            with KnowledgeStore(root / "knowledge.sqlite") as store:
+                store.start_run("run_test", {"start_url": "https://example.com"})
+                agent._write_progress(store, "run_test", "running", "https://example.com/docs")
+
+            progress = json.loads((root / "progress.json").read_text(encoding="utf-8"))
+            self.assertEqual(progress["run_id"], "run_test")
+            self.assertEqual(progress["current_url"], "https://example.com/docs")
+            self.assertEqual(progress["pages"], 0)
+            self.assertEqual(progress["fallback_count"], 0)
 
     def test_heuristic_provider_only_selects_supplied_safe_actions(self):
         observation = Observation(

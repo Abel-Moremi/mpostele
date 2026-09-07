@@ -62,7 +62,29 @@ class SiteDiscoveryAgent:
         self.output_dir = Path(self.config.output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.decision_log = self.output_dir / "decisions.jsonl"
+        self.progress_path = self.output_dir / "progress.json"
         self.sequence = 0
+        self.fallback_count = 0
+
+    def _write_progress(
+        self,
+        store: KnowledgeStore,
+        run_id: str,
+        status: str,
+        current_url: str = "",
+    ) -> None:
+        coverage = store.coverage()
+        payload = {
+            "run_id": run_id,
+            "status": status,
+            "current_url": current_url,
+            "fallback_count": self.fallback_count,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            **coverage,
+        }
+        temporary = self.progress_path.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        temporary.replace(self.progress_path)
 
     def _record_decision(self, payload: dict[str, Any]) -> None:
         record = {"timestamp": datetime.now(timezone.utc).isoformat(), **payload}
@@ -82,6 +104,7 @@ class SiteDiscoveryAgent:
             )
             return analysis, self.provider.name
         except Exception as error:
+            self.fallback_count += 1
             self._record_decision(
                 {
                     "event": "provider_error",
@@ -148,6 +171,7 @@ class SiteDiscoveryAgent:
         )
         store = KnowledgeStore(self.output_dir / "knowledge.sqlite")
         store.start_run(run_id, manifest)
+        self._write_progress(store, run_id, "starting", self.config.start_url)
         queue = deque([PendingPage(normalize_url(self.config.start_url), 0)])
         queued = {normalize_url(self.config.start_url)}
         visited: dict[str, str] = {}
@@ -169,6 +193,7 @@ class SiteDiscoveryAgent:
                     while queue and len(visited) < self.config.max_pages:
                         pending = queue.popleft()
                         normalized = normalize_url(pending.url)
+                        self._write_progress(store, run_id, "running", normalized)
                         if normalized in visited:
                             if pending.source_state_id and pending.action_id:
                                 store.save_transition(
@@ -200,6 +225,7 @@ class SiteDiscoveryAgent:
                                 "failed",
                                 str(error),
                             )
+                            self._write_progress(store, run_id, "running", normalized)
                             continue
                         if not is_allowed_url(observation.url, self.config.allowed_domains):
                             store.save_event(
@@ -213,6 +239,7 @@ class SiteDiscoveryAgent:
                             continue
                         state_id, analysis, classifications = self._save_observation(store, observation)
                         visited[observation.url] = state_id
+                        self._write_progress(store, run_id, "running", observation.url)
                         if pending.source_state_id and pending.action_id:
                             store.save_transition(
                                 stable_id("transition", pending.source_state_id, pending.action_id, state_id),
@@ -281,6 +308,7 @@ class SiteDiscoveryAgent:
                                     str(error),
                                 )
                             finally:
+                                self._write_progress(store, run_id, "running", observation.url)
                                 try:
                                     page.goto(observation.url, wait_until="domcontentloaded", timeout=60000)
                                     page.wait_for_timeout(250)
@@ -300,6 +328,7 @@ class SiteDiscoveryAgent:
             store.complete_run(run_id, status)
             snapshot = store.export_snapshot(self.output_dir / "snapshot.json")
             self._write_coverage(store)
+            self._write_progress(store, run_id, status)
             store.close()
         return snapshot
 

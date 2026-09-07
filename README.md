@@ -55,13 +55,17 @@ mpostele/
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── src/
-│   └── README.md
 └── .gitignore
 ```
 
 ## Frontend prototype
 
-The frontend app is a Vite + Vue local control surface for capture, narration-compositing, and multi-scene render jobs. Its loopback-only endpoints run the Python pipeline locally and display process logs without introducing a cloud service.
+
+
+
+
+
+The frontend app is a Vite + Vue local control surface for site discovery, capture, narration-compositing, and multi-scene render jobs. Its loopback-only endpoints run the Python pipeline locally and display process logs without introducing a cloud service. The Discovery workspace configures crawl safety and model settings, reports the current page and live counters, supports stopping a run, and presents a bounded summary of findings and explicit coverage gaps.
 
 To run the frontend locally:
 
@@ -104,13 +108,19 @@ Create a manifest such as:
 Run the included local-frontend manifest without an LLM to validate discovery and storage:
 
 ```bash
+
+
+
+
 python -m pipeline.site_agent.cli jobs/site-discovery-local.json --provider heuristic
 ```
 
+For semantic analysis, start a local OpenAI-compatible `llama-server` with a compact instruct model such as Qwen3 4B GGUF, then omit `--provider heuristic`. The agent falls back to deterministic analysis if the local model cannot be reached. Generated `knowledge.sqlite`, `snapshot.json`, `progress.json`, `decisions.jsonl`, screenshots, accessibility snapshots, and `reports/coverage.md` stay under the configured output directory. The versioned JSON snapshot is the supported handoff format for future content-planning and recording agents. UI-triggered runs use a unique `runs/<run-id>` subfolder so failed or repeated runs cannot display stale or cumulative results.
 
-For semantic analysis, start a local OpenAI-compatible `llama-server` with a compact instruct model such as Qwen3 4B GGUF, then omit `--provider heuristic`. The agent falls back to deterministic analysis if the local model cannot be reached. Generated `knowledge.sqlite`, `snapshot.json`, `decisions.jsonl`, screenshots, accessibility snapshots, and `reports/coverage.md` stay under the configured output directory. The versioned JSON snapshot is the supported handoff format for future content-planning and recording agents.
 
-The initial safety level is deliberately conservative: internal links, tabs, disclosure controls, and clearly reversible buttons may be explored; destructive or consequential labels are blocked; unknown buttons require review and are not clicked. Authentication can use a Playwright `storage_state` file, which should remain local and untracked.
+
+
+The initial safety level is deliberately conservative: internal links, tabs, disclosure controls, and clearly reversible buttons may be explored; destructive or consequential labels are blocked; unknown buttons require review and are not clicked. Authentication can use a Playwright `storage_state` file, which should remain local and untracked. The frontend **Discovery** panel now exposes these settings and results through a loopback-only endpoint; remote model endpoints and output paths outside the repository are rejected.
 
 ## First local pipeline proof
 

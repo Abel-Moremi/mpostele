@@ -55,7 +55,7 @@ For local semantic analysis, start an OpenAI-compatible llama.cpp server separat
 python -m pipeline.site_agent.cli site-agent.json --provider llama.cpp --endpoint http://127.0.0.1:8080/v1/chat/completions --model qwen3-4b-instruct
 ```
 
-If the model endpoint fails during a state analysis, the run records the error in `decisions.jsonl` and uses deterministic heuristic analysis for that state. Outputs include `knowledge.sqlite`, versioned `snapshot.json`, screenshots, accessibility snapshots, and `reports/coverage.md`. The agent only visits configured domains and only clicks controls classified as safe and reversible; form submission and ambiguous or consequential buttons remain unexecuted. `storage_state` is passed directly to Playwright and may contain secrets, so keep that file in an ignored local location such as `artifacts/`.
+If the model endpoint fails during a state analysis, the run records the error in `decisions.jsonl` and uses deterministic heuristic analysis for that state. Outputs include `knowledge.sqlite`, versioned `snapshot.json`, atomically updated `progress.json`, screenshots, accessibility snapshots, and `reports/coverage.md`. `progress.json` reports the current URL, live record counts, run status, and model-fallback count for lightweight local monitoring. UI-started runs are isolated under the configured folder's `runs/<run-id>` directory and can be stopped from the Discovery panel. The agent only visits configured domains and only clicks controls classified as safe and reversible; form submission and ambiguous or consequential buttons remain unexecuted. `storage_state` is passed directly to Playwright and may contain secrets, so keep that file in an ignored local location such as `artifacts/`.
 
 ## First render pipeline
 

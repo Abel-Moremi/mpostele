@@ -491,6 +491,210 @@ input[aria-invalid='true'] {
   color: #f5b2c0;
 }
 
+.discovery-heading {
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.section-description {
+  max-width: 72ch;
+  margin: 10px 0 0;
+  color: var(--text-soft);
+}
+
+.local-badge,
+.schema-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: var(--citron);
+  color: #284d20;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.field-help {
+  color: var(--text-soft);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.discovery-options {
+  background: var(--input-bg);
+}
+
+.viewport-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.viewport-presets .secondary-btn {
+  padding: 7px 11px;
+  font-size: 0.75rem;
+}
+
+.discovery-progress {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-strong);
+}
+
+.discovery-progress div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.discovery-progress span {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.progress-counts {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fallback-status {
+  margin: 12px 0 0;
+  color: var(--tan-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.discovery-budget-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.discovery-results {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.result-heading,
+.result-list-head,
+.finding-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.result-heading h3 {
+  margin: 6px 0 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.metric-grid article {
+  display: grid;
+  gap: 2px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-strong);
+}
+
+.metric-grid strong {
+  font-size: 1.6rem;
+  letter-spacing: -0.05em;
+}
+
+.metric-grid span {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.result-list {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--input-bg);
+  overflow: hidden;
+}
+
+.result-list-head {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-list-head h4 {
+  margin: 0;
+}
+
+.result-list-head span,
+.finding-meta,
+.result-list small {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+}
+
+.result-list ul {
+  max-height: 390px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+}
+
+.result-list li {
+  display: grid;
+  gap: 5px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-list li:last-child {
+  border-bottom: 0;
+}
+
+.result-list a {
+  color: var(--lilac-strong);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.finding-meta span:first-child {
+  text-transform: capitalize;
+}
+
+.empty-result {
+  margin: 0;
+  padding: 18px;
+  color: var(--text-soft);
+}
+
 .render-heading {
   gap: 16px;
 }
@@ -641,8 +845,14 @@ input[aria-invalid='true'] {
 @media (max-width: 900px) {
   .hero,
   .form-grid,
-  .steps-grid {
+  .steps-grid,
+  .result-columns {
     grid-template-columns: 1fr;
+  }
+
+  .discovery-budget-grid,
+  .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .topbar {
@@ -670,6 +880,8 @@ input[aria-invalid='true'] {
   }
 
   .render-heading,
+  .discovery-heading,
+  .result-heading,
   .scene-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -678,5 +890,10 @@ input[aria-invalid='true'] {
   .scene-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .discovery-budget-grid,
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
