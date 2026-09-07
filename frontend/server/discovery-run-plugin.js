@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -8,6 +8,7 @@ const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..
 const RUN_TIMEOUT_MS = 30 * 60 * 1000
 const MAX_BODY_BYTES = 30_000
 const MAX_LOG_CHARS = 40_000
+const MAX_EVIDENCE_BYTES = 25 * 1024 * 1024
 const runs = new Map()
 
 function resolvePythonPath() {
@@ -95,7 +96,7 @@ function readJson(filePath) {
   return existsSync(filePath) ? JSON.parse(readFileSync(filePath, 'utf8')) : null
 }
 
-function resultSummary(outputDir) {
+export function resultSummary(outputDir, runId) {
   const snapshot = readJson(path.join(outputDir, 'snapshot.json'))
   if (!snapshot) return null
   const actions = snapshot.actions ?? []
@@ -112,6 +113,34 @@ function resultSummary(outputDir) {
       failedEvents: snapshot.events?.filter((item) => item.status === 'failed').length ?? 0,
     },
     pages: (snapshot.pages ?? []).slice(-200).map((item) => ({ id: item.id, title: item.title, url: item.normalized_url })),
+    states: (snapshot.states ?? []).slice(-200).map((item) => ({
+      id: item.id,
+      pageId: item.page_id,
+      observedAt: item.observed_at,
+      title: item.observation?.title ?? '',
+      url: item.observation?.url ?? '',
+      headings: item.observation?.headings ?? [],
+      visibleText: item.observation?.visible_text ?? '',
+      screenshotUrl: item.observation?.screenshot_path
+        ? `/api/run-discovery/${runId}/evidence?file=${encodeURIComponent(item.observation.screenshot_path)}`
+        : '',
+    })),
+    actions: actions.slice(-500).map((item) => ({
+      id: item.id,
+      stateId: item.state_id,
+      safety: item.safety,
+      safetyReason: item.safety_reason,
+      status: item.status,
+      control: item.control,
+    })),
+    transitions: (snapshot.transitions ?? []).slice(-500).map((item) => ({
+      id: item.id,
+      sourceStateId: item.source_state_id,
+      actionId: item.action_id,
+      destinationStateId: item.destination_state_id,
+      status: item.status,
+      observedResult: item.observed_result,
+    })),
     findings: (snapshot.findings ?? []).slice(-100).map((item) => ({
       id: item.id, stateId: item.state_id, evidence: item.evidence, kind: item.kind,
       statement: item.statement, status: item.status, confidence: item.confidence, producer: item.producer,
@@ -134,6 +163,66 @@ function publicRun(run) {
     snapshotPath: path.relative(REPO_ROOT, path.join(run.outputDir, 'snapshot.json')),
     progress,
     result: run.result,
+    review: readJson(path.join(run.outputDir, 'review.json')) ?? { actions: {}, importantPages: [], importantTransitions: [] },
+  }
+}
+
+function readBody(request, response, callback) {
+  let body = ''
+  let tooLarge = false
+  request.on('data', (chunk) => {
+    body += chunk
+    if (body.length > MAX_BODY_BYTES) tooLarge = true
+  })
+  request.on('end', () => {
+    if (tooLarge) return sendJson(response, 413, { error: 'Request body is too large' })
+    try { callback(JSON.parse(body || '{}')) } catch (error) {
+      sendJson(response, 400, { error: error instanceof Error ? error.message : 'Invalid request' })
+    }
+  })
+}
+
+export function saveReview(run, input) {
+  if (!run.result) throw new Error('Review is only available after a completed run')
+  const actionIds = new Set(run.result.actions.filter((item) => item.safety === 'review').map((item) => item.id))
+  const pageIds = new Set(run.result.pages.map((item) => item.id))
+  const transitionIds = new Set(run.result.transitions.map((item) => item.id))
+  const actions = input.actions && typeof input.actions === 'object' && !Array.isArray(input.actions) ? input.actions : {}
+  for (const [id, decision] of Object.entries(actions)) {
+    if (!actionIds.has(id) || !['approved', 'rejected'].includes(decision)) throw new Error('Review contains an invalid action decision')
+  }
+  const importantPages = Array.isArray(input.importantPages) ? input.importantPages : []
+  const importantTransitions = Array.isArray(input.importantTransitions) ? input.importantTransitions : []
+  if (importantPages.some((id) => !pageIds.has(id)) || importantTransitions.some((id) => !transitionIds.has(id))) {
+    throw new Error('Review contains an unknown page or transition')
+  }
+  const review = { actions, importantPages: [...new Set(importantPages)], importantTransitions: [...new Set(importantTransitions)] }
+  writeFileSync(path.join(run.outputDir, 'review.json'), JSON.stringify(review, null, 2), 'utf8')
+  return review
+}
+
+function sendEvidence(run, request, response) {
+  const requestUrl = new URL(request.url, 'http://localhost')
+  const relativePath = requestUrl.searchParams.get('file')
+  if (!relativePath) return sendJson(response, 400, { error: 'Evidence file is required' })
+  const evidencePath = path.resolve(run.outputDir, relativePath)
+  if (!evidencePath.startsWith(run.outputDir + path.sep) || path.extname(evidencePath).toLowerCase() !== '.png') {
+    return sendJson(response, 400, { error: 'Only run-contained PNG evidence can be viewed' })
+  }
+  if (!existsSync(evidencePath)) return sendJson(response, 404, { error: 'Evidence file was not found' })
+  try {
+    const realRunPath = realpathSync(run.outputDir)
+    const realEvidencePath = realpathSync(evidencePath)
+    const evidenceStat = statSync(realEvidencePath)
+    if (!realEvidencePath.startsWith(realRunPath + path.sep) || !evidenceStat.isFile() || evidenceStat.size > MAX_EVIDENCE_BYTES) {
+      return sendJson(response, 400, { error: 'Evidence file is outside the run, invalid, or too large' })
+    }
+    response.statusCode = 200
+    response.setHeader('Content-Type', 'image/png')
+    response.setHeader('Cache-Control', 'no-store')
+    response.end(readFileSync(realEvidencePath))
+  } catch {
+    return sendJson(response, 404, { error: 'Evidence file could not be read' })
   }
 }
 
@@ -162,7 +251,7 @@ function startRun(prepared) {
     run.code = code
     if (run.status === 'running') run.status = code === 0 ? 'completed' : 'failed'
     if (code === 0) {
-      try { run.result = resultSummary(outputDir) } catch (error) {
+      try { run.result = resultSummary(outputDir, id) } catch (error) {
         run.status = 'failed'
         run.error = `Could not read discovery snapshot: ${error.message}`
       }
@@ -181,10 +270,16 @@ function startRun(prepared) {
 function registerMiddleware(server) {
   server.middlewares.use('/api/run-discovery', (request, response) => {
     if (!isLoopback(request.socket.remoteAddress)) return sendJson(response, 403, { error: 'Forbidden: local requests only' })
-    const id = request.url.split('?')[0].split('/').filter(Boolean)[0]
+    const segments = request.url.split('?')[0].split('/').filter(Boolean)
+    const id = segments[0]
     if (id) {
       const run = runs.get(id)
       if (!run) return sendJson(response, 404, { error: 'Discovery run was not found' })
+      if (segments[1] === 'evidence' && request.method === 'GET') return sendEvidence(run, request, response)
+      if (segments[1] === 'review' && request.method === 'POST') {
+        return readBody(request, response, (body) => sendJson(response, 200, { review: saveReview(run, body) }))
+      }
+      if (segments.length > 1) return sendJson(response, 404, { error: 'Discovery resource was not found' })
       if (request.method === 'GET') return sendJson(response, 200, publicRun(run))
       if (request.method === 'DELETE') {
         if (run.status === 'running') {
@@ -199,20 +294,9 @@ function registerMiddleware(server) {
     }
     if (request.method !== 'POST') return sendJson(response, 405, { error: 'Method not allowed' })
 
-    let body = ''
-    let tooLarge = false
-    request.on('data', (chunk) => {
-      body += chunk
-      if (body.length > MAX_BODY_BYTES) tooLarge = true
-    })
-    request.on('end', () => {
-      if (tooLarge) return sendJson(response, 413, { error: 'Request body is too large' })
-      try {
-        const run = startRun(prepareDiscoveryJob(JSON.parse(body)))
-        sendJson(response, 202, publicRun(run))
-      } catch (error) {
-        sendJson(response, 400, { error: error instanceof Error ? error.message : 'Invalid request' })
-      }
+    readBody(request, response, (body) => {
+      const run = startRun(prepareDiscoveryJob(body))
+      sendJson(response, 202, publicRun(run))
     })
   })
 }

@@ -32,6 +32,8 @@ Capture clean, high-quality product screenshots or interface frames that can lat
 
 Discovery is read-only and conservative by default. Same-domain links, tabs, disclosure controls, and clearly reversible buttons are eligible; destructive or consequential labels are blocked, and ambiguous buttons are marked for review instead of clicked. Authenticated runs may reference a local Playwright `storage_state` file without putting credentials in the manifest.
 
+The frontend review stage renders a bounded state/transition graph and links findings to screenshot-backed state evidence. The state browser pairs each screenshot with captured headings, visible text, and controls. Reviewers can mark pages and transitions important, record approval or rejection of ambiguous controls in run-local `review.json`, and start a new isolated run from a selected page. Approval is planning metadata only and never changes the deterministic execution policy.
+
 After discovery, [pipeline/first_render.py](../../pipeline/first_render.py) captures an approved page or interaction. It also inspects the page before acting on it instead of guessing blindly:
 
 

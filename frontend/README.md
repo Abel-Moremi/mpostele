@@ -5,7 +5,7 @@ This folder contains the local Vite + Vue control surface for running site disco
 ## What this prototype includes
 
 - a Discovery workspace for configuring and running the evidence-first site agent
-- live discovery progress, stop control, desktop/mobile viewport presets, fallback status, and result summaries with explicit coverage gaps
+- live discovery progress, stop control, viewport presets, a state/transition graph, screenshot and structured-layout evidence browsing, review decisions, important-flow markers, and targeted follow-up runs
 - a local capture command builder and runner
 - a narration-compositing form for combining a generated clip with local audio
 - a multi-scene editor with URL, image, and video sources; ordering; motion; overlays; supplied or generated narration; and export presets
@@ -30,7 +30,9 @@ Selecting **Run discovery agent** calls the loopback-only `/api/run-discovery` e
 
 Each UI launch writes into `<evidence-folder>/runs/<run-id>/`, including its own `frontend-discovery.json`, `progress.json`, database, and snapshot. This prevents reused folders from mixing records and prevents a failed run from presenting a previous snapshot. Completed summaries are only loaded after a zero exit code.
 
-After completion, the frontend shows page, state, action, transition, finding, blocked/review, unexplored-action, failed-event, and model-fallback counts plus page and finding inventories. Finding rows show their evidence state IDs. The complete reusable data remains in `snapshot.json` and `knowledge.sqlite`; the UI intentionally loads a bounded summary rather than the full evidence graph into browser memory. Discovery settings persist locally, but generated evidence remains in the configured project-contained artifact folder. Graph visualization, screenshot browsing, action approval, important-flow marking, and targeted follow-up exploration are not implemented yet.
+After completion, the frontend shows coverage metrics and a bounded state/transition graph. Selecting a graph node or evidence link opens the captured screenshot beside a structured layout of headings, visible text, and controls. Pages and transitions can be marked important, while ambiguous actions can be approved or rejected for planning. These annotations are validated against the run and stored locally in `review.json`; approval does not bypass the agent's conservative click policy. **Explore from this page** starts a new isolated discovery run at that page for targeted follow-up.
+
+The complete reusable data remains in `snapshot.json` and `knowledge.sqlite`. The UI bounds graph and inventory data to keep browser memory modest, and the evidence endpoint only serves run-contained PNG files. Discovery settings persist locally, while generated evidence and review annotations remain in the configured project-contained artifact folder.
 
 Authenticated discovery uses an existing Playwright storage-state file. The frontend only stores its path, and the server rejects paths outside the repository or files that do not exist. Keep authentication state under ignored local storage such as `artifacts/`.
 
@@ -86,7 +88,7 @@ npm test
 npm run build
 ```
 
-The Node tests cover discovery domain and model-endpoint safety, repository path containment, local-source validation, and script/TTS validation for the render-job endpoint.
+The Node tests cover discovery domain and model-endpoint safety, result/evidence mapping, review validation, repository path containment, local-source validation, and script/TTS validation for the render-job endpoint.
 
 ## Current status
 

@@ -5,6 +5,9 @@ import { getSetting, setSetting } from '../db/sqlite'
 const settingsLoaded = ref(false)
 const runState = ref('idle')
 const runResult = ref(null)
+const selectedStateId = ref('')
+const reviewSaving = ref(false)
+const reviewMessage = ref('')
 let pollTimer = null
 const viewportPresets = {
   desktop: { width: 1280, height: 720 },
@@ -51,6 +54,23 @@ const command = computed(() => {
 })
 const result = computed(() => runResult.value?.result ?? null)
 const progress = computed(() => runResult.value?.progress ?? null)
+const selectedState = computed(() => result.value?.states.find((state) => state.id === selectedStateId.value) ?? result.value?.states[0] ?? null)
+const selectedActions = computed(() => result.value?.actions.filter((action) => action.stateId === selectedState.value?.id) ?? [])
+const reviewActions = computed(() => result.value?.actions.filter((action) => action.safety === 'review') ?? [])
+const graphNodes = computed(() => (result.value?.states ?? []).slice(0, 40).map((state, index) => ({
+  ...state,
+  x: 115 + (index % 4) * 220,
+  y: 55 + Math.floor(index / 4) * 105,
+})))
+const graphEdges = computed(() => {
+  const positions = new Map(graphNodes.value.map((node) => [node.id, node]))
+  return (result.value?.transitions ?? []).filter((edge) => positions.has(edge.sourceStateId) && positions.has(edge.destinationStateId)).map((edge) => ({
+    ...edge,
+    source: positions.get(edge.sourceStateId),
+    destination: positions.get(edge.destinationStateId),
+  }))
+})
+const graphHeight = computed(() => Math.max(150, Math.ceil(graphNodes.value.length / 4) * 105))
 
 function applyViewport(preset) {
   Object.assign(job.value, viewportPresets[preset])
@@ -65,6 +85,7 @@ async function pollRun(runId) {
       pollTimer = window.setTimeout(() => pollRun(runId), 750)
     } else {
       runState.value = data.status === 'completed' ? 'success' : 'error'
+      if (data.status === 'completed' && data.result?.states?.length) selectedStateId.value = data.result.states[0].id
     }
   } catch (error) {
     runResult.value = { error: error instanceof Error ? error.message : String(error) }
@@ -76,6 +97,8 @@ async function runDiscovery() {
   if (!isValid.value || isRunning.value) return
   runState.value = 'running'
   runResult.value = null
+  selectedStateId.value = ''
+  reviewMessage.value = ''
   try {
     const response = await fetch('/api/run-discovery', {
       method: 'POST',
@@ -101,6 +124,71 @@ async function stopDiscovery() {
   const response = await fetch(`/api/run-discovery/${runResult.value.runId}`, { method: 'DELETE' })
   runResult.value = await response.json()
   runState.value = 'error'
+}
+
+async function saveReview(nextReview) {
+  if (!runResult.value?.runId) return
+  reviewSaving.value = true
+  reviewMessage.value = ''
+  try {
+    const response = await fetch(`/api/run-discovery/${runResult.value.runId}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nextReview),
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Could not save review')
+    runResult.value.review = data.review
+    reviewMessage.value = 'Review saved locally.'
+  } catch (error) {
+    reviewMessage.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    reviewSaving.value = false
+  }
+}
+
+function reviewPayload(overrides = {}) {
+  return {
+    actions: { ...(runResult.value?.review?.actions ?? {}) },
+    importantPages: [...(runResult.value?.review?.importantPages ?? [])],
+    importantTransitions: [...(runResult.value?.review?.importantTransitions ?? [])],
+    ...overrides,
+  }
+}
+
+function decideAction(actionId, decision) {
+  const actions = { ...(runResult.value?.review?.actions ?? {}) }
+  if (actions[actionId] === decision) delete actions[actionId]
+  else actions[actionId] = decision
+  saveReview(reviewPayload({ actions }))
+}
+
+function toggleImportant(kind, id) {
+  const key = kind === 'page' ? 'importantPages' : 'importantTransitions'
+  const values = new Set(runResult.value?.review?.[key] ?? [])
+  if (values.has(id)) values.delete(id)
+  else values.add(id)
+  saveReview(reviewPayload({ [key]: [...values] }))
+}
+
+function isImportant(kind, id) {
+  const key = kind === 'page' ? 'importantPages' : 'importantTransitions'
+  return runResult.value?.review?.[key]?.includes(id)
+}
+
+function showFindingEvidence(finding) {
+  selectedStateId.value = finding.evidence?.[0] ?? finding.stateId
+  document.querySelector('.evidence-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function exploreFrom(page) {
+  job.value.startUrl = page.url
+  runDiscovery()
+}
+
+function shortLabel(value, length = 28) {
+  if (!value) return 'Untitled state'
+  return value.length > length ? `${value.slice(0, length)}…` : value
 }
 
 function confidenceLabel(value) {
@@ -231,14 +319,19 @@ onUnmounted(() => {
         <article><strong>{{ result.counts.events }}</strong><span>All events</span></article>
       </div>
       <p v-if="runResult.progress?.fallback_count" class="fallback-status">Heuristic fallback analyzed {{ runResult.progress.fallback_count }} state(s) after local model errors.</p>
+      <p v-if="reviewMessage" class="review-status" aria-live="polite">{{ reviewMessage }}</p>
 
       <div class="result-columns">
         <section class="result-list">
           <div class="result-list-head"><h4>Pages</h4><span>{{ result.pages.length }} shown</span></div>
           <ul v-if="result.pages.length">
             <li v-for="page in result.pages" :key="page.id">
-              <strong>{{ page.title || 'Untitled page' }}</strong>
+              <div class="inventory-title">
+                <strong>{{ page.title || 'Untitled page' }}</strong>
+                <button class="icon-btn" type="button" :aria-pressed="isImportant('page', page.id)" :title="isImportant('page', page.id) ? 'Remove important marker' : 'Mark important page'" :disabled="reviewSaving" @click="toggleImportant('page', page.id)">{{ isImportant('page', page.id) ? 'Important' : 'Mark important' }}</button>
+              </div>
               <a :href="page.url" target="_blank" rel="noreferrer">{{ page.url }}</a>
+              <button class="text-btn" type="button" @click="exploreFrom(page)">Explore from this page</button>
             </li>
           </ul>
           <p v-else class="empty-result">No pages were stored.</p>
@@ -251,11 +344,70 @@ onUnmounted(() => {
               <div class="finding-meta"><span>{{ finding.kind.replaceAll('_', ' ') }}</span><span>{{ confidenceLabel(finding.confidence) }}</span></div>
               <strong>{{ finding.statement }}</strong>
               <small>{{ finding.status }} · {{ finding.producer }} · evidence: {{ finding.evidence?.join(', ') || finding.stateId }}</small>
+              <button class="text-btn" type="button" @click="showFindingEvidence(finding)">View evidence</button>
             </li>
           </ul>
           <p v-else class="empty-result">No interpretations were produced.</p>
         </section>
       </div>
+
+      <section class="discovery-detail">
+        <div class="result-list-head"><h4>Site and flow graph</h4><span>{{ graphNodes.length }} states · {{ graphEdges.length }} visible transitions</span></div>
+        <div class="graph-scroll">
+          <svg class="flow-graph" width="900" :height="graphHeight" role="img" aria-label="Discovered state transition graph">
+            <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
+            <line v-for="edge in graphEdges" :key="edge.id" :x1="edge.source.x" :y1="edge.source.y" :x2="edge.destination.x" :y2="edge.destination.y" :class="{ important: isImportant('transition', edge.id) }" marker-end="url(#arrow)" />
+            <g v-for="node in graphNodes" :key="node.id" class="graph-node" :class="{ selected: selectedState?.id === node.id, important: isImportant('page', node.pageId) }" role="button" tabindex="0" @click="selectedStateId = node.id" @keydown.enter="selectedStateId = node.id">
+              <rect :x="node.x - 88" :y="node.y - 25" width="176" height="50" rx="12" />
+              <text :x="node.x" :y="node.y - 3">{{ shortLabel(node.title) }}</text>
+              <text class="node-subtitle" :x="node.x" :y="node.y + 14">{{ shortLabel(node.url, 32) }}</text>
+            </g>
+          </svg>
+        </div>
+        <ul v-if="result.transitions.length" class="transition-list">
+          <li v-for="edge in result.transitions" :key="edge.id">
+            <span>{{ shortLabel(edge.sourceStateId, 18) }} → {{ shortLabel(edge.destinationStateId || edge.status, 18) }}</span>
+            <small>{{ edge.observedResult }}</small>
+            <button class="icon-btn" type="button" :aria-pressed="isImportant('transition', edge.id)" :disabled="reviewSaving" @click="toggleImportant('transition', edge.id)">{{ isImportant('transition', edge.id) ? 'Important flow' : 'Mark flow' }}</button>
+          </li>
+        </ul>
+      </section>
+
+      <section v-if="selectedState" class="discovery-detail evidence-browser">
+        <div class="result-list-head evidence-head">
+          <h4>State evidence</h4>
+          <select v-model="selectedStateId" aria-label="Select discovered state">
+            <option v-for="state in result.states" :key="state.id" :value="state.id">{{ shortLabel(state.title || state.url, 55) }}</option>
+          </select>
+        </div>
+        <div class="evidence-grid">
+          <img v-if="selectedState.screenshotUrl" :src="selectedState.screenshotUrl" :alt="`Screenshot of ${selectedState.title || selectedState.url}`" loading="lazy" />
+          <div class="layout-outline">
+            <p class="eyebrow">Structured layout</p>
+            <h4>{{ selectedState.title || 'Untitled state' }}</h4>
+            <a :href="selectedState.url" target="_blank" rel="noreferrer">{{ selectedState.url }}</a>
+            <div v-if="selectedState.headings.length" class="heading-list">
+              <span v-for="(heading, index) in selectedState.headings" :key="`${index}-${heading}`">{{ heading }}</span>
+            </div>
+            <p>{{ selectedState.visibleText || 'No visible text captured.' }}</p>
+            <details><summary>Controls ({{ selectedActions.length }})</summary><ul><li v-for="action in selectedActions" :key="action.id"><strong>{{ action.control.name || action.control.role }}</strong><small>{{ action.safety }} · {{ action.status }} · {{ action.safetyReason }}</small></li></ul></details>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="reviewActions.length" class="discovery-detail">
+        <div class="result-list-head"><h4>Ambiguous action review</h4><span>{{ reviewActions.length }} actions</span></div>
+        <p class="review-note">Approval records human intent for planning only. Review actions remain unexecuted by the safety policy.</p>
+        <ul class="review-list">
+          <li v-for="action in reviewActions" :key="action.id">
+            <div><strong>{{ action.control.name || 'Unnamed control' }}</strong><small>{{ action.safetyReason }}</small></div>
+            <div class="review-buttons">
+              <button type="button" :class="{ active: runResult.review?.actions?.[action.id] === 'approved' }" :disabled="reviewSaving" @click="decideAction(action.id, 'approved')">Approve</button>
+              <button type="button" :class="{ active: runResult.review?.actions?.[action.id] === 'rejected' }" :disabled="reviewSaving" @click="decideAction(action.id, 'rejected')">Reject</button>
+            </div>
+          </li>
+        </ul>
+      </section>
 
       <details v-if="result.events.length" class="manifest-preview">
         <summary>Run events and failures ({{ result.events.length }})</summary>
