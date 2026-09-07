@@ -57,7 +57,26 @@ python -m pipeline.site_agent.cli site-agent.json --provider llama.cpp --endpoin
 
 If the model endpoint fails during a state analysis, the run records the error in `decisions.jsonl` and uses deterministic heuristic analysis for that state. Outputs include `knowledge.sqlite`, versioned `snapshot.json`, atomically updated `progress.json`, screenshots, accessibility snapshots, and `reports/coverage.md`. `progress.json` reports the current URL, live record counts, run status, and model-fallback count for lightweight local monitoring. UI-started runs are isolated under the configured folder's `runs/<run-id>` directory and can be stopped from the Discovery panel. The completed-run UI can browse run-contained screenshots, show structured state evidence and the transition graph, mark important pages/flows, and save validated ambiguous-action decisions to `review.json`. **Explore from this page** starts another isolated run with that page as its starting URL. Approval remains review metadata and does not cause an ambiguous control to be clicked. The agent only visits configured domains and only clicks controls classified as safe and reversible; form submission and ambiguous or consequential buttons remain unexecuted. `storage_state` is passed directly to Playwright and may contain secrets, so keep that file in an ignored local location such as `artifacts/`.
 
+## Content-planning agent
+
+Generate a bounded plan from a completed run without an LLM:
+
+```powershell Terminal
+python -m pipeline.site_agent.content_plan artifacts/site-analysis/local-frontend/snapshot.json --review artifacts/site-analysis/local-frontend/review.json --output artifacts/site-analysis/local-frontend/content-plan.json --objective "feature overview" --audience "new customers" --platform shorts --duration 30 --max-scenes 6
+```
+
+The review file is optional. Important pages and transitions receive priority; rejected actions remove their transitions from planning evidence. Only states with screenshots are eligible. The planner limits scenes to 1–20, duration to 5–300 seconds, and narration to the configured 80–220 words-per-minute budget. Its versioned output includes evidence references and remains `pending_review`.
+
+To improve story wording with an already-running local llama.cpp server, add:
+
+```powershell Terminal
+--provider llama.cpp --endpoint http://127.0.0.1:8080/v1/chat/completions --model qwen3-4b-instruct
+```
+
+The planner validates model-selected state IDs and falls back to deterministic planning when the local provider fails. It does not automatically capture, render, or publish the proposed scenes.
+
 ## First render pipeline
+
 
 ```bash
 

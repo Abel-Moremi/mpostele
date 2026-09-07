@@ -17,7 +17,9 @@ The pipeline and frontend can produce multi-scene videos with supplied or locall
 - local Playwright capture, FFmpeg motion, Manim overlays, narration compositing, and optional Kokoro TTS modules
 - a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
 - an evidence-first website discovery agent with safe navigation, local reasoning, SQLite knowledge storage, and portable JSON snapshots
+- an evidence-backed content-planning agent with deterministic and optional local llama.cpp providers
 - a fast FFprobe-based export validator, dependency-free render benchmark, and reusable local vertical-video job
+
 
 ### What is still planned
 
@@ -110,7 +112,20 @@ For semantic analysis, start a local OpenAI-compatible `llama-server` with a com
 
 The initial safety level is deliberately conservative: internal links, tabs, disclosure controls, and clearly reversible buttons may be explored; destructive or consequential labels are blocked; unknown buttons require review and are not clicked. Authentication can use a Playwright `storage_state` file, which should remain local and untracked. The frontend **Discovery** panel now exposes these settings and results through a loopback-only endpoint; remote model endpoints and output paths outside the repository are rejected.
 
+## Evidence-backed content planning
+
+`pipeline.site_agent.content_plan` converts a completed discovery `snapshot.json` and optional `review.json` into a versioned `content-plan.json`. It ranks human-marked pages and verified transitions first, excludes rejected transitions, requires screenshot-backed states, and validates all proposed scene IDs and the narration word budget before writing the plan. The output remains `pending_review`; it does not capture, render, or publish automatically.
+
+The deterministic provider is the default and needs no model:
+
+```bash
+python -m pipeline.site_agent.content_plan artifacts/site-analysis/run/snapshot.json --review artifacts/site-analysis/run/review.json --output artifacts/site-analysis/run/content-plan.json --objective "feature overview" --audience "new customers" --duration 30
+```
+
+Pass `--provider llama.cpp` to use a local OpenAI-compatible server for story selection and wording. If that provider fails, planning falls back to the deterministic provider. Every scene retains page, state, finding, transition, and screenshot references so a later UI or recording agent can show why it was selected. Frontend plan review and direct conversion to a render-job manifest remain future work.
+
 ## First local pipeline proof
+
 
 The project now includes an initial capture-and-render script in [pipeline/first_render.py](pipeline/first_render.py). It intentionally stays small and local:
 

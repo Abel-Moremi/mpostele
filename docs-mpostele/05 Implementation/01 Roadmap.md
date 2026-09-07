@@ -2,7 +2,8 @@
 
 ## Current status
 
-The repo now has a working local media pipeline and frontend from capture through optional local TTS and multi-scene export. It also has the first evidence-first site discovery agent foundation: bounded same-domain exploration, conservative action policy, local reasoning adapter, and reusable SQLite/JSON knowledge storage. Deeper form-based flows, content-plan generation, final voice pacing, and real-platform uploads remain future milestones.
+The repo now has a working local media pipeline and frontend from capture through optional local TTS and multi-scene export. It also has an evidence-first site discovery foundation and a CLI content-planning agent that turns reviewed discovery evidence into a bounded, versioned scene plan. Frontend plan editing, render-manifest conversion, deeper form-based flows, final voice pacing, and real-platform uploads remain future milestones.
+
 
 
 ## Phase 1: Foundation
@@ -57,8 +58,11 @@ The repo now has a working local media pipeline and frontend from capture throug
 - [x] preserve screenshots, accessibility evidence, decision logs, SQLite state, and portable JSON snapshots
 - [ ] add declarative authenticated and form-based workflow scenarios
 - [ ] add deeper nested UI-state exploration and resume scheduling from the persisted frontier
-- [ ] generate evidence-backed content plans for downstream recording agents
-- [ ] expose discovery configuration and graph review in the frontend
+- [x] generate evidence-backed content plans for downstream recording agents
+- [x] expose discovery configuration and graph review in the frontend
+- [ ] expose content-plan generation, evidence inspection, and approval in the frontend
+- [ ] convert an approved content plan into a draft render-job manifest
+
 
 ## Related notes
 

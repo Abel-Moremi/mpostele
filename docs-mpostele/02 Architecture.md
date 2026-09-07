@@ -27,10 +27,12 @@ Observed pages, UI states, controls, and verified transitions are stored in loca
 
 The first implementation crawls links and selected reversible controls sequentially. It intentionally does not submit forms, perform destructive actions, claim complete coverage, or automatically create videos. Authenticated discovery accepts a pre-created Playwright storage-state file rather than storing credentials.
 
-### 2. Script and narrative generation
+### 2. Evidence-backed content planning
 
+`pipeline.site_agent.content_plan` reads the portable discovery snapshot plus optional human review metadata. Deterministic preprocessing requires screenshot-backed states, removes rejected transitions, ranks important pages and flows, and bounds the candidate set. A heuristic provider works fully offline; an optional local llama.cpp provider can improve selection and wording and falls back to the heuristic provider on failure.
 
-This stage defines the story, tone, and pacing. It may use a local model or a structured prompt pipeline to generate the talking points and scene plan.
+Provider output is not trusted directly. The planner rejects unknown or duplicate state IDs, enforces scene and narration-word budgets, and expands accepted proposals into versioned `content-plan.json` records with page, state, finding, transition, and screenshot references. Plans always start as `pending_review` and do not authorize capture, rendering, or publishing. A future frontend approval step will convert accepted scenes into a draft render-job manifest.
+
 
 ### 3. Screenshot capture
 
