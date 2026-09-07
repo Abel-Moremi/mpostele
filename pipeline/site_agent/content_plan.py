@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,10 +26,15 @@ class CampaignBrief:
     call_to_action: str = "Learn more"
     max_scenes: int = 6
     words_per_minute: int = 145
+    planning_prompt: str = "Create a concise product story from the strongest available evidence."
 
     def validated(self) -> "CampaignBrief":
         if not self.objective.strip() or not self.audience.strip() or not self.tone.strip():
             raise ValueError("objective, audience, and tone are required")
+        if not self.planning_prompt.strip():
+            raise ValueError("planning_prompt is required")
+        if len(self.planning_prompt) > 2000:
+            raise ValueError("planning_prompt must be 2000 characters or fewer")
         if self.platform not in SUPPORTED_PLATFORMS:
             raise ValueError(f"platform must be one of: {', '.join(sorted(SUPPORTED_PLATFORMS))}")
         if not math.isfinite(self.target_duration_seconds) or not 5 <= self.target_duration_seconds <= 300:
@@ -50,12 +56,25 @@ def _clean(value: Any, limit: int = 180) -> str:
     return " ".join(str(value or "").split())[:limit]
 
 
+def _prompt_terms(value: str) -> set[str]:
+    ignored = {"about", "after", "also", "and", "before", "create", "focus", "for", "from", "into",
+               "make", "show", "that", "the", "their", "this", "through", "using", "video", "with"}
+    return {term for term in re.findall(r"[a-z0-9]+", value.lower()) if len(term) > 2 and term not in ignored}
+
+
 @dataclass
 class HeuristicContentPlanningProvider:
     name: str = "heuristic"
 
     def propose(self, candidates: list[dict[str, Any]], brief: CampaignBrief) -> list[dict[str, Any]]:
-        selected = candidates[: brief.max_scenes]
+        terms = _prompt_terms(f"{brief.planning_prompt} {brief.objective}")
+        ranked = sorted(candidates, key=lambda item: (
+            not item["important"],
+            -len(terms & _prompt_terms(" ".join(str(item.get(field, "")) for field in ("purpose", "heading", "title", "visible_text")))),
+            -item["score"],
+            item["state_id"],
+        ))
+        selected = ranked[: brief.max_scenes]
         result = []
         for index, candidate in enumerate(selected):
             subject = candidate["purpose"] or candidate["heading"] or candidate["title"] or "the product"
@@ -266,6 +285,8 @@ def main() -> None:
     parser.add_argument("--review", help="Optional review.json path")
     parser.add_argument("--output", default="content-plan.json", help="Output JSON path")
     parser.add_argument("--objective", default="product overview")
+    parser.add_argument("--prompt", default="Create a concise product story from the strongest available evidence.",
+                        help="Creative direction used to select and shape evidence-backed scenes")
     parser.add_argument("--audience", default="prospective users")
     parser.add_argument("--platform", choices=sorted(SUPPORTED_PLATFORMS), default="shorts")
     parser.add_argument("--duration", type=float, default=30.0, help="Target duration in seconds")
@@ -278,7 +299,7 @@ def main() -> None:
     parser.add_argument("--model", default="qwen3-4b-instruct")
     args = parser.parse_args()
     brief = CampaignBrief(args.objective, args.audience, args.platform, args.duration, args.tone,
-                          args.call_to_action, args.max_scenes, args.words_per_minute)
+                          args.call_to_action, args.max_scenes, args.words_per_minute, args.prompt)
     provider: ContentPlanningProvider = (HeuristicContentPlanningProvider() if args.provider == "heuristic"
         else LlamaCppContentPlanningProvider(args.endpoint, args.model))
     result = generate_content_plan(args.snapshot, args.output, brief, provider, args.review)

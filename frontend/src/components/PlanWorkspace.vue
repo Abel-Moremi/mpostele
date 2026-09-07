@@ -16,7 +16,9 @@ const settingsLoaded = ref(false)
 const config = ref({
   scheduledDate: days[0].key,
   snapshotPath: 'artifacts/site-analysis/run/snapshot.json', reviewPath: '',
-  outputPath: `artifacts/content-plans/${days[0].key}.json`, objective: 'product overview', audience: 'prospective users',
+  outputPath: `artifacts/content-plans/${days[0].key}.json`,
+  planningPrompt: 'Introduce the product, lead with the clearest customer benefit, demonstrate the supporting workflow, and end with a practical next step.',
+  objective: 'product overview', audience: 'prospective users',
   platform: 'shorts', duration: 30, tone: 'clear and practical', callToAction: 'Learn more', maxScenes: 6,
   wordsPerMinute: 145, provider: 'heuristic', endpoint: 'http://127.0.0.1:8080/v1/chat/completions', model: 'qwen3-4b-instruct',
 })
@@ -30,8 +32,18 @@ const hasUnsavedChanges = ref(false)
 
 const approvedCount = computed(() => plan.value?.scenes.filter((scene) => scene.review_status === 'approved').length || 0)
 const rejectedCount = computed(() => plan.value?.scenes.filter((scene) => scene.review_status === 'rejected').length || 0)
+const pendingCount = computed(() => plan.value?.scenes.filter((scene) => scene.review_status === 'pending').length || 0)
+const plannedDuration = computed(() => plan.value?.scenes.filter((scene) => scene.review_status !== 'rejected').reduce((total, scene) => total + Number(scene.estimated_duration_seconds || 0), 0) || 0)
+const narrationWords = computed(() => plan.value?.scenes.filter((scene) => scene.review_status !== 'rejected').reduce((total, scene) => total + scene.narration.trim().split(/\s+/).filter(Boolean).length, 0) || 0)
+const promptLength = computed(() => config.value.planningPrompt?.length || 0)
 const canConvert = computed(() => plan.value?.status === 'approved' && approvedCount.value > 0)
-const configValid = computed(() => config.value.snapshotPath.trim() && config.value.outputPath.trim() && config.value.objective.trim() && config.value.audience.trim() && config.value.tone.trim())
+const configValid = computed(() => config.value.snapshotPath.trim() && config.value.outputPath.trim() && config.value.planningPrompt?.trim() && promptLength.value <= 2000 && config.value.objective.trim() && config.value.audience.trim() && config.value.tone.trim())
+
+const promptExamples = [
+  'Lead with the weekly calendar, show how a small team plans a campaign, and end with the publishing benefit.',
+  'Create a fast feature launch teaser for new users. Prioritize the clearest before-and-after workflow.',
+  'Explain the product in a calm educational sequence for prospective customers who are seeing it for the first time.',
+]
 
 function sceneScreenshotPath(scene) {
   const screenshot = scene.evidence.screenshot_path.replaceAll('\\', '/')
@@ -153,18 +165,30 @@ watch([config, planPath, manifestPath], () => {
       <span class="local-badge">Local files only</span>
     </div>
 
+    <div class="planning-step"><span>1</span><div><strong>Choose a publishing day</strong><small>Plans stay within the next seven days.</small></div></div>
     <div class="week-strip" aria-label="Seven-day planning window">
       <button v-for="day in days" :key="day.key" type="button" :class="{ active: config.scheduledDate === day.key }" @click="selectDate(day.key)">
         <span>{{ day.weekday }}</span><strong>{{ day.label }}</strong><small>{{ day.key === days[0].key ? 'Today' : 'Plan ahead' }}</small>
       </button>
     </div>
 
+    <div class="planning-step"><span>2</span><div><strong>Give the planner creative direction</strong><small>The prompt guides evidence selection and, with llama.cpp, scene wording. It cannot add claims that discovery did not observe.</small></div></div>
+    <div class="prompt-card">
+      <label for="planning-prompt">What content should the agent plan?</label>
+      <textarea id="planning-prompt" v-model="config.planningPrompt" rows="5" maxlength="2000" :aria-invalid="!config.planningPrompt.trim() || promptLength > 2000" placeholder="Describe the story, feature, audience need, sequence, and desired takeaway."></textarea>
+      <div class="prompt-meta"><span>Be specific about what to prioritize, not facts to invent.</span><span>{{ promptLength }} / 2000</span></div>
+      <div class="prompt-examples" aria-label="Prompt examples">
+        <button v-for="(example, index) in promptExamples" :key="example" type="button" @click="config.planningPrompt = example">Use example {{ index + 1 }}</button>
+      </div>
+      <span v-if="!config.planningPrompt.trim()" class="field-error">Add a planning prompt before generating.</span>
+    </div>
+
     <div class="form-grid plan-config">
-      <label class="wide-field">Discovery snapshot path<input v-model="config.snapshotPath" type="text" /></label>
-      <label>Objective<input v-model="config.objective" type="text" /></label>
+      <label class="wide-field">Discovery evidence<input v-model="config.snapshotPath" type="text" /><span class="field-help">Path to the snapshot created in Discover.</span></label>
+      <label>Goal<input v-model="config.objective" type="text" /></label>
       <label>Audience<input v-model="config.audience" type="text" /></label>
-      <label>Platform<select v-model="config.platform"><option value="shorts">Shorts</option><option value="reels">Reels</option><option value="tiktok">TikTok</option><option value="landscape">Landscape</option><option value="square">Square</option></select></label>
-      <label>Target duration<input v-model.number="config.duration" type="number" min="5" max="300" /></label>
+      <label>Channel<select v-model="config.platform"><option value="shorts">YouTube Shorts</option><option value="reels">Instagram Reels</option><option value="tiktok">TikTok</option><option value="landscape">Landscape video</option><option value="square">Square video</option></select></label>
+      <label>Target length (seconds)<input v-model.number="config.duration" type="number" min="5" max="300" /></label>
     </div>
     <details class="advanced-settings">
       <summary>Advanced planning settings <span>{{ config.maxScenes }} scenes · {{ config.provider }}</span></summary>
@@ -179,18 +203,25 @@ watch([config, planPath, manifestPath], () => {
       </div>
     </details>
 
-    <div class="run-actions">
-      <button class="primary-btn" type="button" :disabled="!configValid || runState === 'running'" @click="generatePlan">{{ runState === 'running' ? 'Working…' : 'Generate plan' }}</button>
-      <label class="plan-load-field">Existing plan path<input v-model="planPath" type="text" placeholder="artifacts/content-plans/2026-01-01.json" /></label>
-      <button class="secondary-btn" type="button" :disabled="runState === 'running' || !(planPath || config.outputPath)" @click="loadPlan">Load plan</button>
+    <div class="planning-step"><span>3</span><div><strong>Generate and review</strong><small>The agent writes a local draft. Nothing is rendered or published.</small></div></div>
+    <div class="run-actions plan-generate-actions">
+      <button class="primary-btn" type="button" :disabled="!configValid || runState === 'running'" @click="generatePlan">{{ runState === 'running' ? 'Planning…' : 'Generate content plan' }}</button>
+      <p class="run-hint">{{ configValid ? `Uses ${config.provider === 'heuristic' ? 'deterministic local planning' : 'your local llama.cpp server'}.` : 'Complete the prompt and required fields to continue.' }}</p>
     </div>
+    <details class="advanced-settings load-plan">
+      <summary>Open an existing plan <span>{{ planPath || 'Choose a local JSON file path' }}</span></summary>
+      <div class="load-plan-controls">
+        <label class="plan-load-field">Existing plan path<input v-model="planPath" type="text" placeholder="artifacts/content-plans/2026-01-01.json" /></label>
+        <button class="secondary-btn" type="button" :disabled="runState === 'running' || !(planPath || config.outputPath)" @click="loadPlan">Load plan</button>
+      </div>
+    </details>
 
     <div v-if="message" class="run-status" :class="runState"><p class="run-status-title">{{ message }}</p></div>
 
     <div v-if="plan" class="plan-review">
       <div class="plan-summary">
-        <div><p class="eyebrow">Review queue</p><h3>{{ plan.brief.objective }}</h3><p>{{ plan.brief.audience }} · {{ plan.brief.platform }} · {{ plan.brief.target_duration_seconds }} seconds</p><span class="save-state" :class="{ dirty: hasUnsavedChanges }">{{ hasUnsavedChanges ? 'Unsaved changes' : 'Saved locally' }}</span></div>
-        <div class="plan-counts"><span>{{ plan.scenes.length }} scenes</span><span>{{ approvedCount }} approved</span><span>{{ rejectedCount }} rejected</span></div>
+        <div><p class="eyebrow">Review queue</p><h3>{{ plan.brief.objective }}</h3><p>{{ plan.brief.audience }} · {{ plan.brief.platform }} · target {{ plan.brief.target_duration_seconds }} seconds</p><p v-if="plan.brief.planning_prompt" class="plan-prompt-summary">“{{ plan.brief.planning_prompt }}”</p><span class="save-state" :class="{ dirty: hasUnsavedChanges }">{{ hasUnsavedChanges ? 'Unsaved changes' : 'Saved locally' }}</span></div>
+        <div class="plan-counts"><span>{{ plan.scenes.length }} scenes</span><span>{{ plannedDuration.toFixed(1) }} sec</span><span>{{ narrationWords }} words</span><span>{{ approvedCount }} approved</span><span v-if="pendingCount">{{ pendingCount }} pending</span><span v-if="rejectedCount">{{ rejectedCount }} rejected</span></div>
       </div>
 
       <article v-for="(scene, index) in plan.scenes" :key="scene.id" class="plan-scene" :class="`review-${scene.review_status}`">
@@ -212,7 +243,7 @@ watch([config, planPath, manifestPath], () => {
       </article>
 
       <div class="plan-footer">
-        <div class="run-actions"><button class="secondary-btn" type="button" @click="savePlan">Save edits</button><button class="primary-btn" type="button" @click="approvePlan">Approve plan</button></div>
+        <div class="run-actions"><button class="secondary-btn" type="button" :disabled="runState === 'running' || !hasUnsavedChanges" @click="savePlan">Save edits</button><button class="primary-btn" type="button" :disabled="runState === 'running' || plan.status === 'approved'" @click="approvePlan">Approve plan</button></div>
         <div class="draft-manifest"><label>Draft manifest path<input v-model="manifestPath" type="text" /></label><button class="primary-btn" type="button" :disabled="!canConvert || runState === 'running'" @click="convertPlan">Create draft and open in Render</button></div>
       </div>
       <details v-if="result?.manifest" class="manifest-preview"><summary>Preview draft manifest</summary><pre>{{ JSON.stringify(result.manifest, null, 2) }}</pre></details>

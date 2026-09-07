@@ -446,7 +446,8 @@ textarea:focus {
   color: #c9435a;
 }
 
-input[aria-invalid='true'] {
+input[aria-invalid='true'],
+textarea[aria-invalid='true'] {
   border-color: #c9435a;
 }
 
@@ -952,6 +953,53 @@ input[aria-invalid='true'] {
   border-bottom: 1px solid var(--line);
 }
 
+.planning-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 10px;
+}
+
+.planning-step > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--lilac);
+  color: #241a58;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.planning-step div { display: grid; gap: 1px; }
+.planning-step small { color: var(--text-soft); }
+
+.prompt-card {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--lilac-strong) 35%, var(--line));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--lilac) 25%, var(--input-bg));
+}
+
+.prompt-card textarea { min-height: 128px; background: var(--bg-elevated); }
+.prompt-meta { display: flex; justify-content: space-between; gap: 12px; color: var(--text-soft); font-size: 0.74rem; }
+.prompt-examples { display: flex; flex-wrap: wrap; gap: 8px; }
+.prompt-examples button {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--secondary-btn-bg);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .week-strip {
   display: grid;
   grid-template-columns: repeat(7, minmax(100px, 1fr));
@@ -987,9 +1035,12 @@ input[aria-invalid='true'] {
 .week-strip button.active span,
 .week-strip button.active small { color: #4b3d82; }
 
-.plan-load-field {
-  flex: 1 1 320px;
-}
+.plan-load-field { flex: 1 1 320px; }
+.plan-generate-actions { margin-top: 10px; }
+.load-plan { margin-top: 12px; }
+.load-plan-controls { display: flex; align-items: end; gap: 12px; padding: 4px 14px 14px; }
+.plan-prompt-summary { max-width: 68ch; font-style: italic; }
+.plan-counts { flex-wrap: wrap; justify-content: flex-end; }
 
 .plan-review {
   display: grid;
@@ -1247,6 +1298,8 @@ input[aria-invalid='true'] {
   .plan-summary,
   .plan-footer,
   .draft-manifest { align-items: stretch; flex-direction: column; }
+  .plan-counts { justify-content: flex-start; }
+  .load-plan-controls { align-items: stretch; flex-direction: column; }
 
   .discovery-budget-grid,
   .metric-grid,
@@ -1307,6 +1360,7 @@ input[aria-invalid='true'] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .workspace-strip { align-items: flex-start; flex-wrap: wrap; }
+  .prompt-meta { align-items: flex-start; flex-direction: column; }
   .nav-divider { display: none; }
 }
 

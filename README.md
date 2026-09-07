@@ -119,12 +119,12 @@ The initial safety level is deliberately conservative: internal links, tabs, dis
 The deterministic provider is the default and needs no model:
 
 ```bash
-python -m pipeline.site_agent.content_plan artifacts/site-analysis/run/snapshot.json --review artifacts/site-analysis/run/review.json --output artifacts/site-analysis/run/content-plan.json --objective "feature overview" --audience "new customers" --duration 30
+python -m pipeline.site_agent.content_plan artifacts/site-analysis/run/snapshot.json --review artifacts/site-analysis/run/review.json --output artifacts/site-analysis/run/content-plan.json --prompt "Lead with the weekly calendar, show the planning workflow, and end with the publishing benefit" --objective "feature overview" --audience "new customers" --duration 30
 ```
 
-Pass `--provider llama.cpp` to use a local OpenAI-compatible server for story selection and wording. If that provider fails, planning falls back to the deterministic provider. Every scene retains page, state, finding, transition, and screenshot references so the frontend can show why it was selected.
+`--prompt` supplies the creative direction while the discovery snapshot remains the factual boundary. The deterministic provider uses prompt and objective keywords to prioritize matching evidence; pass `--provider llama.cpp` to let a local OpenAI-compatible server also shape story selection and wording. If that provider fails, planning falls back to the deterministic provider. Every scene retains page, state, finding, transition, and screenshot references so the frontend can show why it was selected.
 
-The frontend **Plan** workspace adds a rolling seven-day calendar (today through six days ahead). It can accept the latest discovery through an explicit handoff, generate or load plans, show screenshot evidence, edit and reorder scenes, distinguish unsaved edits from saved approval, approve or reject each scene, save the reviewed plan, and convert an approved plan into a draft render-job manifest. The draft can be opened directly in Render, but conversion never starts rendering or publishing automatically.
+The frontend **Plan** workspace adds a rolling seven-day calendar (today through six days ahead) and a prominent guided prompt with reusable examples. It can accept the latest discovery through an explicit handoff, generate or load plans, show planned duration and narration totals, show screenshot evidence, edit and reorder scenes, distinguish unsaved edits from saved approval, approve or reject each scene, save the reviewed plan, and convert an approved plan into a draft render-job manifest. The draft can be opened directly in Render, but conversion never starts rendering or publishing automatically.
 
 ## First local pipeline proof
 

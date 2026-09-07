@@ -62,10 +62,10 @@ If the model endpoint fails during a state analysis, the run records the error i
 Generate a bounded plan from a completed run without an LLM:
 
 ```powershell Terminal
-python -m pipeline.site_agent.content_plan artifacts/site-analysis/local-frontend/snapshot.json --review artifacts/site-analysis/local-frontend/review.json --output artifacts/site-analysis/local-frontend/content-plan.json --objective "feature overview" --audience "new customers" --platform shorts --duration 30 --max-scenes 6
+python -m pipeline.site_agent.content_plan artifacts/site-analysis/local-frontend/snapshot.json --review artifacts/site-analysis/local-frontend/review.json --output artifacts/site-analysis/local-frontend/content-plan.json --prompt "Lead with the content calendar, demonstrate campaign scheduling, and end with the publishing benefit" --objective "feature overview" --audience "new customers" --platform shorts --duration 30 --max-scenes 6
 ```
 
-The review file is optional. Important pages and transitions receive priority; rejected actions remove their transitions from planning evidence. Only states with screenshots are eligible. The planner limits scenes to 1–20, duration to 5–300 seconds, and narration to the configured 80–220 words-per-minute budget. Its versioned output includes evidence references and remains `pending_review`.
+The review file is optional. `--prompt` is the creative direction: the deterministic provider uses its keywords to rank matching evidence, while a local model can interpret it when shaping the story. The prompt is stored in the output brief and cannot authorize unsupported claims. Important pages and transitions receive priority; rejected actions remove their transitions from planning evidence. Only states with screenshots are eligible. The planner limits scenes to 1–20, duration to 5–300 seconds, and narration to the configured 80–220 words-per-minute budget. Its versioned output includes evidence references and remains `pending_review`.
 
 To improve story wording with an already-running local llama.cpp server, add:
 

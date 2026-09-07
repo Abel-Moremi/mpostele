@@ -34,9 +34,11 @@ function numberIn(value, field, min, max, integer = false) {
 
 export function preparePlanningJob(input, now = new Date()) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('job must be an object')
-  const required = (value, field) => {
+  const required = (value, field, maxLength = 500) => {
     if (typeof value !== 'string' || !value.trim()) throw new Error(`${field} is required`)
-    return value.trim()
+    const result = value.trim()
+    if (result.length > maxLength) throw new Error(`${field} must be ${maxLength} characters or fewer`)
+    return result
   }
   const provider = input.provider === 'llama.cpp' ? 'llama.cpp' : 'heuristic'
   const endpoint = input.endpoint?.trim() || 'http://127.0.0.1:8080/v1/chat/completions'
@@ -52,6 +54,7 @@ export function preparePlanningJob(input, now = new Date()) {
   return {
     snapshot, review, output, provider, endpoint, model: input.model?.trim() || 'qwen3-4b-instruct',
     scheduledDate: validateScheduledDate(input.scheduledDate, now),
+    planningPrompt: required(input.planningPrompt, 'planningPrompt', 2000),
     objective: required(input.objective, 'objective'), audience: required(input.audience, 'audience'),
     tone: required(input.tone, 'tone'), callToAction: input.callToAction?.trim() || '',
     platform: PLATFORMS.has(input.platform) ? input.platform : 'shorts',
@@ -119,7 +122,7 @@ function body(request, response, callback) {
 }
 
 function generate(job, response) {
-  const args = ['-m', 'pipeline.site_agent.content_plan', job.snapshot, '--output', job.output, '--objective', job.objective, '--audience', job.audience, '--platform', job.platform, '--duration', String(job.duration), '--tone', job.tone, '--call-to-action', job.callToAction, '--max-scenes', String(job.maxScenes), '--words-per-minute', String(job.wordsPerMinute), '--provider', job.provider]
+  const args = ['-m', 'pipeline.site_agent.content_plan', job.snapshot, '--output', job.output, '--prompt', job.planningPrompt, '--objective', job.objective, '--audience', job.audience, '--platform', job.platform, '--duration', String(job.duration), '--tone', job.tone, '--call-to-action', job.callToAction, '--max-scenes', String(job.maxScenes), '--words-per-minute', String(job.wordsPerMinute), '--provider', job.provider]
   if (job.review) args.push('--review', job.review)
   if (job.provider === 'llama.cpp') args.push('--endpoint', job.endpoint, '--model', job.model)
   mkdirSync(path.dirname(job.output), { recursive: true })

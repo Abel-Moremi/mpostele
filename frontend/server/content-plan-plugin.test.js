@@ -34,10 +34,13 @@ test('preparePlanningJob contains evidence paths and rejects remote models', () 
   const snapshot = path.join(directory, 'snapshot.json')
   writeFileSync(snapshot, '{}')
   try {
-    const prepared = preparePlanningJob({ snapshotPath: path.relative(root, snapshot), outputPath: 'artifacts/content-plan-test/plan.json', scheduledDate: scheduled, objective: 'Tour', audience: 'Teams', tone: 'clear' }, now)
+    const baseJob = { snapshotPath: path.relative(root, snapshot), outputPath: 'artifacts/content-plan-test/plan.json', scheduledDate: scheduled, planningPrompt: 'Lead with the content calendar and explain weekly planning.', objective: 'Tour', audience: 'Teams', tone: 'clear' }
+    const prepared = preparePlanningJob(baseJob, now)
     assert.equal(prepared.provider, 'heuristic')
     assert.equal(prepared.snapshot, snapshot)
-    assert.throws(() => preparePlanningJob({ snapshotPath: path.relative(root, snapshot), outputPath: 'artifacts/content-plan-test/plan.json', scheduledDate: scheduled, objective: 'Tour', audience: 'Teams', tone: 'clear', provider: 'llama.cpp', endpoint: 'https://example.com' }, now), /loopback/)
+    assert.match(prepared.planningPrompt, /content calendar/)
+    assert.throws(() => preparePlanningJob({ ...baseJob, planningPrompt: '' }, now), /planningPrompt is required/)
+    assert.throws(() => preparePlanningJob({ ...baseJob, provider: 'llama.cpp', endpoint: 'https://example.com' }, now), /loopback/)
   } finally { rmSync(directory, { recursive: true, force: true }) }
 })
 

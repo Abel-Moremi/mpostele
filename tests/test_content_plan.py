@@ -81,6 +81,7 @@ class ContentPlanTests(unittest.TestCase):
 
             self.assertEqual(plan["schema_version"], CONTENT_PLAN_SCHEMA_VERSION)
             self.assertEqual(plan["status"], "pending_review")
+            self.assertIn("planning_prompt", plan["brief"])
             self.assertEqual(plan["scenes"][0]["evidence"]["state_id"], "state-calendar")
             self.assertEqual(plan["scenes"][0]["review_status"], "pending")
             self.assertTrue(plan["scenes"][0]["evidence"]["screenshot_path"])
@@ -112,11 +113,19 @@ class ContentPlanTests(unittest.TestCase):
                     HeuristicContentPlanningProvider(),
                 )
 
-    def test_validates_duration_and_scene_limits(self):
+    def test_prompt_guides_deterministic_scene_selection(self):
+        candidates = build_candidates(snapshot_fixture(), {})
+        brief = CampaignBrief(max_scenes=1, planning_prompt="Focus on publishing campaigns")
+        scenes = HeuristicContentPlanningProvider().propose(candidates, brief)
+        self.assertEqual(scenes[0]["state_id"], "state-home")
+
+    def test_validates_duration_scene_limits_and_prompt(self):
         with self.assertRaises(ValueError):
             CampaignBrief(target_duration_seconds=2).validated()
         with self.assertRaises(ValueError):
             CampaignBrief(max_scenes=21).validated()
+        with self.assertRaisesRegex(ValueError, "planning_prompt"):
+            CampaignBrief(planning_prompt=" ").validated()
 
 
 if __name__ == "__main__":
