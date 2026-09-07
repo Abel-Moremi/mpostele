@@ -2,6 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { getSetting, setSetting } from '../db/sqlite'
 
+const props = defineProps({ importedManifest: { type: Object, default: null } })
+const emit = defineEmits(['status'])
 const presets = [
   { value: 'vertical_1080p', label: 'Vertical 1080 × 1920' },
   { value: 'landscape_720p', label: 'Landscape 1280 × 720' },
@@ -52,6 +54,13 @@ const settingsLoaded = ref(false)
 const runState = ref('idle')
 const runResult = ref(null)
 const isRunning = computed(() => runState.value === 'running')
+const copyMessage = ref('')
+const presetDetails = computed(() => ({
+  vertical_1080p: ['9:16', '1080 × 1920'],
+  landscape_720p: ['16:9', '1280 × 720'],
+  square_1080p: ['1:1', '1080 × 1080'],
+}[job.value.preset] || ['—', '—']))
+const totalDuration = computed(() => job.value.scenes.reduce((sum, scene) => sum + (Number(scene.duration) || 0), 0))
 
 function sceneToManifest(scene) {
   const result = {
@@ -106,6 +115,27 @@ const manifest = computed(() => ({
   scenes: job.value.scenes.map(sceneToManifest),
 }))
 const manifestPreview = computed(() => JSON.stringify(manifest.value, null, 2))
+const validationErrors = computed(() => {
+  const errors = []
+  if (!job.value.output.trim()) errors.push('Final output path is required.')
+  if (!job.value.workDir.trim()) errors.push('Intermediate work folder is required.')
+  if (Number(job.value.fps) <= 0) errors.push('Frames per second must be positive.')
+  const ids = job.value.scenes.map((scene) => scene.id.trim())
+  if (new Set(ids).size !== ids.length) errors.push('Scene IDs must be unique.')
+  job.value.scenes.forEach((scene, index) => {
+    const name = `Scene ${index + 1}`
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(scene.id.trim())) errors.push(`${name} needs a valid ID.`)
+    if (!scene.source.trim()) errors.push(`${name} needs a source.`)
+    if (scene.sourceType === 'url' && scene.source.trim()) {
+      try { if (!['http:', 'https:'].includes(new URL(scene.source).protocol)) throw new Error() } catch { errors.push(`${name} needs an HTTP or HTTPS URL.`) }
+    }
+    if (scene.duration !== '' && scene.duration !== null && Number(scene.duration) <= 0) errors.push(`${name} duration must be positive.`)
+    if (scene.narrationMode === 'file' && !scene.narration.trim()) errors.push(`${name} needs a narration file.`)
+    if (scene.narrationMode === 'script' && (!scene.script.trim() || !scene.ttsVoice.trim() || !scene.ttsLangCode.trim() || Number(scene.ttsSpeed) <= 0)) errors.push(`${name} has incomplete text-to-speech settings.`)
+    if (scene.overlayEnabled && (!scene.overlayText.trim() || Number(scene.overlayHold) <= 0)) errors.push(`${name} has an incomplete overlay.`)
+  })
+  return errors
+})
 const isValid = computed(() => {
   if (!job.value.output.trim() || !job.value.workDir.trim() || Number(job.value.fps) <= 0) return false
   const ids = job.value.scenes.map((scene) => scene.id.trim())
@@ -149,13 +179,42 @@ function moveScene(index, offset) {
   job.value.scenes.splice(target, 0, scene)
 }
 
-function copyManifest() {
-  if (isValid.value) navigator.clipboard?.writeText(manifestPreview.value)
+async function copyManifest() {
+  copyMessage.value = ''
+  if (!isValid.value) return
+  try {
+    if (!navigator.clipboard) throw new Error('Clipboard access is unavailable')
+    await navigator.clipboard.writeText(manifestPreview.value)
+    copyMessage.value = 'Manifest copied.'
+  } catch (error) {
+    copyMessage.value = error instanceof Error ? `Copy failed: ${error.message}` : 'Copy failed.'
+  }
+}
+
+function importManifest(value) {
+  if (!value?.scenes?.length) return
+  job.value.output = value.output || job.value.output
+  job.value.workDir = value.work_dir || job.value.workDir
+  job.value.preset = value.export?.preset || job.value.preset
+  job.value.fps = value.export?.fps || job.value.fps
+  job.value.scenes = value.scenes.map((source, index) => {
+    const sourceType = ['url', 'image', 'video'].find((key) => source[key]) || 'image'
+    return {
+      ...newScene(source.id || `scene-${index + 1}`), id: source.id || `scene-${index + 1}`,
+      sourceType, source: source[sourceType] || '', duration: source.duration ?? 4,
+      motionPreset: source.motion_preset || 'zoom_in', narrationMode: source.script ? 'script' : source.narration ? 'file' : 'none',
+      narration: source.narration || '', script: source.script || '', overlayEnabled: Boolean(source.overlay),
+      overlayType: source.overlay?.type || 'title', overlayText: source.overlay?.text || '', overlayHold: source.overlay?.hold_seconds ?? 2,
+    }
+  })
+  nextSceneNumber = job.value.scenes.length + 1
+  emit('status', 'draft loaded')
 }
 
 async function runJob() {
   if (!isValid.value || isRunning.value) return
   runState.value = 'running'
+  emit('status', 'rendering')
   runResult.value = null
   try {
     const response = await fetch('/api/run-render-job', {
@@ -166,9 +225,11 @@ async function runJob() {
     const data = await response.json()
     runResult.value = data
     runState.value = response.ok && data.code === 0 ? 'success' : 'error'
+    emit('status', runState.value === 'success' ? 'completed' : 'failed')
   } catch (error) {
     runResult.value = { error: error instanceof Error ? error.message : String(error) }
     runState.value = 'error'
+    emit('status', 'failed')
   }
 }
 
@@ -193,6 +254,7 @@ onMounted(async () => {
   settingsLoaded.value = true
 })
 
+watch(() => props.importedManifest, importManifest, { immediate: true })
 watch(job, (value) => {
   if (!settingsLoaded.value) return
   const { password, ...persistable } = value
@@ -210,35 +272,45 @@ watch(job, (value) => {
       <button class="secondary-btn" type="button" @click="addScene">Add scene</button>
     </div>
 
-    <div class="form-grid">
-      <label>Final output path<input v-model="job.output" type="text" /></label>
-      <label>Intermediate work folder<input v-model="job.workDir" type="text" /></label>
-      <label>Export preset
-        <select v-model="job.preset"><option v-for="preset in presets" :key="preset.value" :value="preset.value">{{ preset.label }}</option></select>
-      </label>
-      <label>Frames per second<input v-model.number="job.fps" type="number" min="1" step="1" /></label>
-      <label>Login password (optional, never saved)<input v-model="job.password" type="password" autocomplete="new-password" /></label>
+    <div class="output-summary" aria-label="Output summary">
+      <div><span>Aspect ratio</span><strong>{{ presetDetails[0] }}</strong></div>
+      <div><span>Resolution</span><strong>{{ presetDetails[1] }}</strong></div>
+      <div><span>Duration</span><strong>{{ totalDuration.toFixed(1) }}s configured</strong></div>
+      <div><span>Scenes</span><strong>{{ job.scenes.length }}</strong></div>
     </div>
 
+    <div class="form-grid">
+      <label>Final output path<input v-model="job.output" type="text" :aria-invalid="!job.output.trim()" /></label>
+      <label>Export preset<select v-model="job.preset"><option v-for="preset in presets" :key="preset.value" :value="preset.value">{{ preset.label }}</option></select></label>
+    </div>
+    <details class="advanced-settings">
+      <summary>Advanced export settings <span>{{ job.fps }} FPS · {{ job.workDir }}</span></summary>
+      <div class="form-grid">
+        <label>Intermediate work folder<input v-model="job.workDir" type="text" :aria-invalid="!job.workDir.trim()" /></label>
+        <label>Frames per second<input v-model.number="job.fps" type="number" min="1" step="1" :aria-invalid="Number(job.fps) <= 0" /></label>
+        <label>Login password (optional, never saved)<input v-model="job.password" type="password" autocomplete="new-password" /></label>
+      </div>
+    </details>
+
     <div class="scene-list">
-      <article v-for="(scene, index) in job.scenes" :key="scene.id + index" class="scene-editor">
-        <div class="scene-toolbar">
-          <strong>Scene {{ index + 1 }}</strong>
-          <div class="scene-actions">
+      <details v-for="(scene, index) in job.scenes" :key="scene.id + index" class="scene-editor" :open="index === 0">
+        <summary class="scene-toolbar">
+          <span><strong>Scene {{ index + 1 }} · {{ scene.id || 'Untitled' }}</strong><small>{{ scene.duration || 'Auto' }}s · {{ scene.motionPreset.replaceAll('_', ' ') }} · {{ scene.narrationMode }}</small></span>
+          <div class="scene-actions" @click.prevent>
             <button type="button" :disabled="index === 0" @click="moveScene(index, -1)">Move up</button>
             <button type="button" :disabled="index === job.scenes.length - 1" @click="moveScene(index, 1)">Move down</button>
             <button type="button" :disabled="job.scenes.length === 1" @click="removeScene(index)">Remove</button>
           </div>
-        </div>
+        </summary>
 
         <div class="form-grid scene-grid">
-          <label>Scene ID<input v-model="scene.id" type="text" pattern="[A-Za-z0-9_-]+" /></label>
+          <label>Scene ID<input v-model="scene.id" type="text" pattern="[A-Za-z0-9_-]+" :aria-invalid="!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(scene.id.trim())" /></label>
           <label>Source type
             <select v-model="scene.sourceType"><option value="url">URL</option><option value="image">Image</option><option value="video">Video</option></select>
           </label>
           <label class="wide-field">
             {{ sourceLabel(scene) }}
-            <input v-model="scene.source" :type="scene.sourceType === 'url' ? 'url' : 'text'" />
+            <input v-model="scene.source" :type="scene.sourceType === 'url' ? 'url' : 'text'" :aria-invalid="!scene.source.trim()" />
           </label>
           <label>Duration (seconds, optional)<input v-model.number="scene.duration" type="number" min="0.1" step="0.1" /></label>
           <label>Motion preset
@@ -291,16 +363,17 @@ watch(job, (value) => {
             </template>
           </div>
         </fieldset>
-      </article>
+      </details>
     </div>
 
-    <div v-if="!isValid" class="field-error render-error">Complete all required paths, narration settings, and valid scene IDs; durations and enabled overlays must be valid.</div>
+    <ul v-if="validationErrors.length" class="field-error render-error validation-list"><li v-for="error in validationErrors" :key="error">{{ error }}</li></ul>
     <details class="manifest-preview"><summary>Preview generated manifest</summary><pre>{{ manifestPreview }}</pre></details>
 
     <div class="run-actions">
       <button class="primary-btn" type="button" :disabled="!isValid || isRunning" @click="runJob">{{ isRunning ? 'Rendering…' : 'Render complete video' }}</button>
       <button class="secondary-btn" type="button" :disabled="!isValid" @click="copyManifest">Copy manifest JSON</button>
       <p class="run-hint">Runs locally. Intermediate scene files remain in the configured work folder.</p>
+      <p v-if="copyMessage" class="run-hint" role="status">{{ copyMessage }}</p>
     </div>
 
     <div v-if="runResult" class="run-status" :class="runState">
@@ -312,6 +385,7 @@ watch(job, (value) => {
       <pre v-if="runResult.manifestPath" class="run-log">Saved manifest: {{ runResult.manifestPath }}</pre>
       <pre v-if="runResult.stdout" class="run-log">{{ runResult.stdout }}</pre>
       <pre v-if="runResult.stderr" class="run-log run-log-error">{{ runResult.stderr }}</pre>
+      <video v-if="runState === 'success' && runResult.outputPath" class="output-preview" controls preload="metadata" :src="`/api/local-media?file=${encodeURIComponent(runResult.outputPath)}`">Your browser cannot preview this video.</video>
     </div>
   </section>
 </template>

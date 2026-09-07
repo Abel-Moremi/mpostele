@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { getSetting, setSetting } from '../db/sqlite'
 
+const emit = defineEmits(['status', 'use-in-plan'])
 const settingsLoaded = ref(false)
 const runState = ref('idle')
 const runResult = ref(null)
@@ -9,6 +10,9 @@ const selectedStateId = ref('')
 const reviewSaving = ref(false)
 const reviewMessage = ref('')
 let pollTimer = null
+let elapsedTimer = null
+const elapsedSeconds = ref(0)
+const elapsedLabel = computed(() => `${Math.floor(elapsedSeconds.value / 60)}m ${String(elapsedSeconds.value % 60).padStart(2, '0')}s`)
 const viewportPresets = {
   desktop: { width: 1280, height: 720 },
   mobile: { width: 390, height: 844 },
@@ -84,18 +88,26 @@ async function pollRun(runId) {
     if (data.status === 'running') {
       pollTimer = window.setTimeout(() => pollRun(runId), 750)
     } else {
-      runState.value = data.status === 'completed' ? 'success' : 'error'
+      runState.value = data.status === 'completed' ? 'success' : data.status === 'stopped' ? 'stopped' : 'error'
+      emit('status', runState.value === 'success' ? 'completed' : runState.value)
+      if (elapsedTimer) window.clearInterval(elapsedTimer)
       if (data.status === 'completed' && data.result?.states?.length) selectedStateId.value = data.result.states[0].id
     }
   } catch (error) {
     runResult.value = { error: error instanceof Error ? error.message : String(error) }
     runState.value = 'error'
+    emit('status', 'failed')
+    if (elapsedTimer) window.clearInterval(elapsedTimer)
   }
 }
 
 async function runDiscovery() {
   if (!isValid.value || isRunning.value) return
   runState.value = 'running'
+  emit('status', 'running')
+  elapsedSeconds.value = 0
+  if (elapsedTimer) window.clearInterval(elapsedTimer)
+  elapsedTimer = window.setInterval(() => { elapsedSeconds.value += 1 }, 1000)
   runResult.value = null
   selectedStateId.value = ''
   reviewMessage.value = ''
@@ -109,12 +121,16 @@ async function runDiscovery() {
     runResult.value = data
     if (!response.ok || !data.runId) {
       runState.value = 'error'
+      emit('status', 'failed')
+      if (elapsedTimer) window.clearInterval(elapsedTimer)
       return
     }
     await pollRun(data.runId)
   } catch (error) {
     runResult.value = { error: error instanceof Error ? error.message : String(error) }
     runState.value = 'error'
+    emit('status', 'failed')
+    if (elapsedTimer) window.clearInterval(elapsedTimer)
   }
 }
 
@@ -123,7 +139,9 @@ async function stopDiscovery() {
   if (pollTimer) window.clearTimeout(pollTimer)
   const response = await fetch(`/api/run-discovery/${runResult.value.runId}`, { method: 'DELETE' })
   runResult.value = await response.json()
-  runState.value = 'error'
+  runState.value = 'stopped'
+  emit('status', 'stopped')
+  if (elapsedTimer) window.clearInterval(elapsedTimer)
 }
 
 async function saveReview(nextReview) {
@@ -209,6 +227,7 @@ watch(job, (value) => {
 
 onUnmounted(() => {
   if (pollTimer) window.clearTimeout(pollTimer)
+  if (elapsedTimer) window.clearInterval(elapsedTimer)
 })
 </script>
 
@@ -247,6 +266,8 @@ onUnmounted(() => {
       </label>
     </div>
 
+    <details class="advanced-settings">
+      <summary>Advanced settings <span>{{ job.width }} × {{ job.height }} · {{ job.maxPages }} pages · {{ job.maxInteractions }} safe actions</span></summary>
     <fieldset v-if="job.provider === 'llama.cpp'" class="scene-options discovery-options">
       <legend>Local model</legend>
       <div class="form-grid scene-grid">
@@ -271,7 +292,8 @@ onUnmounted(() => {
       </div>
     </fieldset>
 
-    <div class="command-box"><pre>{{ command }}</pre></div>
+    <details class="manifest-preview technical-details"><summary>Technical command</summary><div class="command-box"><pre>{{ command }}</pre></div></details>
+    </details>
     <div v-if="!isValid" class="field-error render-error">Complete the URL, output, model, and exploration limits before running discovery.</div>
 
     <div class="run-actions">
@@ -283,7 +305,7 @@ onUnmounted(() => {
     </div>
 
     <div v-if="isRunning && progress" class="discovery-progress" aria-live="polite">
-      <div><strong>Current page</strong><span>{{ progress.current_url || 'Starting browser…' }}</span></div>
+      <div><strong>Current stage · {{ elapsedLabel }}</strong><span>{{ progress.current_url || 'Starting browser…' }}</span></div>
       <div class="progress-counts">
         <span>{{ progress.pages }} pages</span><span>{{ progress.states }} states</span>
         <span>{{ progress.actions }} actions</span><span>{{ progress.transitions }} transitions</span>
@@ -293,7 +315,8 @@ onUnmounted(() => {
 
     <div v-if="runResult && !isRunning" class="run-status" :class="runState">
       <p class="run-status-title">
-        <template v-if="runState === 'success'">Discovery completed. Knowledge saved to {{ runResult.snapshotPath }}.</template>
+        <template v-if="runState === 'success'">Discovery completed in {{ elapsedLabel }}. Knowledge saved to {{ runResult.snapshotPath }}.</template>
+        <template v-else-if="runState === 'stopped'">Discovery stopped after {{ elapsedLabel }}. Partial run files remain available locally.</template>
         <template v-else-if="runResult.error">{{ runResult.error }}</template>
         <template v-else>Discovery exited with code {{ runResult.code }}.</template>
       </p>
@@ -303,7 +326,7 @@ onUnmounted(() => {
     <div v-if="result" class="discovery-results">
       <div class="result-heading">
         <div><p class="eyebrow">Knowledge snapshot</p><h3>Discovery results</h3></div>
-        <span class="schema-badge">Schema {{ result.schemaVersion }}</span>
+        <div class="heading-actions"><span class="schema-badge">Schema {{ result.schemaVersion }}</span><button class="primary-btn" type="button" @click="emit('use-in-plan', runResult.snapshotPath)">Use this discovery in Plan</button></div>
       </div>
 
       <div class="metric-grid">

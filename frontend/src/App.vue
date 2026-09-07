@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import logoLight from './assets/mpostele-logo-light.png'
 import logoDark from './assets/mpostele-logo-dark.png'
 import DiscoveryPanel from './components/DiscoveryPanel.vue'
+import PlanWorkspace from './components/PlanWorkspace.vue'
 import RenderJobPanel from './components/RenderJobPanel.vue'
 import { getSetting, setSetting } from './db/sqlite'
 
@@ -11,6 +12,10 @@ const theme = ref('light')
 // real stored values (if any) have finished loading.
 const settingsLoaded = ref(false)
 const activeNav = ref('overview')
+const workspaceStatus = ref('Ready')
+const discoveryHandoff = ref('')
+const renderHandoff = ref(null)
+const clipboardMessage = ref('')
 const showPassword = ref(false)
 const captureJob = ref({
   platformUrl: 'https://example.com',
@@ -97,9 +102,19 @@ const audioCommand = computed(() => {
   return parts.join(' ')
 })
 
+async function copyText(value, successMessage) {
+  clipboardMessage.value = ''
+  try {
+    if (!navigator.clipboard) throw new Error('Clipboard access is unavailable')
+    await navigator.clipboard.writeText(value)
+    clipboardMessage.value = successMessage
+  } catch (error) {
+    clipboardMessage.value = error instanceof Error ? `Copy failed: ${error.message}` : 'Copy failed.'
+  }
+}
+
 function copyCommand() {
-  if (!isJobValid.value) return
-  navigator.clipboard?.writeText(jobCommand.value)
+  if (isJobValid.value) copyText(jobCommand.value, 'Capture command copied.')
 }
 
 // Triggers the actual local capture job by asking the Vite dev/preview
@@ -107,14 +122,30 @@ function copyCommand() {
 // spawn `python -m pipeline.first_render` on this machine. The endpoint only
 // accepts loopback requests and never puts the password on the command line.
 function copyAudioCommand() {
-  if (!isAudioJobValid.value) return
-  navigator.clipboard?.writeText(audioCommand.value)
+  if (isAudioJobValid.value) copyText(audioCommand.value, 'Audio command copied.')
+}
+
+function useDiscoveryInPlan(snapshotPath) {
+  discoveryHandoff.value = snapshotPath
+  workspaceStatus.value = 'Discovery ready for planning'
+  goToSection('plan')
+}
+
+function openDraftInRender(manifest) {
+  renderHandoff.value = manifest
+  workspaceStatus.value = 'Draft loaded in Render'
+  goToSection('render')
+}
+
+function updateWorkspaceStatus(label, state) {
+  workspaceStatus.value = `${label}: ${state}`
 }
 
 async function runCapture() {
   if (!isJobValid.value || isRunning.value) return
 
   runState.value = 'running'
+  workspaceStatus.value = 'Capture: running'
   runResult.value = null
 
   try {
@@ -133,9 +164,11 @@ async function runCapture() {
     const data = await response.json()
     runResult.value = data
     runState.value = response.ok && data.code === 0 ? 'success' : 'error'
+    workspaceStatus.value = `Capture: ${runState.value === 'success' ? 'completed' : 'failed'}`
   } catch (err) {
     runResult.value = { error: err instanceof Error ? err.message : String(err) }
     runState.value = 'error'
+    workspaceStatus.value = 'Capture: failed'
   }
 }
 
@@ -143,6 +176,7 @@ async function runAudio() {
   if (!isAudioJobValid.value || isAudioRunning.value) return
 
   audioRunState.value = 'running'
+  workspaceStatus.value = 'Audio: compositing'
   audioRunResult.value = null
 
   try {
@@ -155,9 +189,11 @@ async function runAudio() {
     const data = await response.json()
     audioRunResult.value = data
     audioRunState.value = response.ok && data.code === 0 ? 'success' : 'error'
+    workspaceStatus.value = `Audio: ${audioRunState.value === 'success' ? 'completed' : 'failed'}`
   } catch (err) {
     audioRunResult.value = { error: err instanceof Error ? err.message : String(err) }
     audioRunState.value = 'error'
+    workspaceStatus.value = 'Audio: failed'
   }
 }
 
@@ -183,7 +219,7 @@ function toggleTheme() {
 
 function goToSection(id) {
   activeNav.value = id
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 onMounted(async () => {
@@ -242,49 +278,10 @@ watch(
         </div>
       </div>
 
-      <nav class="main-nav" aria-label="Main navigation">
-        <button
-          class="nav-link"
-          :class="{ 'is-active': activeNav === 'overview' }"
-          :aria-current="activeNav === 'overview' ? 'page' : undefined"
-          type="button"
-          @click="goToSection('overview')"
-        >Overview</button>
-        <button
-          class="nav-link"
-          :class="{ 'is-active': activeNav === 'discovery' }"
-          :aria-current="activeNav === 'discovery' ? 'page' : undefined"
-          type="button"
-          @click="goToSection('discovery')"
-        >Discovery</button>
-        <button
-          class="nav-link"
-          :class="{ 'is-active': activeNav === 'capture' }"
-          :aria-current="activeNav === 'capture' ? 'page' : undefined"
-          type="button"
-          @click="goToSection('capture')"
-        >Capture</button>
-        <button
-          class="nav-link"
-          :class="{ 'is-active': activeNav === 'audio' }"
-          :aria-current="activeNav === 'audio' ? 'page' : undefined"
-          type="button"
-          @click="goToSection('audio')"
-        >Audio</button>
-        <button
-          class="nav-link"
-          :class="{ 'is-active': activeNav === 'render' }"
-          :aria-current="activeNav === 'render' ? 'page' : undefined"
-          type="button"
-          @click="goToSection('render')"
-        >Render</button>
-        <button
-          class="nav-link"
-          :class="{ 'is-active': activeNav === 'docs' }"
-          :aria-current="activeNav === 'docs' ? 'page' : undefined"
-          type="button"
-          @click="goToSection('docs')"
-        >Docs</button>
+      <nav class="main-nav" aria-label="Workspace navigation">
+        <button v-for="item in [{ id: 'overview', label: 'Home' }, { id: 'discovery', label: 'Discover' }, { id: 'plan', label: 'Plan' }, { id: 'render', label: 'Render' }]" :key="item.id" class="nav-link" :class="{ 'is-active': activeNav === item.id }" :aria-current="activeNav === item.id ? 'page' : undefined" type="button" @click="goToSection(item.id)">{{ item.label }}</button>
+        <span class="nav-divider" aria-hidden="true"></span>
+        <button v-for="item in [{ id: 'capture', label: 'Capture' }, { id: 'audio', label: 'Audio' }, { id: 'docs', label: 'Guide' }]" :key="item.id" class="nav-link nav-tool" :class="{ 'is-active': activeNav === item.id }" :aria-current="activeNav === item.id ? 'page' : undefined" type="button" @click="goToSection(item.id)">{{ item.label }}</button>
       </nav>
 
       <button
@@ -297,45 +294,34 @@ watch(
       </button>
     </header>
 
+    <div class="workspace-strip" aria-live="polite">
+      <span class="status-dot"></span><strong>{{ workspaceStatus }}</strong>
+      <span>Processed locally; capture connects to the target website.</span>
+    </div>
+
     <main class="page">
-      <section id="overview" class="hero section-card">
+      <section v-show="activeNav === 'overview'" id="overview" class="hero section-card">
         <div class="hero-copy">
-          <p class="eyebrow">Local-first workflow</p>
-          <h1>Understand a product, then turn its strongest flows into motion.</h1>
-          <p class="hero-text">
-            The local agent maps product pages and safe interface states into reusable structured knowledge before the capture and rendering pipeline creates a video.
-          </p>
+          <p class="eyebrow">Local-first production studio</p>
+          <h1>Your local video workspace.</h1>
+          <p class="hero-text">Discover evidence, approve a focused story, and render lightweight product videos without a cloud pipeline.</p>
           <div class="hero-actions">
             <button class="primary-btn" type="button" @click="goToSection('discovery')">Start discovery</button>
-            <button class="secondary-btn" type="button" :disabled="!isJobValid" @click="copyCommand">Copy command</button>
+            <button class="secondary-btn" type="button" @click="goToSection(discoveryHandoff ? 'plan' : 'capture')">{{ discoveryHandoff ? 'Continue planning' : 'Open capture tool' }}</button>
           </div>
         </div>
-
-        <div class="hero-visual" aria-hidden="true">
-          <div class="mock-window">
-            <div class="mock-toolbar">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <div class="mock-body">
-              <aside class="mock-sidebar"></aside>
-              <div class="mock-content">
-                <div class="mock-row long"></div>
-                <div class="mock-grid">
-                  <div class="mock-card"></div>
-                  <div class="mock-card"></div>
-                  <div class="mock-card large"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ol class="journey" aria-label="Primary workflow">
+          <li><strong>1. Discover</strong><span>Collect safe, screenshot-backed product evidence.</span></li>
+          <li><strong>2. Plan</strong><span>Review scenes and explicitly approve the story.</span></li>
+          <li><strong>3. Render</strong><span>Build and preview a deterministic local export.</span></li>
+        </ol>
       </section>
 
-      <DiscoveryPanel />
+      <DiscoveryPanel v-show="activeNav === 'discovery'" @status="(state) => updateWorkspaceStatus('Discovery', state)" @use-in-plan="useDiscoveryInPlan" />
 
-      <section id="capture" class="capture-panel section-card">
+      <PlanWorkspace v-show="activeNav === 'plan'" :snapshot-path="discoveryHandoff" @status="(state) => updateWorkspaceStatus('Plan', state)" @open-render="openDraftInRender" />
+
+      <section v-show="activeNav === 'capture'" id="capture" class="capture-panel section-card">
         <div class="section-head">
           <div>
             <p class="eyebrow">Capture setup</p>
@@ -372,22 +358,24 @@ watch(
           </label>
         </div>
 
-        <div class="command-box">
+        <details class="manifest-preview technical-details">
+          <summary>Technical details and command</summary>
+          <div class="command-box">
           <pre>{{ displayCommand }}</pre>
           <label v-if="captureJob.password" class="reveal-toggle">
             <input v-model="showPassword" type="checkbox" />
             Show password in command
           </label>
-          <p v-if="captureJob.password" class="command-warning">
-            The copied command includes your password in plain text. Only copy or paste it on a trusted machine.
-          </p>
-        </div>
+          <p v-if="captureJob.password" class="command-warning">The copied command includes your password in plain text. Only copy or paste it on a trusted machine.</p>
+          </div>
+          <button class="secondary-btn details-copy" type="button" :disabled="!isJobValid" @click="copyCommand">Copy command</button>
+        </details>
 
         <div class="run-actions">
           <button class="primary-btn" type="button" :disabled="!isJobValid || isRunning" @click="runCapture">
             {{ isRunning ? 'Running…' : 'Run capture locally' }}
           </button>
-          <p class="run-hint">Runs the command above directly on this machine via the local dev server. Nothing leaves your computer.</p>
+          <p class="run-hint">Processed locally; capture connects to the target website.</p>
         </div>
 
         <div v-if="runResult" class="run-status" :class="runState">
@@ -401,7 +389,7 @@ watch(
         </div>
       </section>
 
-      <section id="audio" class="capture-panel section-card">
+      <section v-show="activeNav === 'audio'" id="audio" class="capture-panel section-card">
         <div class="section-head">
           <div>
             <p class="eyebrow">Narration setup</p>
@@ -434,9 +422,7 @@ watch(
           </label>
         </div>
 
-        <div class="command-box">
-          <pre>{{ audioCommand }}</pre>
-        </div>
+        <details class="manifest-preview technical-details"><summary>Technical command</summary><div class="command-box"><pre>{{ audioCommand }}</pre></div></details>
 
         <div class="run-actions">
           <button class="primary-btn" type="button" :disabled="!isAudioJobValid || isAudioRunning" @click="runAudio">
@@ -457,9 +443,9 @@ watch(
         </div>
       </section>
 
-      <RenderJobPanel />
+      <RenderJobPanel v-show="activeNav === 'render'" :imported-manifest="renderHandoff" @status="(state) => updateWorkspaceStatus('Render', state)" />
 
-      <section id="docs" class="steps-panel">
+      <section v-show="activeNav === 'docs'" id="docs" class="steps-panel">
         <div class="section-head compact">
           <div>
             <p class="eyebrow">Implemented flow</p>
@@ -476,5 +462,6 @@ watch(
         </div>
       </section>
     </main>
+    <p v-if="clipboardMessage" class="toast" role="status">{{ clipboardMessage }}</p>
   </div>
 </template>

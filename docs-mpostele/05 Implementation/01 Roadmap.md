@@ -2,7 +2,7 @@
 
 ## Current status
 
-The repo now has a working local media pipeline and frontend from capture through optional local TTS and multi-scene export. It also has an evidence-first site discovery foundation and a CLI content-planning agent that turns reviewed discovery evidence into a bounded, versioned scene plan. Frontend plan editing, render-manifest conversion, deeper form-based flows, final voice pacing, and real-platform uploads remain future milestones.
+The repo now has a working local media pipeline and frontend from discovery and seven-day content planning through optional local TTS and multi-scene export. The Plan workspace generates, edits, reviews, approves, and converts evidence-backed plans into draft render manifests. Deeper form-based flows, final voice pacing, and real-platform uploads remain future milestones.
 
 
 
@@ -60,8 +60,8 @@ The repo now has a working local media pipeline and frontend from capture throug
 - [ ] add deeper nested UI-state exploration and resume scheduling from the persisted frontier
 - [x] generate evidence-backed content plans for downstream recording agents
 - [x] expose discovery configuration and graph review in the frontend
-- [ ] expose content-plan generation, evidence inspection, and approval in the frontend
-- [ ] convert an approved content plan into a draft render-job manifest
+- [x] expose content-plan generation, evidence inspection, seven-day scheduling, and approval in the frontend
+- [x] convert an approved content plan into a draft render-job manifest
 
 
 ## Related notes

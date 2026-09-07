@@ -17,7 +17,7 @@ The pipeline and frontend can produce multi-scene videos with supplied or locall
 - local Playwright capture, FFmpeg motion, Manim overlays, narration compositing, and optional Kokoro TTS modules
 - a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
 - an evidence-first website discovery agent with safe navigation, local reasoning, SQLite knowledge storage, and portable JSON snapshots
-- an evidence-backed content-planning agent with deterministic and optional local llama.cpp providers
+- an evidence-backed content-planning agent plus a seven-day frontend review and approval workspace
 - a fast FFprobe-based export validator, dependency-free render benchmark, and reusable local vertical-video job
 
 
@@ -62,7 +62,7 @@ mpostele/
 
 ## Frontend prototype
 
-The frontend app is a Vite + Vue local control surface for site discovery, capture, narration-compositing, and multi-scene render jobs. Its loopback-only endpoints run the Python pipeline locally and display process logs without introducing a cloud service. The Discovery workspace configures crawl safety and model settings, reports the current page and live counters, supports stopping a run, and presents a bounded graph, screenshot-backed state browser, structured layout evidence, human review decisions, important-page/flow markers, and targeted follow-up runs.
+The frontend app is a Vite + Vue local control surface for site discovery, seven-day content planning, capture, narration-compositing, and multi-scene render jobs. It presents one focused workspace at a time with persistent navigation and status, while Capture and Audio remain supporting tools. Its loopback-only endpoints run the Python pipeline locally and display process logs without introducing a cloud service. Discovery can hand its snapshot directly to Plan; an approved plan can open its draft manifest in Render without automatically starting work. Plan scenes include screenshot thumbnails, Render includes compact scene and output summaries, and successful exports use native browser video preview. Advanced and technical settings remain available in disclosure panels.
 
 To run the frontend locally:
 
@@ -122,7 +122,9 @@ The deterministic provider is the default and needs no model:
 python -m pipeline.site_agent.content_plan artifacts/site-analysis/run/snapshot.json --review artifacts/site-analysis/run/review.json --output artifacts/site-analysis/run/content-plan.json --objective "feature overview" --audience "new customers" --duration 30
 ```
 
-Pass `--provider llama.cpp` to use a local OpenAI-compatible server for story selection and wording. If that provider fails, planning falls back to the deterministic provider. Every scene retains page, state, finding, transition, and screenshot references so a later UI or recording agent can show why it was selected. Frontend plan review and direct conversion to a render-job manifest remain future work.
+Pass `--provider llama.cpp` to use a local OpenAI-compatible server for story selection and wording. If that provider fails, planning falls back to the deterministic provider. Every scene retains page, state, finding, transition, and screenshot references so the frontend can show why it was selected.
+
+The frontend **Plan** workspace adds a rolling seven-day calendar (today through six days ahead). It can accept the latest discovery through an explicit handoff, generate or load plans, show screenshot evidence, edit and reorder scenes, distinguish unsaved edits from saved approval, approve or reject each scene, save the reviewed plan, and convert an approved plan into a draft render-job manifest. The draft can be opened directly in Render, but conversion never starts rendering or publishing automatically.
 
 ## First local pipeline proof
 

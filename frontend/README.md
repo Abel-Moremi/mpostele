@@ -1,22 +1,28 @@
 # Mpostele frontend
 
-This folder contains the local Vite + Vue control surface for running site discovery, capture, narration-compositing, and complete multi-scene render jobs.
+This folder contains the local Vite + Vue control surface for running site discovery, content planning, capture, narration-compositing, and complete multi-scene render jobs.
 
 ## What this prototype includes
 
+- a focused workspace shell that shows Home, Discover, Plan, Render, Capture, Audio, or Guide one at a time, with persistent navigation and job status
+- explicit **Use this discovery in Plan** and **Create draft and open in Render** handoffs; neither handoff starts the next pipeline stage automatically
+- progressive disclosure for advanced provider, budget, export, command, and manifest settings
 - a Discovery workspace for configuring and running the evidence-first site agent
 - live discovery progress, stop control, viewport presets, a state/transition graph, screenshot and structured-layout evidence browsing, review decisions, important-flow markers, and targeted follow-up runs
+- a Plan workspace for a rolling seven-day schedule, local plan generation/loading, scene editing and ordering, evidence-reference review, approval, and draft render-manifest conversion
 - a local capture command builder and runner
 - a narration-compositing form for combining a generated clip with local audio
-- a multi-scene editor with URL, image, and video sources; ordering; motion; overlays; supplied or generated narration; and export presets
-- validation and status logs for capture, audio, and full render jobs
+- a multi-scene editor with compact expandable scenes, URL/image/video sources, ordering, motion, overlays, supplied or generated narration, and export presets
+- plan evidence thumbnails plus render aspect-ratio, resolution, duration, and scene summaries
+- field-specific render validation, clipboard feedback, stopped-versus-failed discovery states, unsaved plan indicators, and status logs
+- native browser playback of successful local renders
 - a theme toggle and responsive dark/light design system
 - password masking and non-persistence for capture credentials
 - a theme-aware favicon that follows the OS color scheme by default and switches instantly when the in-app theme toggle is used
 
 ## Data persistence
 
-Settings (theme choice, discovery configuration, capture fields, audio/video paths, render scenes, and export choices) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
+Settings (theme choice, discovery and planning configuration, capture fields, audio/video paths, render scenes, and export choices) persist locally across reloads using [sql.js](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly, running entirely client-side. The exported database file is stored as raw bytes in the browser's IndexedDB, so no server or cloud service is involved and the app stays fully offline.
 
 Password fields are intentionally **never persisted**: they are excluded from stored JSON and start empty on every reload. This avoids writing plaintext credentials to disk-backed browser storage.
 
@@ -30,11 +36,21 @@ Selecting **Run discovery agent** calls the loopback-only `/api/run-discovery` e
 
 Each UI launch writes into `<evidence-folder>/runs/<run-id>/`, including its own `frontend-discovery.json`, `progress.json`, database, and snapshot. This prevents reused folders from mixing records and prevents a failed run from presenting a previous snapshot. Completed summaries are only loaded after a zero exit code.
 
-After completion, the frontend shows coverage metrics and a bounded state/transition graph. Selecting a graph node or evidence link opens the captured screenshot beside a structured layout of headings, visible text, and controls. Pages and transitions can be marked important, while ambiguous actions can be approved or rejected for planning. These annotations are validated against the run and stored locally in `review.json`; approval does not bypass the agent's conservative click policy. **Explore from this page** starts a new isolated discovery run at that page for targeted follow-up.
+The status strip remains visible while changing workspaces and reports meaningful states rather than invented percentages. Discovery reports elapsed time and distinguishes a user-stopped run from a failed run.
+
+After completion, **Use this discovery in Plan** passes the generated snapshot path directly to Plan. The frontend then shows coverage metrics and a bounded state/transition graph. Selecting a graph node or evidence link opens the captured screenshot beside a structured layout of headings, visible text, and controls. Pages and transitions can be marked important, while ambiguous actions can be approved or rejected for planning. These annotations are validated against the run and stored locally in `review.json`; approval does not bypass the agent's conservative click policy. **Explore from this page** starts a new isolated discovery run at that page for targeted follow-up.
 
 The complete reusable data remains in `snapshot.json` and `knowledge.sqlite`. The UI bounds graph and inventory data to keep browser memory modest, and the evidence endpoint only serves run-contained PNG files. Discovery settings persist locally, while generated evidence and review annotations remain in the configured project-contained artifact folder.
 
 Authenticated discovery uses an existing Playwright storage-state file. The frontend only stores its path, and the server rejects paths outside the repository or files that do not exist. Keep authentication state under ignored local storage such as `artifacts/`.
+
+## Planning content from the UI
+
+The **Plan** workspace uses the current local date to expose a rolling seven-day window (today through six days ahead). Choose a day, provide a completed discovery `snapshot.json` and optional `review.json`, and generate with the deterministic provider or a loopback-only llama.cpp endpoint. Plan paths and scheduling settings persist in browser SQLite; generated plans remain ordinary inspectable JSON files in the repository.
+
+Each scene displays a lightweight screenshot thumbnail, its evidence state, and its screenshot path. A saved/unsaved indicator separates local edits from approved review state. Editing purpose, narration, duration, overlay text, or ordering returns the plan to `pending_review`. Scenes can be approved or rejected individually; **Approve plan** approves every non-rejected scene. Conversion is deliberately blocked until the plan is approved and creates a `status: "draft"` render manifest from approved scenes only. **Create draft and open in Render** loads that manifest into the Render editor but still requires an explicit render action. The conversion uses the captured screenshots as image sources, narration as local TTS scripts, and platform-appropriate export presets. It does not render or publish automatically.
+
+The loopback-only `/api/content-plans` endpoint enforces repository path containment for every operation and validates schema/version, schedule horizon, scene review states, numeric limits, and the local model endpoint before generation, saving, or conversion.
 
 ## Running the capture job from the UI
 
@@ -66,7 +82,7 @@ The endpoint is loopback-only, invokes Python without a shell, limits request an
 
 The **Render** panel builds the JSON accepted by `pipeline.render_job`. Add and reorder scenes, select a URL/image/video source, configure motion and browser capture, add optional title/callout overlays, then choose no narration, a local audio file, or **Generate from script**. Script mode exposes Kokoro voice, speed, and language settings. Install `requirements-tts.txt` before rendering a script scene.
 
-Selecting **Render complete video** calls the loopback-only `/api/run-render-job` endpoint from [server/render-job-run-plugin.js](server/render-job-run-plugin.js). The server validates that local media, narration, output, and work paths remain inside the repository, validates script/TTS fields, writes `frontend-job.json` into the selected work folder, and starts Python without a shell. A login password is sent only in `MPOSTELE_PASSWORD`, is not included in the manifest, and is not persisted by the browser. Jobs time out after 15 minutes; intermediate scene files, generated narration/cache files, and the generated manifest remain available for inspection.
+Selecting **Render complete video** calls the loopback-only `/api/run-render-job` endpoint from [server/render-job-run-plugin.js](server/render-job-run-plugin.js). The server validates that local media, narration, output, and work paths remain inside the repository, validates script/TTS fields, writes `frontend-job.json` into the selected work folder, and starts Python without a shell. A login password is sent only in `MPOSTELE_PASSWORD`, is not included in the manifest, and is not persisted by the browser. Jobs time out after 15 minutes; intermediate scene files, generated narration/cache files, and the generated manifest remain available for inspection. A successful job is previewed with native browser video controls through `/api/local-media`, which serves only an allowlisted set of project-contained image, video, and audio files and supports byte ranges for playback.
 
 ## Why it exists
 
@@ -88,8 +104,8 @@ npm test
 npm run build
 ```
 
-The Node tests cover discovery domain and model-endpoint safety, result/evidence mapping, review validation, repository path containment, local-source validation, and script/TTS validation for the render-job endpoint.
+The Node tests cover discovery domain and model-endpoint safety, result/evidence mapping, review validation, the seven-day planning boundary, plan-to-manifest conversion, repository path containment, local-source validation, local media containment/type checks, and script/TTS validation for the render-job endpoint.
 
 ## Current status
 
-This frontend is a working local control surface for evidence-first site discovery, single-clip capture, narration composition, optional local script-to-speech, and multi-scene assembly with platform-oriented export presets. Real-world platform upload validation remains future work.
+This frontend is a working local control surface for evidence-first site discovery, seven-day content planning and approval, draft render-manifest creation, single-clip capture, narration composition, optional local script-to-speech, and multi-scene assembly with platform-oriented export presets. Real-world platform upload validation remains future work.
