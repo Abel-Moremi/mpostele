@@ -49,6 +49,13 @@ class SiteAgentStoreTests(unittest.TestCase):
                 screenshot_path="screenshots/example.png",
                 accessibility_path="accessibility/example.txt",
                 fingerprint="fingerprint",
+                structure={
+                    "language": "en",
+                    "heading_outline": [{"level": 1, "text": "Welcome"}],
+                    "landmarks": [{"type": "main", "label": "Welcome"}],
+                    "navigation": [{"label": "Primary", "links": [{"text": "Docs", "href": "https://example.com/docs"}]}],
+                    "forms": [],
+                },
             )
             analysis = Analysis("Landing page", "Introduce the product", ["control-0"])
             page_id = stable_id("page", observation.url)
@@ -84,11 +91,20 @@ class SiteAgentStoreTests(unittest.TestCase):
                 )
                 store.complete_run("run_test")
                 snapshot_path = store.export_snapshot(root / "snapshot.json")
+                inventory = store.structure_inventory()
+                agent = SiteDiscoveryAgent(AgentConfig(observation.url, output_dir=str(root)), HeuristicProvider())
+                agent._write_structure_report(store)
 
             payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
             self.assertTrue(inserted)
             self.assertEqual(payload["schema_version"], SCHEMA_VERSION)
             self.assertEqual(payload["states"][0]["observation"]["title"], "Example")
+            self.assertEqual(payload["states"][0]["observation"]["structure"]["language"], "en")
+            self.assertEqual(inventory[0]["structure"]["landmarks"][0]["type"], "main")
+            structure_report = (root / "reports" / "site-structure.md").read_text(encoding="utf-8")
+            self.assertIn("## Example", structure_report)
+            self.assertIn("H1: Welcome", structure_report)
+            self.assertIn("Primary", structure_report)
             self.assertEqual(payload["findings"][0]["status"], "inferred")
             self.assertEqual(payload["findings"][0]["evidence"], [state_id])
             self.assertEqual(payload["events"][0]["status"], "failed")

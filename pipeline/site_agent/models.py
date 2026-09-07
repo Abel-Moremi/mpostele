@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,7 @@ class Observation:
     screenshot_path: str
     accessibility_path: str
     fingerprint: str
+    structure: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

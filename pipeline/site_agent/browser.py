@@ -45,13 +45,49 @@ def observe_page(page: Any, output_dir: Path | str, sequence: int) -> Observatio
                 expanded: expanded === null ? null : expanded === 'true'
               };
             });
-          const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
-            .filter(visible).map((item) => item.innerText.trim().replace(/\\s+/g, ' ')).filter(Boolean).slice(0, 80);
+          const clean = (value, limit = 200) => (value || '').trim().replace(/\\s+/g, ' ').slice(0, limit);
+          const headingOutline = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+            .filter(visible).map((item) => ({ level: Number(item.tagName.slice(1)), text: clean(item.innerText) }))
+            .filter((item) => item.text).slice(0, 120);
+          const headings = headingOutline.filter((item) => item.level <= 3).map((item) => item.text).slice(0, 80);
+          const landmarkSelector = 'header, nav, main, aside, footer, [role="banner"], [role="navigation"], [role="main"], [role="complementary"], [role="contentinfo"], [role="search"]';
+          const landmarks = Array.from(document.querySelectorAll(landmarkSelector)).filter(visible).slice(0, 50).map((item) => ({
+            type: item.getAttribute('role') || item.tagName.toLowerCase(),
+            label: clean(item.getAttribute('aria-label') || item.getAttribute('aria-labelledby') || item.querySelector('h1, h2, h3')?.innerText || '')
+          }));
+          const navigation = Array.from(document.querySelectorAll('nav, [role="navigation"]')).filter(visible).slice(0, 20).map((item) => ({
+            label: clean(item.getAttribute('aria-label') || item.querySelector('h1, h2, h3')?.innerText || 'Navigation'),
+            links: Array.from(item.querySelectorAll('a[href]')).filter(visible).slice(0, 50).map((link) => ({
+              text: clean(link.getAttribute('aria-label') || link.innerText || link.getAttribute('title') || link.href),
+              href: link.href
+            }))
+          }));
+          const sections = Array.from(document.querySelectorAll('main, section, article, aside')).filter(visible).slice(0, 100).map((item) => ({
+            type: item.tagName.toLowerCase(),
+            label: clean(item.getAttribute('aria-label') || item.querySelector('h1, h2, h3, h4, h5, h6')?.innerText || '')
+          }));
+          const forms = Array.from(document.querySelectorAll('form')).filter(visible).slice(0, 30).map((item) => ({
+            label: clean(item.getAttribute('aria-label') || item.querySelector('legend, h1, h2, h3')?.innerText || 'Form'),
+            method: (item.method || 'get').toLowerCase(),
+            action: item.action || document.location.href,
+            fields: Array.from(item.querySelectorAll('input, select, textarea')).filter(visible).slice(0, 50).map((field) => ({
+              name: clean(field.getAttribute('aria-label') || field.labels?.[0]?.innerText || field.name || field.type || field.tagName.toLowerCase()),
+              type: (field.type || field.tagName).toLowerCase()
+            }))
+          }));
           return {
             title: document.title,
             headings,
             visibleText: (document.body?.innerText || '').replace(/\\s+/g, ' ').trim().slice(0, 20000),
-            controls
+            controls,
+            structure: {
+              language: document.documentElement.lang || '',
+              heading_outline: headingOutline,
+              landmarks,
+              navigation,
+              sections,
+              forms
+            }
           };
         }
         """,
@@ -65,6 +101,7 @@ def observe_page(page: Any, output_dir: Path | str, sequence: int) -> Observatio
         "headings": extracted["headings"],
         "text": extracted["visibleText"][:10000],
         "controls": [(item.role, item.name, item.href, item.expanded) for item in controls],
+        "structure": extracted["structure"],
     }
     fingerprint = hashlib.sha256(
         json.dumps(fingerprint_input, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -90,6 +127,7 @@ def observe_page(page: Any, output_dir: Path | str, sequence: int) -> Observatio
         screenshot_path=screenshot_path.relative_to(root).as_posix(),
         accessibility_path=accessibility_path.relative_to(root).as_posix(),
         fingerprint=fingerprint,
+        structure=extracted["structure"],
     )
 
 

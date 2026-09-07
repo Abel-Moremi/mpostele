@@ -237,7 +237,7 @@ onUnmounted(() => {
       <div>
         <p class="eyebrow">Site understanding agent</p>
         <h2>Discover the product before planning a recording</h2>
-        <p class="section-description">Build an evidence-backed map of pages, interface states, controls, transitions, and inferred purposes. Unknown or consequential controls are not clicked.</p>
+        <p class="section-description">Build an evidence-backed map of the website structure, pages, interface states, controls, transitions, and inferred purposes. Unknown or consequential controls are not clicked.</p>
       </div>
       <span class="local-badge">Local only</span>
     </div>
@@ -409,10 +409,27 @@ onUnmounted(() => {
             <p class="eyebrow">Structured layout</p>
             <h4>{{ selectedState.title || 'Untitled state' }}</h4>
             <a :href="selectedState.url" target="_blank" rel="noreferrer">{{ selectedState.url }}</a>
-            <div v-if="selectedState.headings.length" class="heading-list">
-              <span v-for="(heading, index) in selectedState.headings" :key="`${index}-${heading}`">{{ heading }}</span>
-            </div>
-            <p>{{ selectedState.visibleText || 'No visible text captured.' }}</p>
+            <details v-if="selectedState.structure?.heading_outline?.length" open>
+              <summary>Heading hierarchy ({{ selectedState.structure.heading_outline.length }})</summary>
+              <ul><li v-for="(heading, index) in selectedState.structure.heading_outline" :key="`${index}-${heading.text}`"><strong>H{{ heading.level }}</strong> {{ heading.text }}</li></ul>
+            </details>
+            <details v-if="selectedState.structure?.landmarks?.length">
+              <summary>Page landmarks ({{ selectedState.structure.landmarks.length }})</summary>
+              <ul><li v-for="(landmark, index) in selectedState.structure.landmarks" :key="`${index}-${landmark.type}-${landmark.label}`"><strong>{{ landmark.type }}</strong><small>{{ landmark.label || 'Unlabelled region' }}</small></li></ul>
+            </details>
+            <details v-if="selectedState.structure?.sections?.length">
+              <summary>Content regions ({{ selectedState.structure.sections.length }})</summary>
+              <ul><li v-for="(section, index) in selectedState.structure.sections" :key="`${index}-${section.type}-${section.label}`"><strong>{{ section.type }}</strong><small>{{ section.label || 'Unlabelled region' }}</small></li></ul>
+            </details>
+            <details v-if="selectedState.structure?.navigation?.length">
+              <summary>Navigation groups ({{ selectedState.structure.navigation.length }})</summary>
+              <ul><li v-for="(group, index) in selectedState.structure.navigation" :key="`${index}-${group.label}`"><strong>{{ group.label || 'Navigation' }}</strong><small>{{ group.links.map((link) => link.text).filter(Boolean).join(' · ') || 'No named links' }}</small></li></ul>
+            </details>
+            <details v-if="selectedState.structure?.forms?.length">
+              <summary>Forms ({{ selectedState.structure.forms.length }})</summary>
+              <ul><li v-for="(form, index) in selectedState.structure.forms" :key="`${index}-${form.label}`"><strong>{{ form.label || 'Form' }}</strong><small>{{ form.fields.map((field) => field.name).filter(Boolean).join(' · ') || 'No visible fields' }}</small></li></ul>
+            </details>
+            <details><summary>Visible text</summary><p>{{ selectedState.visibleText || 'No visible text captured.' }}</p></details>
             <details><summary>Controls ({{ selectedActions.length }})</summary><ul><li v-for="action in selectedActions" :key="action.id"><strong>{{ action.control.name || action.control.role }}</strong><small>{{ action.safety }} · {{ action.status }} · {{ action.safetyReason }}</small></li></ul></details>
           </div>
         </div>

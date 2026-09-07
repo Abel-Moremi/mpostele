@@ -328,9 +328,65 @@ class SiteDiscoveryAgent:
             store.complete_run(run_id, status)
             snapshot = store.export_snapshot(self.output_dir / "snapshot.json")
             self._write_coverage(store)
+            self._write_structure_report(store)
             self._write_progress(store, run_id, status)
             store.close()
         return snapshot
+
+    def _write_structure_report(self, store: KnowledgeStore) -> None:
+        inventory = store.structure_inventory()
+        lines = [
+            "# Discovered Website Structure",
+            "",
+            "This inventory is based only on pages reached within the configured discovery limits.",
+            "",
+            "## Page inventory",
+            "",
+        ]
+        for page in inventory:
+            lines.append(f"- {page['title'] or 'Untitled page'} — {page['url']}")
+        for page in inventory:
+            structure = page["structure"]
+            lines.extend(["", f"## {page['title'] or 'Untitled page'}", "", f"URL: {page['url']}"])
+            language = structure.get("language")
+            if language:
+                lines.extend(["", f"Language: {language}"])
+            outline = structure.get("heading_outline", [])
+            if outline:
+                lines.extend(["", "### Heading outline", ""])
+                for heading in outline:
+                    indent = "  " * max(0, int(heading.get("level", 1)) - 1)
+                    lines.append(f"{indent}- H{heading.get('level', 1)}: {heading.get('text', '')}")
+            landmarks = structure.get("landmarks", [])
+            if landmarks:
+                lines.extend(["", "### Landmarks", ""])
+                for landmark in landmarks:
+                    label = f" — {landmark['label']}" if landmark.get("label") else ""
+                    lines.append(f"- {landmark.get('type', 'region')}{label}")
+            sections = structure.get("sections", [])
+            if sections:
+                lines.extend(["", "### Content regions", ""])
+                for section in sections:
+                    label = f" — {section['label']}" if section.get("label") else ""
+                    lines.append(f"- {section.get('type', 'section')}{label}")
+            navigation = structure.get("navigation", [])
+            if navigation:
+                lines.extend(["", "### Navigation", ""])
+                for group in navigation:
+                    lines.append(f"- {group.get('label') or 'Navigation'}")
+                    for link in group.get("links", []):
+                        lines.append(f"  - {link.get('text') or 'Unnamed link'} — {link.get('href', '')}")
+            forms = structure.get("forms", [])
+            if forms:
+                lines.extend(["", "### Forms", ""])
+                for form in forms:
+                    fields = ", ".join(field.get("name", "") for field in form.get("fields", []) if field.get("name"))
+                    suffix = f"; fields: {fields}" if fields else ""
+                    lines.append(f"- {form.get('label') or 'Form'} ({form.get('method', 'get').upper()}){suffix}")
+        lines.extend(["", "Dynamic or authenticated routes not reached by this run are not represented."])
+        reports = self.output_dir / "reports"
+        reports.mkdir(parents=True, exist_ok=True)
+        (reports / "site-structure.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def _write_coverage(self, store: KnowledgeStore) -> None:
         coverage = store.coverage()

@@ -22,7 +22,11 @@ class HeuristicProvider:
 
     def analyze(self, observation: Observation, safe_action_ids: list[str]) -> Analysis:
         purpose = observation.headings[0] if observation.headings else observation.title
-        summary = f"Page titled {observation.title!r} with {len(observation.controls)} visible controls."
+        landmark_count = len(observation.structure.get("landmarks", []))
+        summary = (
+            f"Page titled {observation.title!r} with {len(observation.controls)} visible controls "
+            f"and {landmark_count} structural landmarks."
+        )
         return Analysis(summary=summary, purpose=purpose, selected_action_ids=safe_action_ids[:3])
 
 
@@ -38,12 +42,28 @@ class LlamaCppProvider:
             {"id": item.id, "role": item.role, "name": item.name, "href": item.href}
             for item in observation.controls
         ]
+        structure = observation.structure
+        compact_structure = {
+            "language": structure.get("language", ""),
+            "heading_outline": structure.get("heading_outline", [])[:40],
+            "landmarks": structure.get("landmarks", [])[:20],
+            "sections": structure.get("sections", [])[:30],
+            "navigation": [
+                {"label": group.get("label", ""), "links": [link.get("text", "") for link in group.get("links", [])[:20]]}
+                for group in structure.get("navigation", [])[:10]
+            ],
+            "forms": [
+                {"label": form.get("label", ""), "fields": [field.get("name", "") for field in form.get("fields", [])[:20]]}
+                for form in structure.get("forms", [])[:10]
+            ],
+        }
         prompt = {
             "url": observation.url,
             "title": observation.title,
             "headings": observation.headings,
             "visible_text": observation.visible_text[:6000],
             "controls": controls,
+            "structure": compact_structure,
             "safe_action_ids": safe_action_ids,
         }
         body = {
@@ -59,7 +79,8 @@ class LlamaCppProvider:
                         "summary, purpose, selected_action_ids, and findings. findings is a list of "
                         "objects with kind, statement, confidence. Never select an ID outside "
                         "safe_action_ids and never invent product claims. Prefer actions that reveal "
-                        "new product capabilities."
+                        "new product capabilities. Use the supplied structural outline to distinguish "
+                        "navigation, content regions, and forms, but do not invent missing routes."
                     ),
                 },
                 {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},

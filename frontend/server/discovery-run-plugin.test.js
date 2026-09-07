@@ -78,9 +78,9 @@ test('resultSummary exposes graph, screenshot, layout, and finding evidence data
   const outputDir = mkdtempSync(path.join(tmpdir(), 'mpostele-discovery-'))
   try {
     writeFileSync(path.join(outputDir, 'snapshot.json'), JSON.stringify({
-      schema_version: '1.0.0',
+      schema_version: '1.1.0',
       pages: [{ id: 'page-1', title: 'Home', normalized_url: 'https://example.com/' }],
-      states: [{ id: 'state-1', page_id: 'page-1', observation: { title: 'Home', url: 'https://example.com/', headings: ['Welcome'], visible_text: 'Hello', screenshot_path: 'screenshots/home.png' } }],
+      states: [{ id: 'state-1', page_id: 'page-1', observation: { title: 'Home', url: 'https://example.com/', headings: ['Welcome'], visible_text: 'Hello', structure: { heading_outline: [{ level: 1, text: 'Welcome' }], landmarks: [{ type: 'main', label: 'Welcome' }], navigation: [], sections: [], forms: [] }, screenshot_path: 'screenshots/home.png' } }],
       actions: [{ id: 'action-1', state_id: 'state-1', safety: 'review', safety_reason: 'unknown', status: 'unexplored', control: { name: 'Generate' } }],
       transitions: [{ id: 'transition-1', source_state_id: 'state-1', action_id: 'action-1', destination_state_id: 'state-1', status: 'verified', observed_result: 'Changed' }],
       findings: [{ id: 'finding-1', state_id: 'state-1', evidence: ['state-1'], kind: 'purpose', statement: 'Introduces product', status: 'inferred', confidence: 0.7, producer: 'heuristic' }],
@@ -89,6 +89,7 @@ test('resultSummary exposes graph, screenshot, layout, and finding evidence data
     }))
     const summary = resultSummary(outputDir, 'browser-run')
     assert.equal(summary.states[0].headings[0], 'Welcome')
+    assert.equal(summary.states[0].structure.landmarks[0].type, 'main')
     assert.match(summary.states[0].screenshotUrl, /browser-run\/evidence/)
     assert.equal(summary.transitions[0].destinationStateId, 'state-1')
     assert.deepEqual(summary.findings[0].evidence, ['state-1'])

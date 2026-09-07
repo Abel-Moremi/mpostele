@@ -237,6 +237,28 @@ class KnowledgeStore:
         target.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         return target
 
+    def structure_inventory(self) -> list[dict[str, Any]]:
+        """Return one structural observation for each discovered page."""
+        rows = self.connection.execute(
+            """SELECT p.id, p.normalized_url, p.title, s.observation_json
+               FROM pages p
+               JOIN states s ON s.id = (
+                   SELECT latest.id FROM states latest
+                   WHERE latest.page_id = p.id
+                   ORDER BY latest.observed_at DESC, latest.rowid DESC LIMIT 1
+               )
+               ORDER BY p.normalized_url"""
+        ).fetchall()
+        return [
+            {
+                "id": row["id"],
+                "url": row["normalized_url"],
+                "title": row["title"],
+                "structure": json.loads(row["observation_json"]).get("structure", {}),
+            }
+            for row in rows
+        ]
+
     def coverage(self) -> dict[str, int]:
         result = {}
         for table in ("pages", "states", "actions", "transitions", "events", "findings"):

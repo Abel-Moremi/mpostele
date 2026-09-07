@@ -16,7 +16,7 @@ The pipeline and frontend can produce multi-scene videos with supplied or locall
 - a Vue + Vite frontend mockup for a content planner / campaign dashboard
 - local Playwright capture, FFmpeg motion, Manim overlays, narration compositing, and optional Kokoro TTS modules
 - a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
-- an evidence-first website discovery agent with safe navigation, local reasoning, SQLite knowledge storage, and portable JSON snapshots
+- an evidence-first website discovery agent with safe navigation, structural inventories, local reasoning, SQLite knowledge storage, and portable JSON snapshots
 - an evidence-backed content-planning agent plus a seven-day frontend review and approval workspace
 - a fast FFprobe-based export validator, dependency-free render benchmark, and reusable local vertical-video job
 
@@ -87,7 +87,7 @@ The current repository provides that foundation plus a working capture, animatio
 
 ## Website discovery agent
 
-`pipeline.site_agent` provides the first autonomous discovery layer before capture planning. It visits same-domain pages, records compact DOM/accessibility observations and screenshots, classifies unsafe controls deterministically, asks a local reasoning provider to interpret each state, verifies selected reversible interactions, and stores observations separately from inferred findings.
+`pipeline.site_agent` provides the first autonomous discovery layer before capture planning. It visits same-domain pages, records compact DOM/accessibility observations and screenshots, and captures the website structure: heading hierarchy, semantic landmarks, navigation groups and links, content sections, forms, and field names. It classifies unsafe controls deterministically, asks a local reasoning provider to interpret each state, verifies selected reversible interactions, and stores observations separately from inferred findings.
 
 Create a manifest such as:
 
@@ -108,7 +108,7 @@ Run the included local-frontend manifest without an LLM to validate discovery an
 python -m pipeline.site_agent.cli jobs/site-discovery-local.json --provider heuristic
 ```
 
-For semantic analysis, start a local OpenAI-compatible `llama-server` with a compact instruct model such as Qwen3 4B GGUF, then omit `--provider heuristic`. The agent falls back to deterministic analysis if the local model cannot be reached. Generated `knowledge.sqlite`, `snapshot.json`, `progress.json`, `decisions.jsonl`, screenshots, accessibility snapshots, and `reports/coverage.md` stay under the configured output directory. The versioned JSON snapshot is the supported handoff format for future content-planning and recording agents. UI-triggered runs use a unique `runs/<run-id>` subfolder so failed or repeated runs cannot display stale or cumulative results. Human review decisions and important page/flow markers are saved in a run-local `review.json`; they guide planning without authorizing the agent to click ambiguous controls.
+For semantic analysis, start a local OpenAI-compatible `llama-server` with a compact instruct model such as Qwen3 4B GGUF, then omit `--provider heuristic`. The agent falls back to deterministic analysis if the local model cannot be reached. Generated `knowledge.sqlite`, `snapshot.json`, `progress.json`, `decisions.jsonl`, screenshots, accessibility snapshots, `reports/coverage.md`, and the human-readable `reports/site-structure.md` stay under the configured output directory. Structural observations are also stored in each snapshot state under `observation.structure`; discovery schema 1.1.0 adds this field. The versioned JSON snapshot is the supported handoff format for future content-planning and recording agents. UI-triggered runs use a unique `runs/<run-id>` subfolder so failed or repeated runs cannot display stale or cumulative results. Human review decisions and important page/flow markers are saved in a run-local `review.json`; they guide planning without authorizing the agent to click ambiguous controls.
 
 The initial safety level is deliberately conservative: internal links, tabs, disclosure controls, and clearly reversible buttons may be explored; destructive or consequential labels are blocked; unknown buttons require review and are not clicked. Authentication can use a Playwright `storage_state` file, which should remain local and untracked. The frontend **Discovery** panel now exposes these settings and results through a loopback-only endpoint; remote model endpoints and output paths outside the repository are rejected.
 

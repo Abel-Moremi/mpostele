@@ -121,6 +121,7 @@ export function resultSummary(outputDir, runId) {
       url: item.observation?.url ?? '',
       headings: item.observation?.headings ?? [],
       visibleText: item.observation?.visible_text ?? '',
+      structure: item.observation?.structure ?? { heading_outline: [], landmarks: [], navigation: [], sections: [], forms: [] },
       screenshotUrl: item.observation?.screenshot_path
         ? `/api/run-discovery/${runId}/evidence?file=${encodeURIComponent(item.observation.screenshot_path)}`
         : '',
