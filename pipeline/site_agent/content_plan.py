@@ -5,14 +5,14 @@ import json
 import math
 import re
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.request import Request, urlopen
 
 from .models import SCHEMA_VERSION
 
-CONTENT_PLAN_SCHEMA_VERSION = "1.0.0"
+CONTENT_PLAN_SCHEMA_VERSION = "1.1.0"
 SUPPORTED_PLATFORMS = {"shorts", "reels", "tiktok", "landscape", "square"}
 
 
@@ -243,8 +243,47 @@ def validate_and_expand_scenes(proposals: list[dict[str, Any]], candidates: list
     return scenes
 
 
+def build_weekly_posts(scenes: list[dict[str, Any]], brief: CampaignBrief, start_date: date) -> list[dict[str, Any]]:
+    """Turn one campaign prompt into seven distinct, evidence-backed daily directions."""
+    themes = (
+        ("Introduce the promise", "Lead with the clearest product promise"),
+        ("Name the problem", f"Connect the product to a practical challenge for {brief.audience}"),
+        ("Show the feature", "Demonstrate the strongest evidence-backed capability"),
+        ("Explain the workflow", "Walk through how the supporting product states work together"),
+        ("Make the benefit concrete", "Translate the feature into a useful audience outcome"),
+        ("Teach a practical tip", "Give the audience one focused way to use the product"),
+        ("Recap and invite action", "Close the weekly story with the strongest proof and next step"),
+    )
+    format_name = "short-form video" if brief.platform in {"shorts", "reels", "tiktok"} else f"{brief.platform} post"
+    posts = []
+    for offset, (theme, direction) in enumerate(themes):
+        primary = scenes[offset % len(scenes)]
+        supporting = scenes[(offset + 1) % len(scenes)]
+        scene_ids = [primary["id"]]
+        if theme == "Explain the workflow" and supporting["id"] != primary["id"]:
+            scene_ids.append(supporting["id"])
+        subject = primary["purpose"].rstrip(".!?") or "the product"
+        posts.append({
+            "id": f"day-{offset + 1:02d}",
+            "scheduled_for": (start_date + timedelta(days=offset)).isoformat(),
+            "theme": theme,
+            "content_direction": f"{direction}: {subject}.",
+            "hook": f"{theme}: {subject}",
+            "format": format_name,
+            "call_to_action": brief.call_to_action if offset == 6 else "",
+            "scene_ids": scene_ids,
+            "evidence_state_ids": [
+                scene["evidence"]["state_id"] for scene in (primary, supporting)
+                if scene["id"] in scene_ids
+            ],
+            "review_status": "pending",
+        })
+    return posts
+
+
 def generate_content_plan(snapshot_path: Path | str, output_path: Path | str, brief: CampaignBrief,
-                          provider: ContentPlanningProvider, review_path: Path | str | None = None) -> Path:
+                          provider: ContentPlanningProvider, review_path: Path | str | None = None,
+                          start_date: date | None = None) -> Path:
     brief = brief.validated()
     snapshot = load_discovery_snapshot(snapshot_path)
     candidates = build_candidates(snapshot, load_review(review_path))
@@ -272,6 +311,12 @@ def generate_content_plan(snapshot_path: Path | str, output_path: Path | str, br
         "source": {"snapshot": str(Path(snapshot_path)), "review": str(Path(review_path)) if review_path else None,
                    "discovery_schema_version": snapshot["schema_version"]},
         "brief": asdict(brief), "status": "pending_review", "scenes": scenes,
+        "campaign": {
+            "start_date": (start_date or datetime.now().date()).isoformat(),
+            "duration_days": 7,
+            "direction": _clean(brief.planning_prompt, 2000),
+        },
+        "weekly_posts": build_weekly_posts(scenes, brief, start_date or datetime.now().date()),
     }
     temporary = target.with_suffix(target.suffix + ".tmp")
     temporary.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -284,6 +329,7 @@ def main() -> None:
     parser.add_argument("snapshot", help="Discovery snapshot.json path")
     parser.add_argument("--review", help="Optional review.json path")
     parser.add_argument("--output", default="content-plan.json", help="Output JSON path")
+    parser.add_argument("--start-date", type=date.fromisoformat, help="First day of the seven-day campaign (YYYY-MM-DD)")
     parser.add_argument("--objective", default="product overview")
     parser.add_argument("--prompt", default="Create a concise product story from the strongest available evidence.",
                         help="Creative direction used to select and shape evidence-backed scenes")
@@ -302,7 +348,7 @@ def main() -> None:
                           args.call_to_action, args.max_scenes, args.words_per_minute, args.prompt)
     provider: ContentPlanningProvider = (HeuristicContentPlanningProvider() if args.provider == "heuristic"
         else LlamaCppContentPlanningProvider(args.endpoint, args.model))
-    result = generate_content_plan(args.snapshot, args.output, brief, provider, args.review)
+    result = generate_content_plan(args.snapshot, args.output, brief, provider, args.review, args.start_date)
     print(f"Content plan ready for review: {result}")
 
 

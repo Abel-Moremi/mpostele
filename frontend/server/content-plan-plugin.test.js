@@ -12,7 +12,8 @@ const scheduled = '2026-04-12'
 
 function plan(snapshot) {
   return {
-    schema_version: '1.0.0', scheduled_for: scheduled, status: 'approved',
+    schema_version: '1.1.0', scheduled_for: scheduled, status: 'approved',
+    campaign: { start_date: scheduled, duration_days: 7, direction: 'Teach teams to plan a week.' },
     source: { snapshot }, brief: { platform: 'shorts', objective: 'Feature tour', audience: 'Teams', target_duration_seconds: 30 },
     scenes: [{
       id: 'scene-01', purpose: 'Show calendar', narration: 'Plan the week in one place.',
@@ -20,6 +21,15 @@ function plan(snapshot) {
       evidence: { state_id: 'state-1', screenshot_path: 'screenshots/calendar.png' },
       confidence: 0.9, review_status: 'approved',
     }],
+    weekly_posts: Array.from({ length: 7 }, (_, offset) => {
+      const date = new Date(Date.UTC(2026, 3, 12 + offset))
+      return {
+        id: `day-${offset + 1}`, scheduled_for: date.toISOString().slice(0, 10),
+        theme: `Theme ${offset + 1}`, content_direction: `Direction ${offset + 1}`,
+        hook: `Hook ${offset + 1}`, format: 'short-form video', call_to_action: '',
+        scene_ids: ['scene-01'], evidence_state_ids: ['state-1'], review_status: 'approved',
+      }
+    }),
   }
 }
 
@@ -58,6 +68,8 @@ test('approved plans convert to draft image-based render manifests', () => {
   try {
     const manifest = convertPlanToManifest(plan(snapshot), planPath, { now, videoOutput: path.join(directory, 'video.mp4'), workDir: path.join(directory, 'work') })
     assert.equal(manifest.status, 'draft')
+    assert.equal(manifest.scheduled_for, scheduled)
+    assert.equal(manifest.content_direction, 'Direction 1')
     assert.equal(manifest.export.preset, 'vertical_1080p')
     assert.equal(manifest.scenes[0].script, 'Plan the week in one place.')
     assert.equal(manifest.scenes[0].image, path.join(directory, 'screenshots', 'calendar.png'))

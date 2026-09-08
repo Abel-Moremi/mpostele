@@ -2,7 +2,7 @@
 
 ## Current status
 
-The repo now has a working local media pipeline and frontend from discovery and seven-day content planning through optional local TTS and multi-scene export. The Plan workspace generates, edits, reviews, approves, and converts evidence-backed plans into draft render manifests. Deeper form-based flows, final voice pacing, and real-platform uploads remain future milestones.
+The repo now has a working local media pipeline and frontend from discovery and prompt-first seven-day content planning through optional local TTS and multi-scene export. The Plan workspace turns one campaign prompt into seven editable daily post directions, supports review of both days and evidence scenes, and converts a selected approved day into a draft render manifest. Deeper form-based flows, final voice pacing, and real-platform uploads remain future milestones.
 
 
 
@@ -60,8 +60,8 @@ The repo now has a working local media pipeline and frontend from discovery and 
 - [ ] add deeper nested UI-state exploration and resume scheduling from the persisted frontier
 - [x] generate evidence-backed content plans for downstream recording agents
 - [x] expose discovery configuration and graph review in the frontend
-- [x] expose content-plan generation, evidence inspection, seven-day scheduling, and approval in the frontend
-- [x] convert an approved content plan into a draft render-job manifest
+- [x] expose prompt-first content-plan generation, evidence inspection, seven daily directions, and approval in the frontend
+- [x] convert a selected approved daily post into a draft render-job manifest
 
 
 ## Related notes

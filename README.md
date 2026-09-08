@@ -17,7 +17,7 @@ The pipeline and frontend can produce multi-scene videos with supplied or locall
 - local Playwright capture, FFmpeg motion, Manim overlays, narration compositing, and optional Kokoro TTS modules
 - a JSON-driven multi-scene renderer with landscape, vertical, and square export presets
 - an evidence-first website discovery agent with safe navigation, structural inventories, local reasoning, SQLite knowledge storage, and portable JSON snapshots
-- an evidence-backed content-planning agent plus a seven-day frontend review and approval workspace
+- a prompt-first, evidence-backed planning agent that develops seven distinct daily post directions plus a frontend review and approval workspace
 - a fast FFprobe-based export validator, dependency-free render benchmark, and reusable local vertical-video job
 
 
@@ -114,17 +114,17 @@ The initial safety level is deliberately conservative: internal links, tabs, dis
 
 ## Evidence-backed content planning
 
-`pipeline.site_agent.content_plan` converts a completed discovery `snapshot.json` and optional `review.json` into a versioned `content-plan.json`. It ranks human-marked pages and verified transitions first, excludes rejected transitions, requires screenshot-backed states, and validates all proposed scene IDs and the narration word budget before writing the plan. The output remains `pending_review`; it does not capture, render, or publish automatically.
+`pipeline.site_agent.content_plan` converts one campaign prompt, a completed discovery `snapshot.json`, and optional `review.json` into a versioned `content-plan.json`. It ranks human-marked pages and verified transitions first, excludes rejected transitions, requires screenshot-backed states, and validates all proposed scene IDs and the narration word budget. Schema 1.1 adds a seven-day `weekly_posts` sequence: every day receives its own theme, content direction, hook, format, schedule date, and references to reusable evidence-backed scenes. The output remains `pending_review`; it does not capture, render, or publish automatically.
 
 The deterministic provider is the default and needs no model:
 
 ```bash
-python -m pipeline.site_agent.content_plan artifacts/site-analysis/run/snapshot.json --review artifacts/site-analysis/run/review.json --output artifacts/site-analysis/run/content-plan.json --prompt "Lead with the weekly calendar, show the planning workflow, and end with the publishing benefit" --objective "feature overview" --audience "new customers" --duration 30
+python -m pipeline.site_agent.content_plan artifacts/site-analysis/run/snapshot.json --review artifacts/site-analysis/run/review.json --output artifacts/site-analysis/run/content-plan.json --start-date 2026-04-12 --prompt "Build a week that introduces the planning problem, demonstrates the weekly calendar, teaches one practical workflow, and ends with the publishing benefit" --objective "feature overview" --audience "new customers" --duration 30
 ```
 
 `--prompt` supplies the creative direction while the discovery snapshot remains the factual boundary. The deterministic provider uses prompt and objective keywords to prioritize matching evidence; pass `--provider llama.cpp` to let a local OpenAI-compatible server also shape story selection and wording. If that provider fails, planning falls back to the deterministic provider. Every scene retains page, state, finding, transition, and screenshot references so the frontend can show why it was selected.
 
-The frontend **Plan** workspace adds a rolling seven-day calendar (today through six days ahead) and a prominent guided prompt with reusable examples. It can accept the latest discovery through an explicit handoff, generate or load plans, show planned duration and narration totals, show screenshot evidence, edit and reorder scenes, distinguish unsaved edits from saved approval, approve or reject each scene, save the reviewed plan, and convert an approved plan into a draft render-job manifest. The draft can be opened directly in Render, but conversion never starts rendering or publishing automatically.
+The frontend **Plan** workspace now starts with the campaign prompt, then asks for the campaign start date and boundaries. One generation creates seven editable daily cards with distinct themes, directions, hooks, and evidence references. Reviewers can approve or reject each day and its reusable production scenes, then select an approved day and convert only that day's referenced scenes into a draft render-job manifest. The draft can be opened directly in Render, but conversion never starts rendering or publishing automatically.
 
 ## First local pipeline proof
 

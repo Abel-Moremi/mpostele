@@ -4,7 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
-const SCHEMA = '1.0.0'
+const SCHEMA = '1.1.0'
 const MAX_BODY = 150_000
 const PLATFORMS = new Set(['shorts', 'reels', 'tiktok', 'landscape', 'square'])
 
@@ -66,7 +66,7 @@ export function preparePlanningJob(input, now = new Date()) {
 
 export function validatePlan(plan, now = new Date()) {
   if (!plan || typeof plan !== 'object' || plan.schema_version !== SCHEMA) throw new Error(`plan schema_version must be ${SCHEMA}`)
-  validateScheduledDate(plan.scheduled_for, now)
+  const campaignStart = validateScheduledDate(plan.campaign?.start_date || plan.scheduled_for, now)
   if (!['pending_review', 'approved'].includes(plan.status)) throw new Error('plan status is invalid')
   if (!Array.isArray(plan.scenes) || !plan.scenes.length || plan.scenes.length > 20) throw new Error('plan must contain between 1 and 20 scenes')
   const ids = new Set()
@@ -79,24 +79,39 @@ export function validatePlan(plan, now = new Date()) {
     numberIn(scene.estimated_duration_seconds, `scene ${index + 1} duration`, 0.1, 300)
     if (typeof scene.overlay?.text !== 'string') throw new Error(`scene ${index + 1} overlay text is required`)
   })
-  if (plan.status === 'approved' && plan.scenes.some((scene) => scene.review_status === 'pending')) throw new Error('approved plans cannot contain pending scenes')
+  if (!Array.isArray(plan.weekly_posts) || plan.weekly_posts.length !== 7) throw new Error('plan must contain seven daily post directions')
+  const postIds = new Set()
+  plan.weekly_posts.forEach((post, index) => {
+    const date = new Date(`${campaignStart}T12:00:00`); date.setDate(date.getDate() + index)
+    if (post.scheduled_for !== dateKey(date) || !post.id || postIds.has(post.id)) throw new Error(`daily post ${index + 1} has an invalid schedule or id`)
+    postIds.add(post.id)
+    if (!post.theme?.trim() || !post.content_direction?.trim() || !post.hook?.trim()) throw new Error(`daily post ${index + 1} requires a theme, direction, and hook`)
+    if (!['pending', 'approved', 'rejected'].includes(post.review_status)) throw new Error(`daily post ${index + 1} has an invalid review status`)
+    if (!Array.isArray(post.scene_ids) || !post.scene_ids.length || post.scene_ids.some((id) => !ids.has(id))) throw new Error(`daily post ${index + 1} references an invalid scene`)
+  })
+  if (plan.status === 'approved' && (plan.scenes.some((scene) => scene.review_status === 'pending') || plan.weekly_posts.some((post) => post.review_status === 'pending'))) throw new Error('approved plans cannot contain pending items')
   return plan
 }
 
 export function convertPlanToManifest(plan, planPath, options = {}) {
   validatePlan(plan, options.now ?? new Date())
   if (plan.status !== 'approved') throw new Error('approve the plan before creating a draft manifest')
-  const scenes = plan.scenes.filter((scene) => scene.review_status === 'approved')
-  if (!scenes.length) throw new Error('the plan has no approved scenes')
+  const scheduledFor = options.scheduledDate || plan.weekly_posts[0].scheduled_for
+  const dailyPost = plan.weekly_posts.find((post) => post.scheduled_for === scheduledFor)
+  if (!dailyPost || dailyPost.review_status !== 'approved') throw new Error('select an approved daily post before creating a draft manifest')
+  const selectedIds = new Set(dailyPost.scene_ids)
+  const scenes = plan.scenes.filter((scene) => scene.review_status === 'approved' && selectedIds.has(scene.id))
+  if (!scenes.length) throw new Error('the selected daily post has no approved scenes')
   const snapshotValue = plan.source?.snapshot
   if (!snapshotValue) throw new Error('plan source snapshot is missing')
   const snapshot = path.isAbsolute(snapshotValue) ? path.resolve(snapshotValue) : path.resolve(path.dirname(planPath), snapshotValue)
   if (!snapshot.startsWith(ROOT + path.sep)) throw new Error('plan source snapshot must stay inside the project directory')
   const presets = { shorts: 'vertical_1080p', reels: 'vertical_1080p', tiktok: 'vertical_1080p', landscape: 'landscape_720p', square: 'square_1080p' }
   return {
-    status: 'draft', source_plan: path.relative(ROOT, planPath), scheduled_for: plan.scheduled_for,
-    output: contained(options.videoOutput || `outputs/${plan.scheduled_for}-content.mp4`, 'videoOutput'),
-    work_dir: contained(options.workDir || `artifacts/render-jobs/${plan.scheduled_for}`, 'workDir'),
+    status: 'draft', source_plan: path.relative(ROOT, planPath), scheduled_for: scheduledFor,
+    content_direction: dailyPost.content_direction,
+    output: contained(options.videoOutput || `outputs/${scheduledFor}-content.mp4`, 'videoOutput'),
+    work_dir: contained(options.workDir || `artifacts/render-jobs/${scheduledFor}`, 'workDir'),
     export: { preset: presets[plan.brief?.platform] || 'vertical_1080p', fps: numberIn(options.fps ?? 30, 'fps', 1, 120, true) },
     scenes: scenes.map((scene) => ({
       id: scene.id,
@@ -122,7 +137,7 @@ function body(request, response, callback) {
 }
 
 function generate(job, response) {
-  const args = ['-m', 'pipeline.site_agent.content_plan', job.snapshot, '--output', job.output, '--prompt', job.planningPrompt, '--objective', job.objective, '--audience', job.audience, '--platform', job.platform, '--duration', String(job.duration), '--tone', job.tone, '--call-to-action', job.callToAction, '--max-scenes', String(job.maxScenes), '--words-per-minute', String(job.wordsPerMinute), '--provider', job.provider]
+  const args = ['-m', 'pipeline.site_agent.content_plan', job.snapshot, '--output', job.output, '--start-date', job.scheduledDate, '--prompt', job.planningPrompt, '--objective', job.objective, '--audience', job.audience, '--platform', job.platform, '--duration', String(job.duration), '--tone', job.tone, '--call-to-action', job.callToAction, '--max-scenes', String(job.maxScenes), '--words-per-minute', String(job.wordsPerMinute), '--provider', job.provider]
   if (job.review) args.push('--review', job.review)
   if (job.provider === 'llama.cpp') args.push('--endpoint', job.endpoint, '--model', job.model)
   mkdirSync(path.dirname(job.output), { recursive: true })
@@ -150,7 +165,11 @@ function register(server) {
     body(request, response, (input) => {
       if (input.action === 'generate') return generate(preparePlanningJob(input.job), response)
       const planPath = contained(input.planPath, 'planPath', input.action === 'load' || input.action === 'convert')
-      if (input.action === 'load') return send(response, 200, { planPath: path.relative(ROOT, planPath), plan: JSON.parse(readFileSync(planPath, 'utf8')) })
+      if (input.action === 'load') {
+        const plan = JSON.parse(readFileSync(planPath, 'utf8'))
+        validatePlan(plan)
+        return send(response, 200, { planPath: path.relative(ROOT, planPath), plan })
+      }
       if (input.action === 'save') {
         validatePlan(input.plan)
         mkdirSync(path.dirname(planPath), { recursive: true }); writeFileSync(planPath, JSON.stringify(input.plan, null, 2), 'utf8')

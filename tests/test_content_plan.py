@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 from pipeline.site_agent.content_plan import (
@@ -75,7 +76,7 @@ class ContentPlanTests(unittest.TestCase):
             generate_content_plan(
                 snapshot_path, output_path,
                 CampaignBrief(target_duration_seconds=20, max_scenes=2),
-                HeuristicContentPlanningProvider(), review_path,
+                HeuristicContentPlanningProvider(), review_path, date(2026, 4, 12),
             )
             plan = json.loads(output_path.read_text(encoding="utf-8"))
 
@@ -85,6 +86,12 @@ class ContentPlanTests(unittest.TestCase):
             self.assertEqual(plan["scenes"][0]["evidence"]["state_id"], "state-calendar")
             self.assertEqual(plan["scenes"][0]["review_status"], "pending")
             self.assertTrue(plan["scenes"][0]["evidence"]["screenshot_path"])
+            self.assertEqual(plan["campaign"]["start_date"], "2026-04-12")
+            self.assertEqual(len(plan["weekly_posts"]), 7)
+            self.assertEqual(plan["weekly_posts"][0]["scheduled_for"], "2026-04-12")
+            self.assertEqual(plan["weekly_posts"][-1]["scheduled_for"], "2026-04-18")
+            self.assertTrue(all(post["content_direction"] for post in plan["weekly_posts"]))
+            self.assertTrue(all(post["scene_ids"] for post in plan["weekly_posts"]))
 
     def test_invalid_model_plan_falls_back_to_heuristic(self):
         with tempfile.TemporaryDirectory() as temporary:
