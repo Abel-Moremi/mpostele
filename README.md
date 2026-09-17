@@ -1,118 +1,85 @@
 # mpostele
 
-mpostele is a lightweight, open-source pipeline for generating animated social-media product videos entirely on a local machine without relying on expensive GPU-heavy AI models.
+mpostele is a local-first, autonomous content studio for generating **short-form marketing videos** and **high-resolution static posters** entirely on resource-constrained developer hardware.
 
-This project is designed around a real hardware constraint: a GTX 1050 Ti with 4GB VRAM and 8GB system RAM. The goal is to stay practical, offline, and affordable by using programmatic animation and browser-based motion instead of heavy diffusion or video-generation models that require tens of GB of VRAM.
+This project is designed around a real hardware constraint: a GTX 1050 Ti with 4GB VRAM and 8GB system RAM. The goal is to run a full AI production pipeline — LLM planning agents plus diffusion-based image and video generation — without exceeding that budget, by treating every generation step as a disposable process instead of a resident service.
 
 ## Why this project exists
 
-Heavy local AI video generators such as SVD or AnimateDiff often require 8GB to 12GB of VRAM or more just to render a few seconds of output. For a $0 workflow on a modest laptop, the better approach is to build motion using:
+Continuous background microservices, resident LLM instances, and persistent diffusion pipelines will crash this hardware profile via `CUDA Out Of Memory` errors or OS swap thrashing. Instead of avoiding generative models outright, mpostele constrains *how* they run:
 
-- browser automation and screenshot capture
-- code-driven motion graphics
-- lightweight FFmpeg filters
-- local TTS and compositing
-
-This keeps the stack within the limits of small hardware while still producing polished, animated product videos.
+- every pipeline stage executes as a **transient, single-responsibility subprocess**
+- models are explicitly unloaded (`keep_alive: 0`, CUDA cache flush) before the next stage starts
+- local diffusion is hard-capped to SD1.5-class models — no SDXL, no resident checkpoints
+- heavier video fidelity is offloaded to a remote dispatch target rather than forced onto 4GB of VRAM
 
 ## Architecture overview
 
-Animation fits directly into the media construction stage of a sequential pipeline. Instead of relying only on static screen recordings, the system transforms screenshots, UI captures, and overlays into dynamic motion before FFmpeg assembles the final output.
-
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    SINGLE-CONTAINER WORKFLOW                            │
-│                                                                         │
-│  1. SCRIPT & VOICE  ──>  2. SCREENSHOT CAPTURE  ──>  3. ANIMATION ENGINE│
-│   (Ollama + Kokoro)          (Playwright)             (Manim / Motion)  │
-│                                                                         │
-│  4. COMPOSITING & ENCODING  ──>  5. FINAL POSTING                     │
-│      (FFmpeg + h264_nvenc + subtitles + voice sync)                    │
-└─────────────────────────────────────────────────────────────────────────┘
+                 ┌───────────────────────────┐
+                 │   CLI / Web Portal         │
+                 └─────────────┬───────────────┘
+                               ▼
+                 ┌───────────────────────────┐
+                 │   Orchestrator Engine      │
+                 └─────────────┬───────────────┘
+                               │
+           ┌───────────────────┴───────────────────┐
+           ▼                                       ▼
+┌───────────────────────────┐           ┌───────────────────────────┐
+│  Agent Pipeline Swarm      │           │  Local State Manager       │
+│  (transient subprocesses)  │◄─────────►│  (state.json on disk)      │
+└─────────────┬───────────────┘           └───────────────────────────┘
+              │
+              ├───► [ Video Path ]  ──► Local SD1.5 + AnimateDiff (fallback) OR Remote Wan2.1 dispatch (primary)
+              │
+              └───► [ Poster Path ] ──► Local SD1.5 background + Pillow vector compositor
 ```
 
-## Low-memory animation options
+## Pipeline stages
 
-Depending on the style of motion needed, these are the best open-source options for a constrained system.
+1. **Agent swarm** (`Qwen2.5-1.5B` via Ollama) — strategy, script, keyframe prompts, motion direction, poster layout, quality inspection, and platform adaptation, run sequentially and unloaded from RAM before any GPU-heavy stage starts.
+2. **Poster path** — a text-free SD1.5 background under ~2.5GB VRAM, composited with Pillow for text, badges, and logos using bounding-box-aware word wrapping.
+3. **Video path** — SD1.5 + AnimateDiff locally at low frame counts as a fallback, or a remote-dispatched Wan2.1 (1.3B/14B) job as the primary path for higher-fidelity output, followed by RIFE frame interpolation and FFmpeg audio/encode.
+4. **Platform adaptation** — reformats scripts and captions per target platform (TikTok, Instagram, X, LinkedIn).
 
-### 1. Code-driven 2D motion graphics: Manim or Motion Canvas
+See [docs-mpostele/00 Home](docs-mpostele/00%20Home.md) for the full design vault.
 
-- How it works: programmatically creates motion graphics, text animations, UI highlights, overlays, and lower-thirds
-- Why it fits: Manim and Motion Canvas typically run comfortably on CPU/GPU and use far less than 500MB of RAM in normal usage
-- Best for: animated logos, text popups, feature callouts, chart motion, and simple UI emphasis
+## A privacy note
 
-### 2. Animated web screenshots: Playwright CSS/JS animation
-
-- How it works: injects CSS or JavaScript animations into a webpage before recording the motion
-- Why it fits: uses Chromium rendering rather than heavy AI inference
-- Best for: pulsing CTAs, smooth scrolling, zooming into product pages, transitions between sections, floating design motion
-
-### 3. Image pan/zoom and Ken Burns effect: FFmpeg motion filters
-
-- How it works: applies slow camera movement to a still image or screenshot
-- Why it fits: can be hardware accelerated by the GTX 1050 Ti using NVENC and uses minimal system RAM
-- Best for: transforming static screenshots into lively video backgrounds for Shorts or Reels
-
-## Execution flow
-
-When an animation job runs, the pipeline executes in a clear sequence:
-
-1. Asset capture: Playwright captures high-resolution screenshots of the product UI or feature area.
-2. Animation generation: Python calls Manim or another motion engine to generate an animated overlay such as a title card, arrow, badge, or lower-third.
-3. Motion enhancement: FFmpeg applies a smooth zoom-and-pan or parallax effect to the screenshot when needed.
-4. Voice sync and compositing: FFmpeg combines the animated UI video, overlay graphics, and Kokoro TTS voice track into a single polished output using h264_nvenc.
+Most of this pipeline is fully local. The one exception: the **primary** video path dispatches to a remote runtime (Google Colab, Modal, RunPod) to run Wan2.1, since that model doesn't fit in 4GB of VRAM. If a job needs to stay entirely on-device, use the local SD1.5 + AnimateDiff fallback path instead — it trades fidelity and frame count for staying offline.
 
 ## Recommended directory structure
 
 ```text
-ai-social-poster/
+mpostele/
 ├── app/
 │   ├── main.py
-│   ├── agent/
+│   ├── orchestrator/
+│   ├── agents/              # strategy, script, keyframe, motion, layout, QA, platform
 │   ├── media/
-│   │   ├── recorder.py      # Playwright screen recorder
-│   │   ├── tts.py           # Kokoro-82M TTS
-│   │   ├── animator.py      # Manim / FFmpeg motion engine
-│   │   ├── composer.py      # FFmpeg final output assembly
+│   │   ├── poster_engine.py    # SD1.5 background + Pillow compositor
+│   │   ├── video_engine.py     # AnimateDiff local / Wan2.1 remote dispatch
+│   │   ├── interpolation.py    # RIFE
 │   │   └── assets/
-│   │       ├── screenshots/
-│   │       ├── overlays/
-│   │       └── audio/
+│   │       ├── tmp/
+│   │       └── output/
 │   └── config/
 │       └── settings.py
 ├── requirements.txt
 ├── README.md
 ├── LICENSE
-└── docs/
+└── docs-mpostele/
 ```
-
-## Why this approach works on a 1050 Ti + 8GB RAM system
-
-By using code-driven motion graphics instead of heavy neural diffusion models, the project avoids the most common failure point: VRAM exhaustion. The stack is designed to stay lightweight, local, and fully offline while still producing modern, animated marketing content.
-
-The result is a practical setup for generating product videos, feature showcases, and short-form social clips without needing a high-end workstation or cloud GPU rental.
 
 ## Project goals
 
-- generate animated product videos locally
+- run a full LLM + diffusion production pipeline locally on a 4GB VRAM / 8GB RAM machine
+- keep every generation stage transient and explicitly memory-unloaded
+- cap local diffusion at SD1.5-class models; dispatch remotely for anything heavier
+- produce both short-form video and high-resolution poster output from the same agent swarm
 - keep the stack free and open source
-- work within modest laptop hardware limits
-- avoid GPU-heavy AI models where possible
-- support offline content creation for marketing and product storytelling
-
-## Future direction
-
-The project can evolve by adding:
-
-- a CLI for generating video jobs from a product brief
-- a Playwright capture module for UI and landing page screenshots
-- FFmpeg-based motion presets for different content styles
-- Manim overlays for titles, highlights, and feature annotations
-- automated output packaging for Shorts, Reels, and TikTok exports
 
 ## Summary
 
-This repo is built around a realistic local-first AI video workflow: capture the product, animate it programmatically, sync voice, and composite the final output with FFmpeg. It favors efficiency, accessibility, and offline trust over heavy model inference.
-
-That makes it a strong fit for developers and creators working with small hardware while still wanting polished, modern animated video output.
-
+This repo is built around a sequential execution contract: an LLM agent swarm plans the content, then hands off to a diffusion-based poster or video engine, with strict process isolation and memory-unload hooks between every stage. It favors correctness under a fixed memory budget over raw model capability.

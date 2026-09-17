@@ -2,18 +2,27 @@
 
 This note should hold the practical terminal commands used in the project.
 
-## FFmpeg examples
+## Ollama
 
 ```bash
-ffmpeg -i input.mp4 -vf "zoompan" output.mp4
-ffmpeg -i video.mp4 -i audio.wav -c:v h264_nvenc -c:a aac output.mp4
+ollama pull qwen2.5:1.5b
+ollama serve
+curl -X POST http://localhost:11434/api/generate \
+  -d '{"model": "qwen2.5:1.5b", "keep_alive": 0}'
 ```
 
-## Playwright
+## Diffusion (example, adjust to actual entry script)
 
 ```bash
-npx playwright install
-npx playwright test
+python -m app.media.poster_engine --job job_01H123456789
+python -m app.media.video_engine --job job_01H123456789 --mode local
+python -m app.media.video_engine --job job_01H123456789 --mode remote
+```
+
+## FFmpeg
+
+```bash
+ffmpeg -i frames_%04d.png -i audio.wav -c:v h264_nvenc -c:a aac output.mp4
 ```
 
 ## Python
@@ -26,7 +35,7 @@ pip install -r requirements.txt
 
 ## Notes
 
-Add commands here as they are validated in the real workflow.
+Add commands here as they are validated against the real orchestrator and media engines.
 
 ## Related notes
 

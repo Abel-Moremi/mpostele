@@ -2,64 +2,62 @@
 
 ## Mission
 
-This repository is a local-first, open-source pipeline for creating animated product videos and short-form social content using modest hardware. The core principle is to optimize for low-memory, offline execution rather than high-end GPU-heavy AI generation.
+This repository is a local-first pipeline for generating autonomous marketing videos and posters using an LLM agent swarm plus diffusion-based image/video generation, constrained to run on a GTX 1050 Ti (4GB VRAM) / 8GB RAM machine. The core principle is the **Sequential Execution Contract**: generative models may be used, but only as transient, single-responsibility subprocesses that are explicitly unloaded between stages.
 
-The agent working in this repo should favor practical, lightweight tooling over expensive or resource-intensive approaches.
+The agent working in this repo should favor correctness under a fixed memory budget over model capability or pipeline throughput.
 
 ## Project intent
 
-- Build animated marketing videos on a GTX 1050 Ti / 4GB VRAM system
-- Stay compatible with small laptops and limited RAM
-- Prefer browser-based motion, code-driven animation, and FFmpeg compositing
-- Avoid unnecessary cloud services, large model downloads, and GPU-heavy workflows
-- Keep the workflow reproducible and understandable for a solo developer
+- Generate both short-form video and high-resolution static posters from the same strategy/script agent swarm
+- Run the LLM planning layer (`Qwen2.5-1.5B` via Ollama) and the diffusion layer (SD1.5, AnimateDiff) without either being resident at the same time
+- Dispatch remotely (Wan2.1 via Colab/Modal/RunPod) only for the video path, and only when local fidelity isn't sufficient
+- Keep the workflow reproducible and debuggable via a single `state.json` per job
 
 ## Non-negotiable constraints
 
-- Offline-first by default
-- No dependency on large video diffusion models when a lighter approach works
-- No expensive cloud GPU assumptions for normal development
-- Keep runtime and memory use modest
-- Favor maintainable code and clear docs over flashy complexity
+- Every generation step (LLM call, diffusion pass, interpolation, encode) runs in its own subprocess via `subprocess.run` — never imported into one long-lived process
+- Explicit unload hooks (`keep_alive: 0` for Ollama, `torch.cuda.empty_cache()` + `gc.collect()` inside the dying child) run between phases, not assumed away by process exit alone
+- No SDXL or any checkpoint that can't run under ~2.5GB VRAM locally — SD1.5 and its LCM/Turbo derivatives only
+- Quality Inspector retries are capped at 2 cycles; after that, fall back to default layout/prompt metrics and proceed rather than looping
+- Intermediate frames, raw diffusion dumps, and temp audio are purged on job completion — only final artifacts persist
 
 ## Preferred technical direction
 
-Use these ideas as the default solution pattern unless the task clearly requires otherwise:
+Use these as the default pattern unless a task clearly requires otherwise:
 
-1. Capture screenshots or UI states with Playwright
-2. Create motion with CSS, JS, FFmpeg filters, or Manim
-3. Use browser rendering for UI animation where possible
-4. Composite overlays, subtitles, and voice with FFmpeg
-5. Keep asset generation and export deterministic and local
+1. Strategy/script/prompt/layout planning via the Ollama agent swarm, one prompt per subprocess call
+2. Poster backgrounds via local SD1.5, composited with Pillow (bounding-box-aware text wrapping, badges, logos)
+3. Video via local SD1.5 + AnimateDiff at low frame counts as the offline fallback, or remote Wan2.1 dispatch as the higher-fidelity primary path
+4. RIFE for frame interpolation, FFmpeg for audio multiplexing and final encode
+5. All cross-stage state read from and appended to `state.json` — no in-memory hand-off between stages
 
 ## Architecture guidance
 
-The repository is organized around a simple production flow:
+The repository is organized around a branching production flow:
 
-- capture product UI or screens
-- animate overlays and motion elements
-- add timing, captions, or voice
-- composite into final output
-- export for Shorts, Reels, TikTok, or product showcase use
+- agent swarm plans strategy, script, prompts, and layout
+- Ollama model is explicitly unloaded before any GPU-heavy stage begins
+- pipeline branches by `media_type`: poster (SD1.5 + Pillow) or video (AnimateDiff local / Wan2.1 remote)
+- platform adaptor formats output captions per target platform
+- final artifacts are flushed to disk and intermediates are cleaned up
 
-The agent should assume the project is a lightweight pipeline, not a monolithic app with large ML dependencies.
+The agent should assume every stage boundary is also a memory-reset boundary.
 
 ## Code and implementation preferences
 
 - Prefer small, clear modules over broad abstractions
 - Keep configuration explicit and local
-- Favor deterministic workflows with visible intermediate assets
-- Keep assets and generated media in structured folders
-- Write code that is easy to reason about on underpowered hardware
-- When adding a feature, consider whether it will still work on a modest laptop
+- Write code that keeps VRAM/RAM usage visible and boundable, not just "eventually garbage collected"
+- When adding a feature, ask whether it can be spawned and killed as its own subprocess
+- Keep assets and generated media in structured, cleaned-up folders
 
 ## Project-specific guardrails
 
-- Do not introduce heavy model inference as a default path
-- Do not assume CUDA, huge VRAM, or cloud compute availability
-- Do not hide complexity behind vague abstractions
-- Do not add large dependencies without a clear need
-- Do not optimize for fancy demos at the cost of practicality
+- Do not add a persistent worker daemon, resident model server, or long-lived GPU context as a default path
+- Do not load SDXL or any model that doesn't fit the stated VRAM budget locally
+- Do not assume the remote dispatch path is available — the local fallback must keep working standalone
+- Do not skip the explicit unload hooks between LLM and diffusion phases, even if the process-exit boundary would eventually free the memory anyway
+- Do not add large dependencies without checking their VRAM/RAM footprint against the 4GB/8GB budget
 
 ## Recommended repo patterns
 
@@ -67,46 +65,45 @@ The agent should assume the project is a lightweight pipeline, not a monolithic 
 - Keep root-level files focused and readable
 - Treat README.md as the high-level overview for humans
 - Treat docs-mpostele as the operational and design record
-- When building features, preserve the low-memory narrative of the project
+- When building features, preserve the transient-process, explicit-unload narrative of the project
 
 ## When making changes
 
-Before implementing a feature or fix, the agent should check whether it supports the repository goals:
+Before implementing a feature or fix, the agent should check:
 
-- Is it compatible with local, offline use?
-- Does it fit the modest hardware target?
-- Is there a lighter alternative than a heavy model or large runtime?
-- Does it keep the project easy to debug and explain?
-- Does it match the motion-first, compositing-first design?
+- Does this stage run and die as its own subprocess?
+- Is there an explicit unload/flush hook before the next memory-heavy stage?
+- Does local diffusion usage stay within the SD1.5-class VRAM budget?
+- Does the video path still have a working local fallback if remote dispatch is unavailable?
+- Is state read from and written back to `state.json` rather than held in memory across stages?
 
-If a proposed change fails those checks, the agent should suggest a simpler or more efficient alternative.
+If a proposed change fails those checks, the agent should suggest a simpler or more isolated alternative.
 
 ## Communication style for future agents
 
 - Be concise and practical
-- Explain tradeoffs plainly
-- Prefer evidence-based recommendations
-- Keep implementation aligned with the repo’s purpose
+- Explain tradeoffs plainly, especially VRAM/RAM tradeoffs
+- Prefer evidence-based recommendations over assumed feasibility
+- Keep implementation aligned with the repo's purpose
 - Suggest the simplest viable path first
 
 ## Suggested next directions
 
 Good directions for this repo include:
 
-- browser recording and screenshot capture flows
-- CSS/JS animation presets for product landing pages
-- FFmpeg-based pan/zoom and motion overlays
-- Manim or similar lightweight motion tools for product highlights
-- local voiceover and subtitle timing workflows
-- CLI or script-based generation pipeline for short-form assets
+- the orchestrator's subprocess lifecycle and state.json read/write contract
+- the Ollama agent swarm (prompt templates, retry/quality-inspector loop)
+- the Pillow compositor's bounding-box and word-wrap logic
+- validating AnimateDiff's actual VRAM footprint at various frame counts on a 1050 Ti
+- the remote dispatch client for Wan2.1 (Colab/Modal/RunPod)
+- RIFE interpolation and FFmpeg encode/mux integration
 
 Less suitable directions include:
 
-- heavy diffusion video generation as the main path
-- large cloud-based model pipelines
-- GPU-heavy generative stacks that require high-end hardware
-- abstractions that complicate a simple local workflow
+- a persistent model server or always-on GPU process
+- SDXL or other checkpoints that exceed the local VRAM budget
+- abstractions that hide subprocess boundaries or hand-off state in memory instead of via `state.json`
 
 ## Final rule
 
-This repo is best understood as a pragmatic, local-first animation pipeline for content creation under hardware limits. The agent should always choose the path that preserves that spirit: efficient, understandable, and functional on modest machines.
+This repo is best understood as a pragmatic, memory-bounded AI production pipeline. The agent should always choose the path that preserves the Sequential Execution Contract: transient, isolated, explicitly unloaded, and functional within the stated hardware budget.

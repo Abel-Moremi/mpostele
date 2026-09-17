@@ -2,38 +2,38 @@
 
 ## Phase 1: Foundation
 
-- define the project pipeline and goals
-- verify the local toolchain
-- decide the initial hardware-safe animation strategy
+- define the `state.json` data contract and job lifecycle
+- build the orchestrator's subprocess spawn/kill loop
+- verify Ollama and a local SD1.5 checkpoint run on the target hardware
 
-## Phase 2: Capture
+## Phase 2: Agent swarm
 
-- set up Playwright browser automation
-- capture screenshots and landing page states
-- build a reliable visual asset pipeline
+- implement the 8 agents (strategy, script, keyframe prompt, motion director, poster composition, quality inspector, platform adaptor, execution dispatcher)
+- wire the Quality Inspector's bounded 2-retry loop
+- confirm `keep_alive: 0` reliably releases `Qwen2.5-1.5B` before the next phase
 
-## Phase 3: Motion
+## Phase 3: Poster path
 
-- add FFmpeg zoom and pan presets
-- integrate Manim overlays for text and emphasis
-- test browser-based motion sequences
+- SD1.5 text-free background generation under the VRAM budget
+- Pillow compositor: text wrapping, badges, logos
+- validate against `poster_layout` schema end to end
 
-## Phase 4: Audio
+## Phase 4: Video path
 
-- configure Kokoro TTS workflow
-- align audio with the scene timing
-- tune narration pacing and background clean-up
+- local SD1.5 + AnimateDiff fallback, measure actual VRAM ceiling and frame-count limits on the 1050 Ti
+- remote Wan2.1 dispatch client (Colab/Modal/RunPod)
+- RIFE interpolation and FFmpeg audio mux/encode
 
-## Phase 5: Composite and export
+## Phase 5: Memory & process protocol
 
-- merge clips, overlays, and voiceover
-- test final output for platform compatibility
-- finalize export presets for social videos
+- explicit unload hooks between every phase boundary
+- cleanup of intermediate frames/dumps/temp audio on job completion
+- confirm process isolation actually prevents cross-stage VRAM accumulation under load
 
-## Phase 6: Automation
+## Phase 6: Platform adaptation & automation
 
-- build a simple CLI or Python orchestrator
-- automate repeated rendering jobs
+- Platform Adaptor Agent output for TikTok/Instagram/X/LinkedIn
+- CLI or simple orchestrator entry point for running jobs end to end
 - package the workflow for reuse
 
 ## Related notes

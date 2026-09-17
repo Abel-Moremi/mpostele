@@ -3,51 +3,48 @@
 ## High-level pipeline
 
 ```text
-Script & Voice
-    ↓
-Screenshot Capture
-    ↓
-Animation Engine
-    ↓
-Compositing & Encoding
-    ↓
-Final Posting / Export
+             CLI / Web Portal
+                    │
+                    ▼
+            Orchestrator Engine
+                    │
+      ┌─────────────┴─────────────┐
+      ▼                           ▼
+Agent Pipeline Swarm   ◄──►  Local State Manager
+(transient subprocesses)     (state.json on disk)
+      │
+      ├──► [ Poster Path ] ──► Local SD1.5 background + Pillow compositor
+      │
+      └──► [ Video Path ]  ──► Local SD1.5 + AnimateDiff (fallback)
+                               OR Remote Wan2.1 dispatch (primary)
 ```
 
 ## Components
 
-### 1. Script and narrative generation
+### 1. Orchestrator Engine
 
-This stage defines the story, tone, and pacing. It may use a local model or a structured prompt pipeline to generate the talking points and scene plan.
+Controls pipeline execution, state machine progression, error recovery, and process termination. Spawns each phase as an independent OS-level subprocess, and forcefully signals model unloads and CUDA cache flushes before launching the next one.
 
-### 2. Screenshot capture
+### 2. Agent Pipeline Swarm
 
-Playwright can record product screens, landing pages, or feature interactions. These frames become the base visual elements for the final video.
+`Qwen2.5-1.5B` via Ollama, executing task-specific prompts sequentially: Strategy & Trend, Script & Layout, Keyframe Prompt, Motion Director, Poster Composition, Quality Inspector, Platform Adaptor, and the Execution Dispatcher. The orchestrator unloads the model from RAM before any image or video generation process is spawned. See [[03 Workflow/01 Agent Pipeline Swarm]].
 
-### 3. Animation engine
+### 3. Poster Rendering Engine
 
-This is where motion is created using low-memory tools:
+A local SD1.5 (or LCM/Turbo derivative) generates a text-free background under ~2.5GB VRAM. Pillow composites text, badges, and logos on top using bounding-box-aware word wrapping. See [[03 Workflow/02 Poster Rendering Path]].
 
-- static screenshots with FFmpeg pan/zoom
-- CSS or JS animation in a browser
-- Manim overlays for text and feature highlights
+### 4. Video Processing Engine
 
-### 4. Voice & audio
-
-A local TTS model such as Kokoro can produce narration that matches the script and clip timing.
-
-### 5. Compositing and encoding
-
-FFmpeg merges the generated visuals, voiceover, and overlays into a final video using a practical encoder profile such as `h264_nvenc` when available.
+SD1.5 + AnimateDiff renders locally at low frame counts as the fallback path; Wan2.1 is dispatched to a remote runtime (Colab/Modal/RunPod) as the primary, higher-fidelity path. RIFE interpolates frames and FFmpeg handles audio multiplexing and H.264 encoding. See [[03 Workflow/03 Video Rendering Path]].
 
 ## Practical fit
 
-This architecture matches the hardware constraints because it avoids heavy neural video generation models and relies on efficient rendering, compositing, and browser-driven motion.
+This architecture matches the hardware constraints not by avoiding diffusion models, but by never letting more than one generative stage hold GPU/RAM state at a time — every stage boundary is also a memory-reset boundary, enforced by subprocess isolation plus explicit unload hooks.
 
 ## Related notes
 
-- [[03 Workflow/01 Asset Capture]]
-- [[03 Workflow/02 Animation Engine]]
-- [[03 Workflow/03 Voice & Audio]]
-- [[03 Workflow/04 Compositing]]
-- [[03 Workflow/05 Final Export]]
+- [[03 Workflow/01 Agent Pipeline Swarm]]
+- [[03 Workflow/02 Poster Rendering Path]]
+- [[03 Workflow/03 Video Rendering Path]]
+- [[03 Workflow/04 Memory & Process Protocol]]
+- [[03 Workflow/05 Platform Adaptation & Export]]

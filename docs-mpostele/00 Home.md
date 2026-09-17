@@ -1,35 +1,33 @@
 # mpostele
 
-This vault is the knowledge base for a local-first, low-memory workflow for generating animated product videos without expensive cloud GPU services.
+This vault is the knowledge base for a local-first autonomous content studio: an LLM agent swarm plus diffusion-based image/video generation, run under a strict Sequential Execution Contract on a GTX 1050 Ti (4GB VRAM) / 8GB RAM machine.
 
 ## Core idea
 
-The project focuses on automated video generation for short-form product marketing using only modest hardware such as a GTX 1050 Ti with 4GB VRAM and 8GB system RAM.
+The project generates both short-form marketing video and high-resolution static posters from the same planning layer. Instead of avoiding generative models, it constrains how they run:
 
-Instead of relying on heavy diffusion or AI video models, the system uses:
-
-- Playwright for screenshot capture
-- lightweight animation tooling such as Manim or FFmpeg motion filters
-- local voice synthesis with Kokoro
-- FFmpeg for compositing and final delivery
+- `Qwen2.5-1.5B` via Ollama for strategy, script, prompt, and layout planning
+- local SD1.5 for poster backgrounds, composited with Pillow
+- local SD1.5 + AnimateDiff as a video fallback, remote Wan2.1 dispatch as the primary video path
+- every stage is a transient subprocess with an explicit unload hook before the next one starts
 
 ## Workflow
 
 1. [[01 Project Overview]]
 2. [[02 Architecture]]
-3. [[03 Workflow/01 Asset Capture]]
-4. [[03 Workflow/02 Animation Engine]]
-5. [[03 Workflow/03 Voice & Audio]]
-6. [[03 Workflow/04 Compositing]]
-7. [[03 Workflow/05 Final Export]]
+3. [[03 Workflow/01 Agent Pipeline Swarm]]
+4. [[03 Workflow/02 Poster Rendering Path]]
+5. [[03 Workflow/03 Video Rendering Path]]
+6. [[03 Workflow/04 Memory & Process Protocol]]
+7. [[03 Workflow/05 Platform Adaptation & Export]]
 
 ## Research and decisions
 
-- [[04 Research/01 Low-Memory Animation Options]]
+- [[04 Research/01 Local Diffusion Model Options]]
 - [[04 Research/02 Tool Comparison]]
 - [[04 Research/03 FFmpeg Notes]]
-- [[04 Research/04 Manim Notes]]
-- [[04 Research/05 Playwright Notes]]
+- [[04 Research/04 Pillow Compositor Notes]]
+- [[04 Research/05 Ollama Agent Notes]]
 
 ## Implementation
 
@@ -50,4 +48,4 @@ Instead of relying on heavy diffusion or AI video models, the system uses:
 
 ## Why this project exists
 
-The main design constraint is to avoid memory-heavy AI tooling that cannot run comfortably on older laptop hardware. The goal is to produce polished automated product content using accessible, open-source tools that work on local machines.
+The main design constraint is a fixed 4GB VRAM / 8GB RAM budget. Rather than excluding diffusion and LLM inference outright, the project isolates every generative step into its own disposable process with explicit memory-unload hooks, so no single job can accumulate resident state and push the machine into OOM or swap thrashing.
