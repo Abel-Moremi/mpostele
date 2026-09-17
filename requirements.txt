@@ -1,0 +1,17 @@
+# Core
+requests
+
+# Poster compositing (no GPU)
+Pillow
+
+# Diffusion: poster background + local AnimateDiff fallback
+torch
+diffusers
+transformers
+accelerate
+safetensors
+
+# System dependencies NOT installed via pip - see docs-mpostele/05 Implementation/03 Setup Checklist.md
+#   - Ollama (https://ollama.com/), then `ollama pull qwen2.5:1.5b`
+#   - FFmpeg, with NVENC support if available
+#   - a RIFE binary, path configured via the RIFE_BINARY env var

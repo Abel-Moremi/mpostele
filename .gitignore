@@ -11,3 +11,18 @@ Thumbs.db
 
 # Keep your actual notes tracked
 # Do not ignore *.md files unless you intentionally want that.
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated job artifacts and local fonts/model assets
+# (folder structure tracked via .gitkeep, contents ignored)
+app/media/assets/jobs/*
+!app/media/assets/jobs/.gitkeep
+app/media/assets/tmp/*
+!app/media/assets/tmp/.gitkeep
+app/media/assets/output/*
+!app/media/assets/output/.gitkeep
+app/media/assets/fonts/*
+!app/media/assets/fonts/.gitkeep

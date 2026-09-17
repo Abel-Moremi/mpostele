@@ -1,0 +1,6 @@
+{
+  "topic": "Container Orchestration Automation",
+  "product": "a CLI tool that automates container setup for small dev teams",
+  "audience": "backend developers who are tired of writing setup scripts by hand",
+  "tone": "confident, plain-spoken, no corporate jargon"
+}

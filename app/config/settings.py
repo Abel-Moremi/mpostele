@@ -1,0 +1,42 @@
+"""Central configuration for the mpostele pipeline.
+
+VRAM/RAM-relevant defaults live here so they stay visible and boundable,
+per the Sequential Execution Contract (docs-mpostele/03 Workflow/04 Memory & Process Protocol.md).
+"""
+import os
+from pathlib import Path
+
+APP_DIR = Path(__file__).resolve().parent.parent
+ASSETS_DIR = APP_DIR / "media" / "assets"
+JOBS_DIR = ASSETS_DIR / "jobs"
+TMP_DIR = ASSETS_DIR / "tmp"
+OUTPUT_DIR = ASSETS_DIR / "output"
+FONT_DIR = ASSETS_DIR / "fonts"  # .ttf files are not bundled - place them here
+
+# Agent swarm (Ollama)
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
+OLLAMA_TIMEOUT_SECONDS = 120
+MAX_QUALITY_RETRIES = 2
+
+# Poster path (local SD1.5, hard-capped - no SDXL, see AGENTS.md)
+SD15_MODEL_ID = os.environ.get("SD15_MODEL_ID", "runwayml/stable-diffusion-v1-5")
+SD15_STEPS = 20
+POSTER_GEN_WIDTH = 768
+POSTER_GEN_HEIGHT = 1344
+
+# Video path - local fallback (unvalidated VRAM ceiling, see
+# docs-mpostele/04 Research/01 Local Diffusion Model Options.md)
+ANIMATEDIFF_MOTION_ADAPTER_ID = os.environ.get(
+    "ANIMATEDIFF_MOTION_ADAPTER_ID", "guoyww/animatediff-motion-adapter-v1-5-2"
+)
+ANIMATEDIFF_FRAME_COUNT = 16
+
+# Video path - remote dispatch (primary path, leaves the device - see
+# docs-mpostele/03 Workflow/03 Video Rendering Path.md)
+WAN21_REMOTE_ENDPOINT = os.environ.get("WAN21_REMOTE_ENDPOINT", "")
+
+# Interpolation / encode
+RIFE_BINARY = os.environ.get("RIFE_BINARY", "")
+INTERPOLATION_TARGET_FPS = 32
+VIDEO_ENCODER = os.environ.get("VIDEO_ENCODER", "h264_nvenc")

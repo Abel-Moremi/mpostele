@@ -49,28 +49,61 @@ See [docs-mpostele/00 Home](docs-mpostele/00%20Home.md) for the full design vaul
 
 Most of this pipeline is fully local. The one exception: the **primary** video path dispatches to a remote runtime (Google Colab, Modal, RunPod) to run Wan2.1, since that model doesn't fit in 4GB of VRAM. If a job needs to stay entirely on-device, use the local SD1.5 + AnimateDiff fallback path instead — it trades fidelity and frame count for staying offline.
 
-## Recommended directory structure
+## Directory structure
 
 ```text
 mpostele/
 ├── app/
-│   ├── main.py
+│   ├── main.py              # CLI entry point
+│   ├── cli.py               # shared --job arg parsing for every stage
+│   ├── config/
+│   │   └── settings.py      # VRAM/model/path config, all env-overridable
 │   ├── orchestrator/
-│   ├── agents/              # strategy, script, keyframe, motion, layout, QA, platform
-│   ├── media/
-│   │   ├── poster_engine.py    # SD1.5 background + Pillow compositor
-│   │   ├── video_engine.py     # AnimateDiff local / Wan2.1 remote dispatch
-│   │   ├── interpolation.py    # RIFE
-│   │   └── assets/
-│   │       ├── tmp/
-│   │       └── output/
-│   └── config/
-│       └── settings.py
+│   │   ├── state.py             # state.json read/append contract
+│   │   ├── process_runner.py    # spawns each stage as its own subprocess
+│   │   └── orchestrator.py      # the sequential control flow + quality gate
+│   ├── agents/               # Ollama-backed swarm, one module per agent
+│   │   ├── base.py              # call_ollama() + JSON extraction
+│   │   ├── strategy_agent.py
+│   │   ├── script_agent.py
+│   │   ├── keyframe_agent.py
+│   │   ├── motion_agent.py          # video path only
+│   │   ├── poster_layout_agent.py   # poster path only
+│   │   ├── quality_inspector.py
+│   │   ├── platform_adaptor.py
+│   │   └── dispatcher.py
+│   └── media/
+│       ├── memory.py            # unload_ollama_model / flush_cuda_memory
+│       ├── compositor.py        # Pillow text/badge compositor
+│       ├── poster_engine.py     # SD1.5 background + Pillow compositor
+│       ├── video_engine.py      # AnimateDiff local / Wan2.1 remote dispatch
+│       ├── interpolation.py     # RIFE
+│       ├── encode.py            # FFmpeg audio mux + final encode
+│       └── assets/
+│           ├── jobs/     # one state.json per job (gitignored)
+│           ├── tmp/      # intermediate frames, purged on completion
+│           ├── output/   # final posters/videos
+│           └── fonts/    # .ttf files - not bundled, add your own
+├── examples/
+│   └── sample_brief.json
 ├── requirements.txt
 ├── README.md
 ├── LICENSE
 └── docs-mpostele/
 ```
+
+## Quickstart
+
+```bash
+pip install -r requirements.txt
+ollama pull qwen2.5:1.5b && ollama serve &
+python -m app.main --media-type poster --brief-file examples/sample_brief.json
+```
+
+This is a scaffold, not a finished pipeline: the local AnimateDiff path and the
+remote Wan2.1 dispatch client are stubbed (see `app/media/video_engine.py`),
+and font files for the Pillow compositor aren't bundled — see
+[docs-mpostele/05 Implementation/03 Setup Checklist](docs-mpostele/05%20Implementation/03%20Setup%20Checklist.md).
 
 ## Project goals
 
