@@ -106,6 +106,14 @@ def render_remote(job_state: dict, output_dir: Path) -> Path:
                 raise
             time.sleep(settings.WAN21_POLL_INTERVAL_SECONDS)
             continue
+        except requests.exceptions.HTTPError as exc:
+            # A 502/503/504 from ngrok (tunnel up, backend momentarily
+            # unreachable) is the same transient case as above - raise_for_status()
+            # doesn't raise ConnectionError for these, it raises HTTPError.
+            if exc.response is not None and exc.response.status_code in (502, 503, 504) and time.monotonic() <= deadline:
+                time.sleep(settings.WAN21_POLL_INTERVAL_SECONDS)
+                continue
+            raise
 
         if status["status"] == "done":
             break
