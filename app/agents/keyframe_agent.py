@@ -8,7 +8,11 @@ from app.cli import parse_job_arg
 from app.orchestrator import state
 
 PROMPT = """You are a prompt engineer for Stable Diffusion 1.5. Given this scene concept, respond
-with ONLY a JSON object with keys "positive" and "negative" (Stable Diffusion prompt strings).
+with ONLY a JSON object with keys "positive" and "negative".
+
+"positive" is a comma-separated list of descriptive tags (not a full sentence).
+"negative" is a comma-separated list of short tags to EXCLUDE from the image - never a restated
+description of the scene. Example negative: "blurry, low quality, watermark, extra limbs".
 {poster_note}
 No prose, no markdown fences.
 
@@ -17,8 +21,10 @@ Aspect ratio: {aspect_ratio}
 """
 
 POSTER_NOTE = (
-    "This is a poster background: it must stay text-free (no rendered words, labels, or "
-    "watermarks) and reserve clear negative space for a text overlay in the top third."
+    'This is a poster background. The "positive" tag list must include a composition tag for '
+    'empty space in the top third, for example: "..., empty space top third, subject centered '
+    'lower half, ...". The "negative" tag list must include: "text, watermark, letters, words, '
+    'signage, logo".'
 )
 
 

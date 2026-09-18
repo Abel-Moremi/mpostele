@@ -7,6 +7,10 @@ PROMPT = """You are a short-form marketing scriptwriter. Given this strategy bri
 ONLY a JSON object with keys "script_text" (<= 220 characters), "overlay_text" (<= 40 characters),
 and "scene_concept" (a short visual description). No prose, no markdown fences.
 
+"script_text" is narration read aloud by a text-to-speech engine - plain words only, never emoji,
+hashtags, or markdown. Example script_text: "Stop wrestling with setup scripts. Our CLI gets your
+containers running in one command."
+
 Strategy brief:
 {strategy_brief}
 """
