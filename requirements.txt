@@ -1,15 +1,16 @@
 # Core
-requests
+requests==2.34.2
 
 # Poster compositing (no GPU)
-Pillow
+Pillow==12.3.0
 
 # Diffusion: poster background + local AnimateDiff fallback
-torch
-diffusers
-transformers
-accelerate
-safetensors
+# torch needs the CUDA wheel: pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0
+torch==2.6.0
+diffusers==0.40.0
+transformers==5.17.0
+accelerate==1.15.0
+safetensors==0.8.0
 
 # System dependencies NOT installed via pip - see docs-mpostele/05 Implementation/03 Setup Checklist.md
 #   - Ollama (https://ollama.com/), then `ollama pull qwen2.5:1.5b`

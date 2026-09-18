@@ -7,6 +7,7 @@ This stage produces the short-form video from the `keyframe_prompt` and Motion D
 - SD1.5 + AnimateDiff, capped at low frame counts to fit the 4GB VRAM budget
 - offline, no data leaves the machine
 - fidelity and frame count are intentionally limited — this is the fallback path, not the default
+- **measured on the target 1050 Ti: not viable at 16 frames under either tried strategy** — see [[04 Research/01 Local Diffusion Model Options]]. This reinforces why the remote path below is the primary one, not just a fallback-of-convenience.
 
 ## Remote dispatch engine (primary)
 
@@ -21,7 +22,7 @@ This stage produces the short-form video from the `keyframe_prompt` and Motion D
 
 ## Open question
 
-AnimateDiff's motion module adds meaningful VRAM overhead on top of base SD1.5. Whether "low frame counts + fp16 + `--lowvram`-equivalent settings" is actually sufficient on a 1050 Ti, or whether attention slicing / sequential CPU offload is also required, hasn't been validated yet — see [[04 Research/01 Local Diffusion Model Options]].
+16 frames is confirmed too many for this hardware (see [[04 Research/01 Local Diffusion Model Options]] for the measured failure modes). Whether a lower frame count (4-8) fits within budget, and whether the resulting generation speed (~70s/step under CPU offloading) is even useful for a short-form pipeline, is still open.
 
 ## Related notes
 

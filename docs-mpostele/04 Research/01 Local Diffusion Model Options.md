@@ -14,11 +14,14 @@ This note captures the practical choices for running local diffusion within the 
 - fewer inference steps for faster turnaround on constrained hardware
 - same VRAM envelope as base SD1.5
 
-### 3. AnimateDiff (on top of SD1.5)
+### 3. AnimateDiff (on top of SD1.5) — validated not viable at 16 frames
 
-- adds a motion module on top of the base checkpoint — meaningful additional VRAM overhead, not free
-- viable locally only at low frame counts and modest resolution
-- **not yet validated on this exact card** — treat frame-count/resolution limits as a hypothesis until measured
+Measured directly on the target 1050 Ti (2026-09-18), using `app/media/video_engine.py:render_local`, default resolution, 16 frames, 20 steps:
+
+- **Attention slicing alone**: `torch.OutOfMemoryError` on the very first denoising step. PyTorch had already allocated 6.3GB against a 4GB card before the crash — not a marginal miss, off by more than 2x.
+- **Attention slicing + `unet.enable_forward_chunking()` + `enable_model_cpu_offload()`**: no CUDA OOM, but the run took ~71-75 seconds per step (~25 minutes total) and **segfaulted** at the very last step, most likely from system RAM exhaustion (offloading trades VRAM pressure for RAM pressure, and this machine only has 8GB total — see [[06 Operations/03 Hardware Constraints]]).
+
+Conclusion: 16 frames does not fit this hardware under either strategy tried so far. A much lower frame count (4-8) is the next thing to try before concluding AnimateDiff-local is a dead end outright; it hasn't been tried yet.
 
 ## Prohibited
 
@@ -29,8 +32,8 @@ This note captures the practical choices for running local diffusion within the 
 
 ## Open questions to validate
 
-- whether `--lowvram`-equivalent settings (attention slicing, sequential CPU offload, fp16 VAE) are required in addition to low frame counts for AnimateDiff to stay under 4GB
-- actual achievable frame count/resolution combination before OOM, measured on the target 1050 Ti
+- whether a much lower frame count (4-8) fits within both the 4GB VRAM and 8GB RAM budgets under `enable_model_cpu_offload()`
+- whether the ~70s/step pace (even if it fit) is acceptable for a "short-form" pipeline, or makes the local fallback impractical regardless of whether it technically completes
 
 ## Related notes
 

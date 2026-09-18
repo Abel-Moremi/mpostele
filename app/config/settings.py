@@ -25,8 +25,10 @@ SD15_STEPS = 20
 POSTER_GEN_WIDTH = 768
 POSTER_GEN_HEIGHT = 1344
 
-# Video path - local fallback (unvalidated VRAM ceiling, see
-# docs-mpostele/04 Research/01 Local Diffusion Model Options.md)
+# Video path - local fallback. 16 frames is CONFIRMED NOT TO FIT on the
+# target 1050 Ti (OOMs on attention slicing alone; segfaults on system RAM
+# under CPU offload) - see docs-mpostele/04 Research/01 Local Diffusion
+# Model Options.md. Lower this before relying on the local path.
 ANIMATEDIFF_MOTION_ADAPTER_ID = os.environ.get(
     "ANIMATEDIFF_MOTION_ADAPTER_ID", "guoyww/animatediff-motion-adapter-v1-5-2"
 )
