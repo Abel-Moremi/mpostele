@@ -4,10 +4,9 @@ This stage produces the short-form video from the `keyframe_prompt` and Motion D
 
 ## Local rendering engine (fallback)
 
-- SD1.5 + AnimateDiff, capped at low frame counts to fit the 4GB VRAM budget
+- SD1.5 + AnimateDiff, intended to be capped at low frame counts to fit the 4GB VRAM budget
 - offline, no data leaves the machine
-- fidelity and frame count are intentionally limited — this is the fallback path, not the default
-- **measured on the target 1050 Ti: not viable at 16 frames under either tried strategy** — see [[04 Research/01 Local Diffusion Model Options]]. This reinforces why the remote path below is the primary one, not just a fallback-of-convenience.
+- **measured on the target 1050 Ti: not confirmed viable at any frame count tried (4 or 16)** — every configuration either OOMs, segfaults, or silently overflows into unusably slow system-memory fallback (~150s/step). See [[04 Research/01 Local Diffusion Model Options]] for the full comparison. This is why the remote path below is the primary one, not just a fallback-of-convenience — right now it's closer to the *only* working video path.
 
 ## Remote dispatch engine (primary)
 
@@ -22,7 +21,7 @@ This stage produces the short-form video from the `keyframe_prompt` and Motion D
 
 ## Open question
 
-16 frames is confirmed too many for this hardware (see [[04 Research/01 Local Diffusion Model Options]] for the measured failure modes). Whether a lower frame count (4-8) fits within budget, and whether the resulting generation speed (~70s/step under CPU offloading) is even useful for a short-form pipeline, is still open.
+The local fallback is unconfirmed at any tested frame count - see [[04 Research/01 Local Diffusion Model Options]] for the three failure modes measured so far. Getting it to genuinely work would need a real fix (lower resolution, a smaller checkpoint) rather than just tuning frame count further, and even then the pace observed (70-150s/step) may make it impractical for a "short-form" pipeline regardless. Until that's resolved, treat the remote Wan2.1 path as load-bearing, not optional.
 
 ## Related notes
 

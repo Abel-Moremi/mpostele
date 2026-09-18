@@ -25,14 +25,15 @@ SD15_STEPS = 20
 POSTER_GEN_WIDTH = 768
 POSTER_GEN_HEIGHT = 1344
 
-# Video path - local fallback. 16 frames is CONFIRMED NOT TO FIT on the
-# target 1050 Ti (OOMs on attention slicing alone; segfaults on system RAM
-# under CPU offload) - see docs-mpostele/04 Research/01 Local Diffusion
-# Model Options.md. Lower this before relying on the local path.
+# Video path - local fallback. CONFIRMED NOT VIABLE on the target 1050 Ti at
+# 4 or 16 frames under every configuration tried - see docs-mpostele/04
+# Research/01 Local Diffusion Model Options.md. Do not rely on this path
+# without re-testing after a real fix (lower resolution, a smaller
+# checkpoint, or accepting >1 min/frame).
 ANIMATEDIFF_MOTION_ADAPTER_ID = os.environ.get(
     "ANIMATEDIFF_MOTION_ADAPTER_ID", "guoyww/animatediff-motion-adapter-v1-5-2"
 )
-ANIMATEDIFF_FRAME_COUNT = 16
+ANIMATEDIFF_FRAME_COUNT = 8
 
 # Video path - remote dispatch (primary path, leaves the device - see
 # docs-mpostele/03 Workflow/03 Video Rendering Path.md)

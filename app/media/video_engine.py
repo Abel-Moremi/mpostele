@@ -12,16 +12,16 @@ from app.orchestrator import state
 
 
 def render_local(job_state: dict, output_dir: Path) -> Path:
-    """SD1.5 + AnimateDiff fallback.
+    """SD1.5 + AnimateDiff fallback - NOT CONFIRMED VIABLE on this hardware.
 
-    Measured on the actual 1050 Ti at 16 frames / 20 steps: attention slicing
-    alone OOMs on the first step (6.3GB allocated against a 4GB card).
-    Adding forward chunking + enable_model_cpu_offload() avoids the CUDA OOM
-    but is very slow (~70s/step) and segfaulted near the last step, almost
-    certainly from exhausting the 8GB of system RAM instead. 16 frames is
-    confirmed not to fit either way - see
-    docs-mpostele/04 Research/01 Local Diffusion Model Options.md. A lower
-    ANIMATEDIFF_FRAME_COUNT hasn't been tried yet.
+    Three configurations measured on the actual 1050 Ti; none genuinely fit
+    within 4GB VRAM / 8GB RAM at any frame count tried (4 or 16). See
+    docs-mpostele/04 Research/01 Local Diffusion Model Options.md for the
+    full comparison. Kept as attention-slicing-only + .to("cuda") here
+    because it's the configuration that fails with a clean, catchable
+    torch.OutOfMemoryError rather than an unrecoverable segfault
+    (enable_model_cpu_offload()) or a ~150s/step silent VRAM-to-RAM spill
+    that isn't really "fitting" despite not crashing (.to("cuda") at 4 frames).
     """
     import torch
     from diffusers import AnimateDiffPipeline, MotionAdapter
@@ -35,7 +35,7 @@ def render_local(job_state: dict, output_dir: Path) -> Path:
     )
     pipe.enable_attention_slicing()
     pipe.unet.enable_forward_chunking()
-    pipe.enable_model_cpu_offload()  # replaces .to("cuda") - offloads idle submodules to system RAM
+    pipe.to("cuda")
 
     prompt = job_state["keyframe_prompt"]
     frames = pipe(

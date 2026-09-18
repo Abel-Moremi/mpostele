@@ -14,14 +14,17 @@ This note captures the practical choices for running local diffusion within the 
 - fewer inference steps for faster turnaround on constrained hardware
 - same VRAM envelope as base SD1.5
 
-### 3. AnimateDiff (on top of SD1.5) — validated not viable at 16 frames
+### 3. AnimateDiff (on top of SD1.5) — validated NOT VIABLE on this hardware
 
-Measured directly on the target 1050 Ti (2026-09-18), using `app/media/video_engine.py:render_local`, default resolution, 16 frames, 20 steps:
+Measured directly on the target 1050 Ti (2026-09-18), using `app/media/video_engine.py:render_local`, default resolution, 20 steps. Three configurations, none genuinely fit:
 
-- **Attention slicing alone**: `torch.OutOfMemoryError` on the very first denoising step. PyTorch had already allocated 6.3GB against a 4GB card before the crash — not a marginal miss, off by more than 2x.
-- **Attention slicing + `unet.enable_forward_chunking()` + `enable_model_cpu_offload()`**: no CUDA OOM, but the run took ~71-75 seconds per step (~25 minutes total) and **segfaulted** at the very last step, most likely from system RAM exhaustion (offloading trades VRAM pressure for RAM pressure, and this machine only has 8GB total — see [[06 Operations/03 Hardware Constraints]]).
+| Config | Frames | Result |
+| --- | --- | --- |
+| attention slicing only, `.to("cuda")` | 16 | `torch.OutOfMemoryError` on the first denoising step. 6.3GB already allocated against a 4GB card — off by more than 2x. |
+| + `unet.enable_forward_chunking()` + `enable_model_cpu_offload()` | 16 | No CUDA OOM, but ~71-75s/step (~25 min total) and **segfaulted** at the last step — almost certainly system RAM exhaustion (offloading trades VRAM pressure for RAM pressure; this machine only has 8GB total, see [[06 Operations/03 Hardware Constraints]]). |
+| attention slicing + forward chunking, `.to("cuda")` | 4 | "Completed" (exit 0) but peak allocated was still **6.7GB** — essentially unchanged from the 16-frame run — at **~150s/step (~55 min total)**. This is almost certainly Windows' CUDA-to-system-memory fallback silently covering the gap, not the workload actually fitting in VRAM. Not a real pass. |
 
-Conclusion: 16 frames does not fit this hardware under either strategy tried so far. A much lower frame count (4-8) is the next thing to try before concluding AnimateDiff-local is a dead end outright; it hasn't been tried yet.
+Conclusion: the fixed overhead of SD1.5 + the AnimateDiff motion module already exceeds 4GB under attention slicing regardless of frame count (4 vs 16 barely changed peak allocation) — frame count was never the dominant variable. `enable_model_cpu_offload()` is the only strategy that fails cleanly (a catchable exception) rather than crashing outright or silently overflowing into unusably slow territory, but it isn't confirmed safe either given the RAM segfault at 16 frames. **Do not treat the local AnimateDiff path as viable without a real fix** (a smaller/quantized checkpoint, much lower resolution, or accepting the segfault risk at a frame count small enough to fit in the RAM budget - untested).
 
 ## Prohibited
 
@@ -32,8 +35,8 @@ Conclusion: 16 frames does not fit this hardware under either strategy tried so 
 
 ## Open questions to validate
 
-- whether a much lower frame count (4-8) fits within both the 4GB VRAM and 8GB RAM budgets under `enable_model_cpu_offload()`
-- whether the ~70s/step pace (even if it fit) is acceptable for a "short-form" pipeline, or makes the local fallback impractical regardless of whether it technically completes
+- whether `enable_model_cpu_offload()` at a very low frame count (2-4) avoids both the VRAM OOM and the RAM segfault - untested
+- whether a fundamentally different local video approach (e.g. a smaller/distilled motion model, or dropping AnimateDiff for interpolation-only motion) is a better use of effort than continuing to tune AnimateDiff on this exact card
 
 ## Related notes
 
