@@ -8,11 +8,13 @@ This stage produces the short-form video from the `keyframe_prompt` and Motion D
 - offline, no data leaves the machine
 - **measured on the target 1050 Ti: not confirmed viable at any frame count tried (4 or 16)** — every configuration either OOMs, segfaults, or silently overflows into unusably slow system-memory fallback (~150s/step). See [[04 Research/01 Local Diffusion Model Options]] for the full comparison. This is why the remote path below is the primary one, not just a fallback-of-convenience — right now it's closer to the *only* working video path.
 
-## Remote dispatch engine (primary)
+## Remote dispatch engine (primary) — implemented against Colab
 
-- routes high-fidelity Wan2.1 (1.3B/14B) text-to-video / image-to-video payloads to a remote runtime (Google Colab, Modal, RunPod)
-- used by default for anything beyond what the local fallback can produce
-- **privacy tradeoff:** this path sends prompts and/or source images off-device — if a job must stay fully local, force the fallback path instead
+- Colab has **no official job-submission API** — it's an interactive notebook product, not a queue. The working pattern: [colab/wan21_server.ipynb](../../colab/wan21_server.ipynb) runs a small FastAPI server inside a manually-started Colab session, exposed publicly via ngrok. A human has to open that notebook and press Run each session; nothing on the local side can start it.
+- `app/media/video_engine.py:render_remote()` is the local HTTP client: `POST {endpoint}/generate` → poll `GET {endpoint}/status/{job_id}` → `GET {endpoint}/result/{job_id}` to download the finished `.mp4`. Every request carries an `x-api-key` header (`WAN21_API_KEY`) that must match the notebook's `API_KEY` cell — an unauthenticated public ngrok URL would let anyone who finds it submit jobs to your GPU or pull down your output.
+- The notebook processes one job at a time (a single background worker thread + queue) — matches the Sequential Execution Contract and avoids two concurrent Wan2.1 generations fighting over Colab's GPU.
+- **privacy tradeoff:** this path sends prompts (and eventually source images, once image-to-video is wired up) to a Colab session — if a job must stay fully local, force the fallback path instead.
+- **not yet tested against a live Colab session** — the HTTP client logic (submit/poll/download/auth) is verified against a fake local server in `scripts/smoke_test_remote_dispatch.py`, but the actual Wan2.1 generation inside the notebook hasn't been run for real.
 
 ## Frame interpolation and audio
 

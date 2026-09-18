@@ -8,7 +8,9 @@
 - [ ] download SD1.5 (and an LCM/Turbo variant) checkpoint weights
 - [ ] install the AnimateDiff motion module
 - [ ] install RIFE and FFmpeg, confirm codec/NVENC support
-- [ ] configure remote dispatch credentials (Colab/Modal/RunPod) for Wan2.1
+- [ ] get an ngrok authtoken (https://dashboard.ngrok.com/get-started/your-authtoken) and pick a shared-secret API key
+- [ ] open [colab/wan21_server.ipynb](../../colab/wan21_server.ipynb) in Colab, fill in `NGROK_AUTH_TOKEN` and `API_KEY`, run every cell
+- [ ] set `WAN21_REMOTE_ENDPOINT` (the printed ngrok URL) and `WAN21_API_KEY` (matching the notebook) on the local machine
 
 ## Project files
 

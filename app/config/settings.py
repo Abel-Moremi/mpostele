@@ -36,8 +36,17 @@ ANIMATEDIFF_MOTION_ADAPTER_ID = os.environ.get(
 ANIMATEDIFF_FRAME_COUNT = 8
 
 # Video path - remote dispatch (primary path, leaves the device - see
-# docs-mpostele/03 Workflow/03 Video Rendering Path.md)
+# docs-mpostele/03 Workflow/03 Video Rendering Path.md). Colab has no
+# official job API, so this points at a small server run manually inside
+# colab/wan21_server.ipynb and exposed via ngrok. The URL changes every
+# time that notebook is restarted - re-set this each session.
 WAN21_REMOTE_ENDPOINT = os.environ.get("WAN21_REMOTE_ENDPOINT", "")
+WAN21_API_KEY = os.environ.get("WAN21_API_KEY", "")  # must match the notebook's API_KEY cell
+WAN21_FRAME_COUNT = 33
+WAN21_WIDTH = 480
+WAN21_HEIGHT = 832
+WAN21_POLL_INTERVAL_SECONDS = 5
+WAN21_POLL_TIMEOUT_SECONDS = 900
 
 # Interpolation / encode
 RIFE_BINARY = os.environ.get("RIFE_BINARY", "")

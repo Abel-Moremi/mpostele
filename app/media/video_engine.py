@@ -55,15 +55,67 @@ def render_local(job_state: dict, output_dir: Path) -> Path:
 
 
 def render_remote(job_state: dict, output_dir: Path) -> Path:
-    """Dispatches a Wan2.1 job to a remote runtime.
+    """Dispatches a Wan2.1 job to a Colab-hosted server.
 
-    Not yet implemented - the actual Colab/Modal/RunPod client contract
-    hasn't been decided. Set execution_mode to "local" until this is wired up.
+    Colab has no official job-submission API. This talks to a small
+    FastAPI server that must be started manually inside
+    colab/wan21_server.ipynb and exposed via ngrok - copy its printed URL
+    into WAN21_REMOTE_ENDPOINT before running a remote job. The URL changes
+    every time that notebook restarts.
     """
-    raise NotImplementedError(
-        "Remote Wan2.1 dispatch is not implemented yet. "
-        "Set execution_mode to 'local' or implement render_remote() in app/media/video_engine.py."
+    import time
+
+    import requests
+
+    if not settings.WAN21_REMOTE_ENDPOINT:
+        raise RuntimeError(
+            "WAN21_REMOTE_ENDPOINT is not set. Start colab/wan21_server.ipynb, copy its "
+            "printed ngrok URL, and set WAN21_REMOTE_ENDPOINT (and WAN21_API_KEY) to match."
+        )
+
+    endpoint = settings.WAN21_REMOTE_ENDPOINT.rstrip("/")
+    headers = {"x-api-key": settings.WAN21_API_KEY}
+    prompt = job_state["keyframe_prompt"]
+
+    submit = requests.post(
+        f"{endpoint}/generate",
+        json={
+            "positive": prompt["positive"],
+            "negative": prompt.get("negative", ""),
+            "num_frames": settings.WAN21_FRAME_COUNT,
+            "width": settings.WAN21_WIDTH,
+            "height": settings.WAN21_HEIGHT,
+        },
+        headers=headers,
+        timeout=30,
     )
+    submit.raise_for_status()
+    remote_job_id = submit.json()["job_id"]
+
+    deadline = time.monotonic() + settings.WAN21_POLL_TIMEOUT_SECONDS
+    while True:
+        status_resp = requests.get(f"{endpoint}/status/{remote_job_id}", headers=headers, timeout=30)
+        status_resp.raise_for_status()
+        status = status_resp.json()
+
+        if status["status"] == "done":
+            break
+        if status["status"] == "error":
+            raise RuntimeError(f"Remote Wan2.1 job {remote_job_id} failed: {status['error']}")
+        if time.monotonic() > deadline:
+            raise TimeoutError(
+                f"Remote Wan2.1 job {remote_job_id} did not finish within "
+                f"{settings.WAN21_POLL_TIMEOUT_SECONDS}s"
+            )
+        time.sleep(settings.WAN21_POLL_INTERVAL_SECONDS)
+
+    result_resp = requests.get(f"{endpoint}/result/{remote_job_id}", headers=headers, timeout=120)
+    result_resp.raise_for_status()
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    raw_clip = output_dir / "raw_clip.mp4"
+    raw_clip.write_bytes(result_resp.content)
+    return raw_clip
 
 
 def run(job_id: str) -> None:
