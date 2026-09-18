@@ -42,9 +42,14 @@ ANIMATEDIFF_FRAME_COUNT = 8
 # time that notebook is restarted - re-set this each session.
 WAN21_REMOTE_ENDPOINT = os.environ.get("WAN21_REMOTE_ENDPOINT", "")
 WAN21_API_KEY = os.environ.get("WAN21_API_KEY", "")  # must match the notebook's API_KEY cell
-WAN21_FRAME_COUNT = 33
-WAN21_WIDTH = 480
-WAN21_HEIGHT = 832
+# A first live attempt at 33 frames / 480x832 crashed the whole Colab kernel
+# (Jupyter auto-restarted it - not a caught exception, likely VRAM/RAM
+# exhaustion loading Wan2.1 directly onto the GPU with no offloading).
+# Dropped to a smaller first test alongside enable_model_cpu_offload() in
+# the notebook; raise these once a run actually succeeds.
+WAN21_FRAME_COUNT = 17
+WAN21_WIDTH = 320
+WAN21_HEIGHT = 576
 WAN21_POLL_INTERVAL_SECONDS = 5
 WAN21_POLL_TIMEOUT_SECONDS = 900
 

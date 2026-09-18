@@ -94,9 +94,18 @@ def render_remote(job_state: dict, output_dir: Path) -> Path:
 
     deadline = time.monotonic() + settings.WAN21_POLL_TIMEOUT_SECONDS
     while True:
-        status_resp = requests.get(f"{endpoint}/status/{remote_job_id}", headers=headers, timeout=30)
-        status_resp.raise_for_status()
-        status = status_resp.json()
+        try:
+            status_resp = requests.get(f"{endpoint}/status/{remote_job_id}", headers=headers, timeout=30)
+            status_resp.raise_for_status()
+            status = status_resp.json()
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            # The ngrok tunnel drops connections transiently while the worker
+            # thread is busy loading/running the model - a network blip here
+            # doesn't mean the job failed, just retry within the deadline.
+            if time.monotonic() > deadline:
+                raise
+            time.sleep(settings.WAN21_POLL_INTERVAL_SECONDS)
+            continue
 
         if status["status"] == "done":
             break
