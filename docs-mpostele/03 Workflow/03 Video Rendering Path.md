@@ -14,8 +14,16 @@ This stage produces the short-form video from the `keyframe_prompt` and Motion D
 - `app/media/video_engine.py:render_remote()` is the local HTTP client: `POST {endpoint}/generate` → poll `GET {endpoint}/status/{job_id}` → `GET {endpoint}/result/{job_id}` to download the finished `.mp4`. Every request carries an `x-api-key` header (`WAN21_API_KEY`) that must match the notebook's `API_KEY` cell — an unauthenticated public ngrok URL would let anyone who finds it submit jobs to your GPU or pull down your output.
 - The notebook processes one job at a time (a single background worker thread + queue) — matches the Sequential Execution Contract and avoids two concurrent Wan2.1 generations fighting over Colab's GPU.
 - **privacy tradeoff:** this path sends prompts (and eventually source images, once image-to-video is wired up) to a Colab session — if a job must stay fully local, force the fallback path instead.
-- **first live attempt (2026-09-18) crashed the Colab kernel outright** — `WanPipeline(...).to("cuda")` with no memory optimizations, 33 frames at 480x832, killed the whole process (Jupyter's `AsyncIOLoopKernelRestarter` auto-restarted it — the same "hard crash, not a catchable exception" failure mode as the local AnimateDiff segfault). The client's polling loop also didn't tolerate the transient connection drop that preceded it - fixed to retry through `ConnectionError`/`Timeout` within the overall deadline. Second attempt: `enable_model_cpu_offload()` added to the notebook, frame count/resolution dropped to 17 / 320x576 for a smaller first test. Result of that attempt not yet known.
-- the HTTP client logic itself (submit/poll/download/auth, including the retry-on-transient-drop path) is separately verified against a fake local server in `scripts/smoke_test_remote_dispatch.py`.
+- **confirmed working end to end (2026-09-18)** against a live Colab T4 session: submit → poll → download produced a genuine, verified H.264 `.mp4` (320x576, 16fps, 9 frames, 0.5625s — `ffprobe`-confirmed). Getting there took five iterations, each a real measured failure, not a guess:
+  1. `WanPipeline(...).to("cuda")`, no optimizations, 33 frames/480x832 → **crashed the whole Colab kernel** (system RAM exhaustion, per Colab's own resource panel - Jupyter's `AsyncIOLoopKernelRestarter` auto-restarted it, confirming a hard process crash, not a catchable exception). Root cause: Wan2.1's text encoder is UMT5-XXL (~4.7B params, ~9.4GB in bf16) - roughly 3.5x the 1.3B transformer itself.
+  2. `enable_model_cpu_offload()` (17 frames/320x576) → **crashed again** - offloading keeps everything resident in system RAM by design, which is backwards when the actual bottleneck is RAM, not VRAM.
+  3. `device_map="cuda"` (direct GPU load) → no crash, but a clean `torch.OutOfMemoryError` 594MB short of the T4's ~14.56GB VRAM, during attention.
+  4. Added `enable_attention_slicing()`, dropped to 9 frames → the weights alone (~13.5GB) now OOM'd mid-*load*, before generation even started - "cuda" doesn't leave enough headroom for the full model.
+  5. `device_map="balanced"` (splits the model across GPU + free system RAM automatically) → loading and the full denoising loop succeeded, but decode-time OOM'd inside the VAE's `conv3d`.
+  6. Added `vae.enable_slicing()` + `vae.enable_tiling()` → **succeeded.**
+- The client's polling loop needed two robustness fixes along the way: retrying through transient `ConnectionError`/`Timeout` (the tunnel drops connections while the worker thread is busy loading/running the model) and through `HTTPError` on a 502/503/504 (which `raise_for_status()` raises separately from connection-level errors).
+- The HTTP client logic itself (submit/poll/download/auth) is also verified against a fake local server in `scripts/smoke_test_remote_dispatch.py`.
+- **Not yet tried:** raising frame count/resolution above this confirmed-working floor (9 frames, 320x576). Increase incrementally and re-verify - nothing here suggests headroom scales linearly.
 
 ## Frame interpolation and audio
 
@@ -24,7 +32,7 @@ This stage produces the short-form video from the `keyframe_prompt` and Motion D
 
 ## Open question
 
-The local fallback is unconfirmed at any tested frame count - see [[04 Research/01 Local Diffusion Model Options]] for the three failure modes measured so far. Getting it to genuinely work would need a real fix (lower resolution, a smaller checkpoint) rather than just tuning frame count further, and even then the pace observed (70-150s/step) may make it impractical for a "short-form" pipeline regardless. Until that's resolved, treat the remote Wan2.1 path as load-bearing, not optional.
+The local fallback is unconfirmed at any tested frame count - see [[04 Research/01 Local Diffusion Model Options]] for the three failure modes measured so far. Getting it to genuinely work would need a real fix (lower resolution, a smaller checkpoint) rather than just tuning frame count further, and even then the pace observed (70-150s/step) may make it impractical for a "short-form" pipeline regardless. The remote path is now confirmed working, so this is no longer a hard blocker on the video path overall - just an open question about whether the local fallback is worth continuing to invest in.
 
 ## Related notes
 

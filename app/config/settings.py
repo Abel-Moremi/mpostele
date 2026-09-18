@@ -42,10 +42,11 @@ ANIMATEDIFF_FRAME_COUNT = 8
 # time that notebook is restarted - re-set this each session.
 WAN21_REMOTE_ENDPOINT = os.environ.get("WAN21_REMOTE_ENDPOINT", "")
 WAN21_API_KEY = os.environ.get("WAN21_API_KEY", "")  # must match the notebook's API_KEY cell
-# History: 33 frames/480x832 crashed the kernel outright (system RAM -
-# see docs). device_map="cuda" fixed that, but 17 frames/320x576 then hit
-# a clean CUDA OOM 594MB short on the T4 during attention. Dropped further
-# alongside attention_slicing in the notebook; raise once a run succeeds.
+# CONFIRMED WORKING on a live Colab T4 (2026-09-18) at these exact values,
+# with the notebook using device_map="balanced" + attention_slicing +
+# vae.enable_slicing()/enable_tiling() - see docs-mpostele/03 Workflow/03
+# Video Rendering Path.md for the five failed configurations that preceded
+# this one. Raising these is untested - increase incrementally.
 WAN21_FRAME_COUNT = 9
 WAN21_WIDTH = 320
 WAN21_HEIGHT = 576
