@@ -16,3 +16,7 @@ safetensors==0.8.0
 #   - Ollama (https://ollama.com/), then `ollama pull qwen2.5:1.5b`
 #   - FFmpeg, with NVENC support if available
 #   - a RIFE binary, path configured via the RIFE_BINARY env var
+#   - Node.js + npm, then `cd remotion && npm install` (only needed for
+#     --execution-mode remotion - see docs-mpostele/03 Workflow/03 Video
+#     Rendering Path.md; note Remotion's license requires a paid company
+#     license past a small-team size, see remotion.dev/license)

@@ -13,7 +13,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run an mpostele content job.")
     parser.add_argument("--media-type", choices=["poster", "video"], required=True)
     parser.add_argument("--aspect-ratio", default="9:16")
-    parser.add_argument("--execution-mode", choices=["auto", "local", "remote"], default="auto")
+    parser.add_argument("--execution-mode", choices=["auto", "local", "remote", "remotion"], default="auto")
     parser.add_argument("--brief-file", required=True, help="Path to a JSON campaign brief")
     args = parser.parse_args()
 

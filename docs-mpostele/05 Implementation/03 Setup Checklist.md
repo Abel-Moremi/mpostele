@@ -11,6 +11,7 @@
 - [ ] get an ngrok authtoken (https://dashboard.ngrok.com/get-started/your-authtoken) and pick a shared-secret API key
 - [ ] open [colab/wan21_server.ipynb](../../colab/wan21_server.ipynb) in Colab, fill in `NGROK_AUTH_TOKEN` and `API_KEY`, run every cell
 - [ ] set `WAN21_REMOTE_ENDPOINT` (the printed ngrok URL) and `WAN21_API_KEY` (matching the notebook) on the local machine
+- [ ] (optional, for `--execution-mode remotion`) install Node.js + npm, then `cd remotion && npm install`; check Remotion's license terms (remotion.dev/license) against your intended usage first
 
 ## Project files
 

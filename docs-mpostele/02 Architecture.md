@@ -17,6 +17,7 @@ Agent Pipeline Swarm   ◄──►  Local State Manager
       │
       └──► [ Video Path ]  ──► Local SD1.5 + AnimateDiff (fallback)
                                OR Remote Wan2.1 dispatch (primary)
+                               OR Remotion code-driven render (opt-in, no diffusion model)
 ```
 
 ## Components
@@ -35,7 +36,7 @@ A local SD1.5 (or LCM/Turbo derivative) generates a text-free background under ~
 
 ### 4. Video Processing Engine
 
-SD1.5 + AnimateDiff renders locally at low frame counts as the fallback path; Wan2.1 is dispatched to a remote runtime (Colab/Modal/RunPod) as the primary, higher-fidelity path. RIFE interpolates frames and FFmpeg handles audio multiplexing and H.264 encoding. See [[03 Workflow/03 Video Rendering Path]].
+SD1.5 + AnimateDiff renders locally at low frame counts as the fallback path; Wan2.1 is dispatched to a remote runtime (Colab/Modal/RunPod) as the primary, higher-fidelity path. A third, opt-in path renders via Remotion (Node/React, headless Chromium) — no diffusion model at all, code-driven motion graphics from a fixed scene-component library, so it carries no VRAM risk. RIFE interpolates frames and FFmpeg handles audio multiplexing and H.264 encoding for the AnimateDiff/Wan2.1 paths; the Remotion path renders at its target frame rate directly and skips interpolation. See [[03 Workflow/03 Video Rendering Path]].
 
 ## Practical fit
 

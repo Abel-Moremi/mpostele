@@ -31,7 +31,7 @@ Continuous background microservices, resident LLM instances, and persistent diff
 │  (transient subprocesses)  │◄─────────►│  (state.json on disk)      │
 └─────────────┬───────────────┘           └───────────────────────────┘
               │
-              ├───► [ Video Path ]  ──► Local SD1.5 + AnimateDiff (fallback) OR Remote Wan2.1 dispatch (primary)
+              ├───► [ Video Path ]  ──► Local SD1.5 + AnimateDiff (fallback) OR Remote Wan2.1 dispatch (primary) OR Remotion code-driven render (opt-in)
               │
               └───► [ Poster Path ] ──► Local SD1.5 background + Pillow vector compositor
 ```
@@ -40,7 +40,7 @@ Continuous background microservices, resident LLM instances, and persistent diff
 
 1. **Agent swarm** (`Qwen2.5-1.5B` via Ollama) — strategy, script, keyframe prompts, motion direction, poster layout, quality inspection, and platform adaptation, run sequentially and unloaded from RAM before any GPU-heavy stage starts.
 2. **Poster path** — a text-free SD1.5 background under ~2.5GB VRAM, composited with Pillow for text, badges, and logos using bounding-box-aware word wrapping.
-3. **Video path** — SD1.5 + AnimateDiff locally at low frame counts as a fallback, or a remote-dispatched Wan2.1 (1.3B/14B) job as the primary path for higher-fidelity output, followed by RIFE frame interpolation and FFmpeg audio/encode.
+3. **Video path** — SD1.5 + AnimateDiff locally at low frame counts as a fallback, or a remote-dispatched Wan2.1 (1.3B/14B) job as the primary path for higher-fidelity output, followed by RIFE frame interpolation and FFmpeg audio/encode. A third, opt-in path renders via Remotion (Node/React, headless Chromium) — code-driven motion graphics from a fixed scene library, no diffusion model or VRAM use at all; see [docs-mpostele/03 Workflow/03 Video Rendering Path](docs-mpostele/03%20Workflow/03%20Video%20Rendering%20Path.md) for the license caveat before relying on it.
 4. **Platform adaptation** — reformats scripts and captions per target platform (TikTok, Instagram, X, LinkedIn).
 
 See [docs-mpostele/00 Home](docs-mpostele/00%20Home.md) for the full design vault.
@@ -67,8 +67,10 @@ mpostele/
 │   │   ├── strategy_agent.py
 │   │   ├── script_agent.py
 │   │   ├── keyframe_agent.py
-│   │   ├── motion_agent.py          # video path only
-│   │   ├── poster_layout_agent.py   # poster path only
+│   │   ├── motion_agent.py            # local/remote video targets only
+│   │   ├── composition_agent.py       # remotion video target only - scene list, not JSX
+│   │   ├── composition_validator.py   # remotion video target only - deterministic gate
+│   │   ├── poster_layout_agent.py     # poster path only
 │   │   ├── quality_inspector.py
 │   │   ├── platform_adaptor.py
 │   │   └── dispatcher.py
@@ -77,6 +79,7 @@ mpostele/
 │       ├── compositor.py        # Pillow text/badge compositor
 │       ├── poster_engine.py     # SD1.5 background + Pillow compositor
 │       ├── video_engine.py      # AnimateDiff local / Wan2.1 remote dispatch
+│       ├── remotion_engine.py   # shells out to the remotion/ Node project
 │       ├── interpolation.py     # RIFE
 │       ├── encode.py            # FFmpeg audio mux + final encode
 │       └── assets/
@@ -86,6 +89,13 @@ mpostele/
 │           └── fonts/    # .ttf files - not bundled, add your own
 ├── examples/
 │   └── sample_brief.json
+├── remotion/              # Node/React project for --execution-mode remotion (optional)
+│   └── src/
+│       ├── index.ts
+│       ├── Root.tsx           # composition registration + Zod schema + calculateMetadata
+│       ├── schema.ts          # Zod schema, mirrors composition_validator.py's shape
+│       ├── MainComposition.tsx  # data-driven <Series>, the only place component names resolve to code
+│       └── scenes/            # fixed, hand-written scene components (TitleReveal, CaptionOverlay, Outro)
 ├── requirements.txt
 ├── README.md
 ├── LICENSE

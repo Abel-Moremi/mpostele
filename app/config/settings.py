@@ -62,3 +62,17 @@ WAN21_POLL_TIMEOUT_SECONDS = 900
 RIFE_BINARY = os.environ.get("RIFE_BINARY", "")
 INTERPOLATION_TARGET_FPS = 32
 VIDEO_ENCODER = os.environ.get("VIDEO_ENCODER", "h264_nvenc")
+
+# Video path - Remotion dispatch (opt-in third option, see docs-mpostele/03
+# Workflow/03 Video Rendering Path.md). No diffusion model involved at all -
+# code-driven motion graphics rendered via headless Chromium, so it carries
+# no VRAM risk, unlike the other two video paths. Never selected by the
+# local/remote auto-fallback in dispatcher.py; only via explicit
+# --execution-mode remotion.
+NODE_BINARY = os.environ.get("NODE_BINARY", "npx")
+REMOTION_PROJECT_DIR = APP_DIR.parent / "remotion"
+REMOTION_COMPOSITION_ID = "MainComposition"
+REMOTION_WIDTH = 1080
+REMOTION_HEIGHT = 1920
+REMOTION_FPS = 30
+REMOTION_RENDER_TIMEOUT_SECONDS = 300

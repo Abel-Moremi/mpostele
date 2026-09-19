@@ -1,4 +1,4 @@
-"""Execution Dispatcher: decides whether the video path renders locally or remotely.
+"""Execution Dispatcher: decides whether the video path renders locally, remotely, or via Remotion.
 
 Deterministic routing, not an LLM call - it only needs to know the job's
 requested execution_mode and whether a remote endpoint is configured.
@@ -9,8 +9,10 @@ from app.orchestrator import state
 
 
 def resolve_target(job_state: dict) -> str:
-    if job_state.get("execution_mode") in ("local", "remote"):
+    if job_state.get("execution_mode") in ("local", "remote", "remotion"):
         return job_state["execution_mode"]
+    # "remotion" is opt-in only - never chosen by auto-fallback, which stays
+    # local/remote so the existing paths keep working standalone.
     return "remote" if settings.WAN21_REMOTE_ENDPOINT else "local"
 
 
