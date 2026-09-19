@@ -22,8 +22,13 @@ MAX_QUALITY_RETRIES = 2
 # Poster path (local SD1.5, hard-capped - no SDXL, see AGENTS.md)
 SD15_MODEL_ID = os.environ.get("SD15_MODEL_ID", "runwayml/stable-diffusion-v1-5")
 SD15_STEPS = 20
-POSTER_GEN_WIDTH = 768
-POSTER_GEN_HEIGHT = 1344
+# CONFIRMED WORKING end to end on the target 1050 Ti (2026-09-18/19).
+# 768x1344 (the original guess) OOM'd even with attention slicing - 4.13GB
+# already allocated, needed 1.94GB more, well past the 4GB card. SD1.5 was
+# trained at 512x512; going well beyond that scales attention memory
+# sharply. Raising this is untested - increase incrementally.
+POSTER_GEN_WIDTH = 512
+POSTER_GEN_HEIGHT = 896
 
 # Video path - local fallback. CONFIRMED NOT VIABLE on the target 1050 Ti at
 # 4 or 16 frames under every configuration tried - see docs-mpostele/04
