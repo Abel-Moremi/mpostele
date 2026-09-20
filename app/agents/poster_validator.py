@@ -1,4 +1,4 @@
-"""Poster Validator Agent: validates Remotion poster props before a render is spawned.
+"""Poster Validator Agent: validates Revideo poster props before a render is spawned.
 
 Deterministic checks rather than another LLM call, same rationale as
 quality_inspector.py/composition_validator.py. Exits non-zero on failure so

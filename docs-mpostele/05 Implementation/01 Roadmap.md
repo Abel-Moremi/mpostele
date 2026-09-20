@@ -15,13 +15,13 @@
 ## Phase 3: Poster path
 
 - `poster_layout_agent` producing a headline/CTA/color spec
-- `remotion/src/scenes/Poster.tsx` + `npx remotion still` rendering it
+- `revideo/src/scenes/poster.tsx` + `node render.mjs --project poster` rendering it
 - validate against the `poster_layout` schema end to end
 
 ## Phase 4: Video path
 
 - `composition_agent` producing a scene-list spec
-- `remotion/src/MainComposition.tsx` + `npx remotion render` rendering it
+- `revideo/src/video-project.ts` + `node render.mjs --project video` rendering it
 - FFmpeg audio mux/encode
 
 ## Phase 5: Memory & process protocol
@@ -38,7 +38,7 @@
 
 ## Superseded phases
 
-An earlier version of this roadmap planned local SD1.5/AnimateDiff generation and remote Wan2.1 dispatch for the video path, and Pillow compositing for the poster path. That stack was built, confirmed working, and then removed in favor of Remotion once it proved more reliable in practice — see [[04 Research/01 Local Diffusion Model Options]].
+An earlier version of this roadmap planned local SD1.5/AnimateDiff generation and remote Wan2.1 dispatch for the video path, and Pillow compositing for the poster path. That stack was built, confirmed working, and then removed in favor of Remotion once it proved more reliable in practice — see [[04 Research/01 Local Diffusion Model Options]]. Remotion was itself later swapped for Revideo over licensing, not reliability — see [[07 Reference/02 Notes Archive]].
 
 ## Related notes
 

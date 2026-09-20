@@ -2,7 +2,7 @@
 
 Agent swarm (strategy -> script -> quality inspector, bounded retries) ->
 unload the LLM -> branch by media_type -> platform adaptor -> cleanup. Both
-branches render via Remotion (headless Chromium), not a diffusion model. See
+branches render via Revideo (headless Chromium), not a diffusion model. See
 docs-mpostele/02 Architecture.md for the full diagram.
 """
 import shutil

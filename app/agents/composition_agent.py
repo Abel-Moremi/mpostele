@@ -1,18 +1,18 @@
-"""Composition Director Agent: converts the script into a Remotion scene list.
+"""Composition Director Agent: converts the script into a Revideo scene list.
 
 Video path only - the orchestrator doesn't call this for poster jobs. Produces
 data (which fixed scene components to use, in what order, for how long, with
-what text/colors) - never JSX. The scene components themselves are
-hand-written once in remotion/src/scenes/ and reused across every job; only
+what text/colors) - never scene code. The scene generators themselves are
+hand-written once in revideo/src/scenes/ and reused across every job; only
 this spec is agent-generated, same split as poster_layout_agent's props
-versus remotion/src/scenes/Poster.tsx's fixed rendering logic.
+versus revideo/src/scenes/poster.tsx's fixed rendering logic.
 """
 from app.agents.base import call_ollama, extract_json
 from app.cli import parse_job_arg
 from app.config import settings
 from app.orchestrator import state
 
-# Keep in sync with remotion/src/schema.ts's component union and
+# Keep in sync with revideo/src/schema.ts's component union and
 # app/agents/composition_validator.py's ALLOWED_COMPONENTS.
 PROMPT = """You are a video composition director. Given this script hook, script body, and call to
 action, respond with ONLY a JSON object matching this shape. Use ONLY these three scene
@@ -43,8 +43,8 @@ def run(job_id: str) -> None:
     job_state = state.load(job_id)
     response = call_ollama(
         PROMPT.format(
-            fps=settings.REMOTION_FPS,
-            max_frames=settings.REMOTION_FPS * 20,
+            fps=settings.REVIDEO_FPS,
+            max_frames=settings.REVIDEO_FPS * 20,
             target_hook=job_state["strategy_brief"]["target_hook"],
             script_text=job_state["content"]["script_text"],
             call_to_action=job_state["strategy_brief"]["call_to_action"],

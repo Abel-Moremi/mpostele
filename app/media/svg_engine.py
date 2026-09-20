@@ -7,10 +7,9 @@ existing file or writes a brand-new one - the LLM never produces markup
 itself, only picks a generator name and a couple of bounded parameters
 (app/agents/svg_validator.py has already checked those before this runs).
 
-Remotion is a raster/video renderer, not an SVG exporter (`remotion still`
-produces PNG), so the actual .svg files are written here in Python, then
-just displayed by Remotion via <Img src={staticFile(...)}>, the same way it
-already displays logo.png.
+Revideo is a raster/video renderer, not an SVG exporter, so the actual .svg
+files are written here in Python, then just displayed by Revideo via
+<Img src={decorationSrc}>, the same way it already displays logo.png.
 """
 import hashlib
 import json
@@ -23,7 +22,7 @@ from app.cli import parse_job_arg
 from app.config import settings
 from app.orchestrator import state
 
-DESIGN_DIR = settings.REMOTION_PROJECT_DIR / "public" / "design"
+DESIGN_DIR = settings.REVIDEO_PROJECT_DIR / "public" / "design"
 GENERATED_DIR = DESIGN_DIR / "generated"
 MANIFEST_PATH = GENERATED_DIR / "manifest.json"
 PALETTE_PATH = DESIGN_DIR / "palette.json"
@@ -164,7 +163,7 @@ GENERATORS = {
 
 
 def resolve(decoration_spec: dict) -> str | None:
-    """Returns the decoration's path relative to remotion/public/, or None."""
+    """Returns the decoration's path relative to revideo/public/, or None."""
     action = decoration_spec.get("action", "none")
     if action == "none":
         return None

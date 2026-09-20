@@ -4,7 +4,6 @@ requests==2.34.2
 # System dependencies NOT installed via pip - see docs-mpostele/05 Implementation/03 Setup Checklist.md
 #   - Ollama (https://ollama.com/), then `ollama pull qwen2.5:1.5b`
 #   - FFmpeg (for the final audio mux/encode pass)
-#   - Node.js + npm, then `cd remotion && npm install` (renders both the
+#   - Node.js + npm, then `cd revideo && npm install` (renders both the
 #     video and poster paths - see docs-mpostele/03 Workflow/03 Video
-#     Rendering Path.md; note Remotion's license requires a paid company
-#     license past a small-team size, see remotion.dev/license)
+#     Rendering Path.md)

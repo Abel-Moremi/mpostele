@@ -18,7 +18,7 @@ requests.post(
 )
 ```
 
-This must run before the Remotion render subprocess is spawned — it frees RAM the LLM was holding before a headless-Chromium process starts allocating its own.
+This must run before the Revideo render subprocess is spawned — it frees RAM the LLM was holding before a headless-Chromium process starts allocating its own.
 
 ## Invocation pattern
 

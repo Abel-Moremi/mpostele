@@ -1,10 +1,10 @@
 # FFmpeg Notes
 
-FFmpeg handles the last mile of the video path: taking Remotion's rendered clip plus the audio track and producing the final deliverable. There's no interpolation step feeding it any more (RIFE was removed along with the diffusion paths it served) — it encodes straight from `artifacts.raw_clip`.
+FFmpeg handles the last mile of the video path: taking Revideo's rendered clip plus the audio track and producing the final deliverable. There's no interpolation step feeding it any more (RIFE was removed along with the diffusion paths it served) — it encodes straight from `artifacts.raw_clip`.
 
 ## Useful techniques
 
-- multiplexing the narration/audio track onto the Remotion-rendered visual stream
+- multiplexing the narration/audio track onto the Revideo-rendered visual stream
 - trim/concat for joining sequential scenes
 
 ## Encoder choice

@@ -16,9 +16,9 @@ Thumbs.db
 __pycache__/
 *.pyc
 
-# Remotion (remotion/) - Node toolchain, install fresh via `npm install`
-remotion/node_modules/
-remotion/out/
+# Revideo (revideo/) - Node toolchain, install fresh via `npm install`
+revideo/node_modules/
+revideo/output/
 
 # Generated job artifacts and local fonts/model assets
 # (folder structure tracked via .gitkeep, contents ignored)

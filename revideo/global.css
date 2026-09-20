@@ -1,0 +1,11 @@
+/**
+ * Self-hosted brand fonts (Crimson Pro for headlines, Inter for body/labels/
+ * buttons - see public/design/design.md's type table). @fontsource ships the
+ * actual woff2 files inside node_modules, so nothing is fetched from a CDN
+ * at render time - same "nothing leaves the machine" property the Remotion
+ * path had via @remotion/google-fonts.
+ */
+@import '@fontsource/crimson-pro/700.css';
+@import '@fontsource/crimson-pro/800.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';

@@ -4,7 +4,7 @@ This stage isn't a pipeline phase itself — it's the contract every phase trans
 
 ## Process isolation
 
-Every generation step (LLM call, Remotion render, FFmpeg encode) is spawned via `subprocess.run`, never imported into a single long-lived process. A subprocess dying at the end of its stage reclaims whatever memory it used regardless of any in-process cleanup.
+Every generation step (LLM call, Revideo render, FFmpeg encode) is spawned via `subprocess.run`, never imported into a single long-lived process. A subprocess dying at the end of its stage reclaims whatever memory it used regardless of any in-process cleanup.
 
 ## Explicit unload hook
 
@@ -23,7 +23,7 @@ def unload_ollama_model(model_name: str = "qwen2.5:1.5b"):
         print(f"Warning: Failed to unload Ollama model: {e}")
 ```
 
-`unload_ollama_model` runs before the pipeline branches into the poster or video render stage. There's no equivalent flush needed on the render side — Remotion's headless-Chromium subprocess holds no GPU context, so process exit alone reclaims everything it used.
+`unload_ollama_model` runs before the pipeline branches into the poster or video render stage. There's no equivalent flush needed on the render side — Revideo's headless-Chromium subprocess holds no GPU context, so process exit alone reclaims everything it used.
 
 ## Standing daemon caveat
 

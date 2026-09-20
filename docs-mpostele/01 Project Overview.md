@@ -1,6 +1,6 @@
 # Project Overview
 
-mpostele is a local, open-source autonomous content studio for generating short-form marketing videos and high-resolution static posters from a single strategy brief, using an LLM agent swarm plus code-driven rendering (Remotion).
+mpostele is a local, open-source autonomous content studio for generating short-form marketing videos and high-resolution static posters from a single strategy brief, using an LLM agent swarm plus code-driven rendering (Revideo).
 
 ## Objective
 
@@ -9,9 +9,9 @@ Build a pipeline that runs a full AI production flow — planning, prompting, qu
 ## Design constraints
 
 - fully local and offline-capable — no diffusion model, no GPU, no remote dispatch dependency
-- open-source tools only (see the Remotion licensing caveat in [[06 Operations/03 Hardware Constraints]])
+- open-source tools only, genuinely so (MIT-licensed Revideo, not the source-available Remotion it replaced - see [[07 Reference/02 Notes Archive]])
 - every generative or render stage is a transient subprocess with an explicit unload hook before the next stage starts
-- rendering is code-driven, not model inference: a small, hand-written component library, driven only by agent-generated data
+- rendering is code-driven, not model inference: a small, hand-written scene library, driven only by agent-generated data
 
 ## Primary approach
 
@@ -19,7 +19,7 @@ The system uses a sequential production flow with a branch by media type:
 
 1. run the agent swarm (strategy → script → quality check) via Ollama
 2. unload the LLM from RAM before rendering starts
-3. branch: poster path (`poster_layout_agent` → `poster_validator` → `npx remotion still`) or video path (`composition_agent` → `composition_validator` → `npx remotion render` → FFmpeg encode)
+3. branch: poster path (`poster_layout_agent` → `poster_validator` → Revideo poster render) or video path (`composition_agent` → `composition_validator` → Revideo video render → FFmpeg encode)
 4. adapt the output copy per target platform
 5. flush final artifacts to disk and purge intermediates
 

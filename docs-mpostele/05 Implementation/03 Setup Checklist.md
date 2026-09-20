@@ -4,9 +4,8 @@
 
 - [ ] verify Python version and dependencies (`pip install -r requirements.txt`)
 - [ ] install Ollama and pull `qwen2.5:1.5b`
-- [ ] install Node.js + npm, then `cd remotion && npm install` (required for both the poster and video paths)
+- [ ] install Node.js + npm, then `cd revideo && npm install` (required for both the poster and video paths)
 - [ ] install FFmpeg (needed for the final video encode/mux pass)
-- [ ] check Remotion's license terms (remotion.dev/license) against your intended usage
 
 ## Project files
 
@@ -25,7 +24,7 @@
 
 - [ ] confirm no process outlives its stage (no orphaned Node/Chromium processes after a render)
 - [ ] verify intermediate artifacts are purged after job completion
-- [ ] `ffprobe` a rendered video's resolution/fps/duration against `app/config/settings.py`'s `REMOTION_WIDTH/HEIGHT/FPS`
+- [ ] `ffprobe` a rendered video's resolution/fps/duration against `app/config/settings.py`'s `REVIDEO_WIDTH/HEIGHT/FPS`
 
 ## Related notes
 

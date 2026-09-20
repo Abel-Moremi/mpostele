@@ -1,4 +1,4 @@
-"""Composition Validator Agent: validates the Remotion scene list before a render is spawned.
+"""Composition Validator Agent: validates the Revideo scene list before a render is spawned.
 
 Deterministic checks rather than another LLM call, same rationale as
 quality_inspector.py and poster_validator.py's equivalent gate on the poster
@@ -10,7 +10,7 @@ from app.cli import parse_job_arg
 from app.config import settings
 from app.orchestrator import state
 
-# Keep in sync with remotion/src/schema.ts's component union and
+# Keep in sync with revideo/src/schema.ts's component union and
 # app/agents/composition_agent.py's PROMPT.
 ALLOWED_COMPONENTS = {"TitleReveal", "CaptionOverlay", "Outro"}
 REQUIRED_PROPS = {
@@ -18,7 +18,7 @@ REQUIRED_PROPS = {
     "CaptionOverlay": {"text", "backgroundColor"},
     "Outro": {"text", "backgroundColor", "accentColor"},
 }
-MAX_TOTAL_FRAMES = settings.REMOTION_FPS * 20
+MAX_TOTAL_FRAMES = settings.REVIDEO_FPS * 20
 
 
 def check(job_state: dict) -> list:

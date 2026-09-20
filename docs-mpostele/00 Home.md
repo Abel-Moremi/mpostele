@@ -1,16 +1,16 @@
 # mpostele
 
-This vault is the knowledge base for a local-first autonomous content studio: an LLM agent swarm plus code-driven rendering (Remotion), run under a Sequential Execution Contract.
+This vault is the knowledge base for a local-first autonomous content studio: an LLM agent swarm plus code-driven rendering (Revideo), run under a Sequential Execution Contract.
 
 ## Core idea
 
 The project generates both short-form marketing video and high-resolution static posters from the same planning layer. Rendering is deterministic and code-driven, not model inference:
 
 - `Qwen2.5-1.5B` via Ollama for strategy, script, and per-media-type composition planning
-- Remotion (headless Chromium) renders both paths — `npx remotion still` for posters, `npx remotion render` for video — from a small, hand-written component library
+- Revideo (headless Chromium) renders both paths — a near-zero-duration clip + frame extraction for posters, a full render for video — from a small, hand-written scene library
 - every stage is a transient subprocess with an explicit unload hook before the next one starts
 
-This replaced an earlier local-diffusion-based design (SD1.5, AnimateDiff, remote Wan2.1 dispatch) once the Remotion path proved more reliable in practice — see [[04 Research/01 Local Diffusion Model Options]] for that history.
+This replaced an earlier local-diffusion-based design (SD1.5, AnimateDiff, remote Wan2.1 dispatch), then Remotion (dropped for its non-open-source license) - see [[04 Research/01 Local Diffusion Model Options]] and [[07 Reference/02 Notes Archive]] for that history.
 
 ## Workflow
 

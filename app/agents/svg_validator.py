@@ -12,7 +12,7 @@ from app.cli import parse_job_arg
 from app.config import settings
 from app.orchestrator import state
 
-DESIGN_DIR = settings.REMOTION_PROJECT_DIR / "public" / "design"
+DESIGN_DIR = settings.REVIDEO_PROJECT_DIR / "public" / "design"
 PALETTE_PATH = DESIGN_DIR / "palette.json"
 MANIFEST_PATH = DESIGN_DIR / "generated" / "manifest.json"
 

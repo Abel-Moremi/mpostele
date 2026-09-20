@@ -1,6 +1,6 @@
 """Manual smoke test: runs the LLM agent swarm (strategy -> script -> quality
 inspector) against a live Ollama server and prints the resulting state.json,
-without touching the Remotion render stages.
+without touching the Revideo render stages.
 
 Usage:
     python scripts/smoke_test_agents.py [path/to/brief.json]

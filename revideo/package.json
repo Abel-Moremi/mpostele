@@ -1,0 +1,24 @@
+{
+  "name": "mpostele-revideo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fixed, hand-written Revideo scene library for mpostele's code-driven render path. Composition data (which scenes, timing, text) comes from app/agents/composition_agent.py - this project only renders it.",
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@revideo/core": "0.11.0",
+    "@revideo/2d": "0.11.0",
+    "@revideo/renderer": "0.11.0",
+    "@revideo/vite-plugin": "0.11.0",
+    "@revideo/ui": "0.11.0",
+    "@fontsource/crimson-pro": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

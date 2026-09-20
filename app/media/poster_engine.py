@@ -1,8 +1,8 @@
-"""Poster rendering engine: Remotion still render (code-driven, no diffusion model).
+"""Poster rendering engine: Revideo still render (code-driven, no diffusion model).
 
 Runs as its own subprocess - reads poster_layout from state, shells out to
-the Remotion CLI's single-frame `still` render, and writes the result back
-to state. Mirrors video_engine.py's subprocess pattern exactly.
+the Revideo render CLI's single-frame poster render, and writes the result
+back to state. Mirrors video_engine.py's subprocess pattern exactly.
 """
 import json
 import shutil
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from app.cli import parse_job_arg
 from app.config import settings
-from app.media.remotion_cli import run_remotion
+from app.media.revideo_cli import run_revideo
 from app.orchestrator import state
 
 
@@ -24,7 +24,7 @@ def render(job_state: dict, output_dir: Path) -> Path:
     props_path.write_text(json.dumps(props), encoding="utf-8")
 
     poster_png = output_dir / "poster.png"
-    run_remotion(["remotion", "still", settings.REMOTION_POSTER_COMPOSITION_ID, str(poster_png), "--props", str(props_path)])
+    run_revideo("poster", props_path, poster_png)
     return poster_png
 
 

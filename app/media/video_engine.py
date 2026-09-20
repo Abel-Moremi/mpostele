@@ -1,7 +1,7 @@
-"""Video rendering engine: Remotion (code-driven motion graphics, no diffusion model).
+"""Video rendering engine: Revideo (code-driven motion graphics, no diffusion model).
 
 Runs as its own subprocess - reads composition_spec from state, shells out to
-the Remotion CLI in the sibling remotion/ Node project, and writes the
+the Revideo render CLI in the sibling revideo/ Node project, and writes the
 result back to state. Also derives and renders a cover image from the same
 composition_spec (see derive_cover_props) - reused as both a standalone
 output file and (in encode.py) an embedded MP4 cover stream.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 from app.cli import parse_job_arg
 from app.config import settings
-from app.media.remotion_cli import run_remotion
+from app.media.revideo_cli import run_revideo
 from app.orchestrator import state
 
 # Poster prop -> TitleReveal/Outro scene prop it's read from. Mechanical
@@ -54,7 +54,7 @@ def render(job_state: dict, output_dir: Path) -> Path:
     decoration_asset = job_state.get("decoration_asset")
     if decoration_asset:
         # Only TitleReveal/Outro have a reserved corner slot for this (see
-        # remotion/src/scenes/) - CaptionOverlay's word-by-word reveal has no
+        # revideo/src/scenes/) - CaptionOverlay's progressive reveal has no
         # safe spot for a static accent. Attach to the first scene that can
         # take it, so every video gets at most one decoration, not one per
         # eligible scene.
@@ -68,7 +68,7 @@ def render(job_state: dict, output_dir: Path) -> Path:
     props_path.write_text(json.dumps(composition_spec), encoding="utf-8")
 
     raw_clip = output_dir / "raw_clip.mp4"
-    run_remotion(["remotion", "render", settings.REMOTION_COMPOSITION_ID, str(raw_clip), "--props", str(props_path)])
+    run_revideo("video", props_path, raw_clip)
     return raw_clip, composition_spec
 
 
@@ -80,9 +80,7 @@ def render_cover(composition_spec: dict, output_dir: Path) -> Path:
     props_path.write_text(json.dumps(cover_props), encoding="utf-8")
 
     cover_png = output_dir / "cover.png"
-    run_remotion(
-        ["remotion", "still", settings.REMOTION_POSTER_COMPOSITION_ID, str(cover_png), "--props", str(props_path)]
-    )
+    run_revideo("poster", props_path, cover_png)
     return cover_png
 
 

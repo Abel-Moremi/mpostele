@@ -1,10 +1,10 @@
-"""Poster Composition Agent: converts the overlay copy into Remotion poster props.
+"""Poster Composition Agent: converts the overlay copy into Revideo poster props.
 
-Poster path only - the orchestrator doesn't call this for video jobs. Remotion/CSS
+Poster path only - the orchestrator doesn't call this for video jobs. Revideo
 handles text wrapping and positioning itself, so unlike the old Pillow-based
 version, this prompt needs no canvas dimensions or coordinates - just the
 headline, a short CTA label, and two colors. Renders via the fixed
-remotion/src/scenes/Poster.tsx component (app/media/poster_engine.py).
+revideo/src/scenes/poster.tsx generator (app/media/poster_engine.py).
 """
 from app.agents.base import call_ollama, extract_json
 from app.cli import parse_job_arg

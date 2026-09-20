@@ -1,0 +1,63 @@
+{
+  "assets": [
+    {
+      "id": "sparkle-cluster-terracotta-large-9009c9ec",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "terracotta",
+        "size": "large"
+      },
+      "file": "generated/sparkle-cluster-terracotta-large-9009c9ec.svg",
+      "created_at": "2026-09-20T08:28:45Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-medium-cc6a5e2e",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-cream-medium-cc6a5e2e.svg",
+      "created_at": "2026-09-20T08:30:22Z"
+    },
+    {
+      "id": "sparkle-cluster-charcoal-medium-0f6478ea",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "charcoal",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-charcoal-medium-0f6478ea.svg",
+      "created_at": "2026-09-20T08:56:27Z"
+    },
+    {
+      "id": "sparkle-cluster-terracotta-medium-7f672e78",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "terracotta",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-terracotta-medium-7f672e78.svg",
+      "created_at": "2026-09-20T08:59:25Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-medium-cc6a5e2e",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-cream-medium-cc6a5e2e.svg",
+      "created_at": "2026-09-20T16:33:59Z"
+    },
+    {
+      "id": "sparkle-cluster-sage-3cf86308",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "sage"
+      },
+      "file": "generated/sparkle-cluster-sage-3cf86308.svg",
+      "created_at": "2026-09-20T16:36:27Z"
+    }
+  ]
+}

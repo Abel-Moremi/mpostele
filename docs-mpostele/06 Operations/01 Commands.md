@@ -11,10 +11,10 @@ curl -X POST http://localhost:11434/api/generate \
   -d '{"model": "qwen2.5:1.5b", "keep_alive": 0}'
 ```
 
-## Remotion setup (one-time)
+## Revideo setup (one-time)
 
 ```bash
-cd remotion && npm install
+cd revideo && npm install
 ```
 
 ## Running a job
@@ -27,9 +27,9 @@ python -m app.main --media-type video --brief-file examples/sample_brief.json
 ## Rendering a composition directly (for debugging, without the Python orchestrator)
 
 ```bash
-cd remotion
-npx remotion still Poster out/test.png --props='{"headline":"...","ctaText":"...","backgroundColor":"#0B1220","accentColor":"#2563EB"}'
-npx remotion render MainComposition out/test.mp4 --props='{"scenes":[...]}'
+cd revideo
+node render.mjs --project poster --props poster_props.json --out out/test.png
+node render.mjs --project video --props composition_props.json --out out/test.mp4
 ```
 
 ## FFmpeg
