@@ -8,7 +8,7 @@ from app.cli import parse_job_arg
 from app.orchestrator import state
 
 MAX_OVERLAY_CHARS = 40
-MAX_SCRIPT_CHARS = 220
+MAX_SCRIPT_CHARS = 330  # scaled with VIDEO_TARGET_DURATION_SECONDS (was 220 chars for a 20s target)
 
 
 def check(job_state: dict) -> list:

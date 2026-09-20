@@ -209,9 +209,18 @@ def resolve(decoration_spec: dict) -> str | None:
 def run(job_id: str) -> None:
     job_state = state.load(job_id)
     decoration_spec = job_state.get("decoration_spec", {"action": "none"})
-    decoration_asset = resolve(decoration_spec)
+    try:
+        decoration_asset = resolve(decoration_spec)
+    except Exception as exc:
+        # A decoration is a purely optional accent, never worth failing the
+        # whole job over (svg_validator.py already checked decoration_spec
+        # before this ran, but resolve() also depends on invariants it can't
+        # see from here - e.g. GENERATORS/manifest.json staying in sync with
+        # what the validator approved - so this is the actual backstop for
+        # "no decoration" rather than the validator's retry-exhaustion path).
+        print(f"svg_engine: decoration resolve failed ({exc!r}), rendering without one")
+        decoration_asset = None
 
-    job_state = state.load(job_id)
     job_state["decoration_asset"] = f"design/{decoration_asset}" if decoration_asset else None
     state.save(job_state)
 

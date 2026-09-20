@@ -58,6 +58,36 @@
       },
       "file": "generated/sparkle-cluster-sage-3cf86308.svg",
       "created_at": "2026-09-20T16:36:27Z"
+    },
+    {
+      "id": "sparkle-cluster-charcoal-medium-0f6478ea",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "charcoal",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-charcoal-medium-0f6478ea.svg",
+      "created_at": "2026-09-20T17:17:15Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-small-ba7af41a",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "small"
+      },
+      "file": "generated/sparkle-cluster-cream-small-ba7af41a.svg",
+      "created_at": "2026-09-20T17:53:29Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-small-ba7af41a",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "small"
+      },
+      "file": "generated/sparkle-cluster-cream-small-ba7af41a.svg",
+      "created_at": "2026-09-20T18:08:52Z"
     }
   ]
 }

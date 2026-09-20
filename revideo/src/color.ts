@@ -10,7 +10,14 @@
  */
 export const getContrastColor = (backgroundColor: string): string => {
 	const hex = backgroundColor.replace('#', '');
-	if (hex.length !== 6) {
+	// app/agents/composition_validator.py and poster_validator.py already
+	// reject anything but a strict 6-digit hex before a render is spawned -
+	// this checks the actual hex digits too (not just length), rather than
+	// relying on parseInt('GG', 16) happening to become NaN and NaN > 0.6
+	// happening to be falsy, so a future change to the comparison direction
+	// or formula here can't silently start returning a wrong (not just a
+	// safe-default) color for malformed input.
+	if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
 		return '#FFFFFF';
 	}
 	const r = parseInt(hex.slice(0, 2), 16);

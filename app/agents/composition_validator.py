@@ -5,6 +5,8 @@ quality_inspector.py and poster_validator.py's equivalent gate on the poster
 path. Exits non-zero on failure so the orchestrator's subprocess check can
 drive the retry loop.
 """
+import re
+
 from app.agents.quality_inspector import MAX_OVERLAY_CHARS, MAX_SCRIPT_CHARS
 from app.cli import parse_job_arg
 from app.config import settings
@@ -18,7 +20,16 @@ REQUIRED_PROPS = {
     "CaptionOverlay": {"text", "backgroundColor"},
     "Outro": {"text", "backgroundColor", "accentColor"},
 }
-MAX_TOTAL_FRAMES = settings.REVIDEO_FPS * 20
+COLOR_PROPS = {"backgroundColor", "accentColor"}
+MAX_TOTAL_FRAMES = settings.REVIDEO_FPS * settings.VIDEO_TARGET_DURATION_SECONDS
+
+# revideo/src/color.ts's getContrastColor only computes real contrast for a
+# strict 6-digit #RRGGBB string - anything else (a CSS name, "#fff", an alpha
+# hex) silently falls back to white with no error, which can render invisible
+# white-on-white text if the LLM ever emits something other than the exact
+# format it's asked for. Rejecting bad colors here, before a render is even
+# spawned, is the only real gate on that today.
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def check(job_state: dict) -> list:
@@ -30,11 +41,13 @@ def check(job_state: dict) -> list:
         return ["composition_spec.scenes must be a non-empty list"]
 
     total_frames = 0
+    seen_components = set()
     for i, scene in enumerate(scenes):
         component = scene.get("component")
         if component not in ALLOWED_COMPONENTS:
             problems.append(f"scene {i}: unknown component {component!r}")
             continue
+        seen_components.add(component)
 
         duration = scene.get("durationInFrames")
         if not isinstance(duration, int) or duration <= 0:
@@ -47,6 +60,11 @@ def check(job_state: dict) -> list:
         if missing:
             problems.append(f"scene {i} ({component}): missing props {sorted(missing)}")
 
+        for color_prop in COLOR_PROPS & props.keys():
+            value = props[color_prop]
+            if not isinstance(value, str) or not HEX_COLOR_RE.match(value):
+                problems.append(f"scene {i}: {color_prop} must be a 6-digit hex color like #0B1220, got {value!r}")
+
         text = props.get("text", "")
         if component == "CaptionOverlay" and len(text) > MAX_SCRIPT_CHARS:
             problems.append(f"scene {i}: text exceeds {MAX_SCRIPT_CHARS} characters ({len(text)})")
@@ -55,6 +73,13 @@ def check(job_state: dict) -> list:
 
     if total_frames > MAX_TOTAL_FRAMES:
         problems.append(f"total durationInFrames {total_frames} exceeds cap {MAX_TOTAL_FRAMES}")
+
+    # TitleReveal/Outro must each appear at least once - video_engine.py's
+    # derive_cover_props() reads the cover image's headline/CTA/colors from
+    # exactly these two, and has no data to build a cover without them.
+    missing_components = {"TitleReveal", "Outro"} - seen_components
+    if missing_components:
+        problems.append(f"composition_spec.scenes is missing required component(s) {sorted(missing_components)}")
 
     return problems
 

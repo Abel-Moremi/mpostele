@@ -29,16 +29,31 @@ _COVER_FIELD_MAP = [
     ("Outro", "fontFamily", "ctaFontFamily"),
     ("Outro", "logoSrc", "logoSrc"),
 ]
+# render.mjs's posterPropsSchema requires exactly these - composition_validator.py
+# requires a TitleReveal and an Outro scene to be present, but (like every other
+# gate here) still renders after MAX_QUALITY_RETRIES exhausted even if a check
+# failed, so this can't be assumed - see derive_cover_props/render_cover below.
+_REQUIRED_COVER_PROPS = {"headline", "ctaText", "backgroundColor", "accentColor"}
 
 
-def derive_cover_props(composition_spec: dict) -> dict:
-    scenes_by_component = {s["component"]: s["props"] for s in composition_spec["scenes"]}
+def derive_cover_props(composition_spec: dict) -> dict | None:
+    """None means the spec doesn't have what a cover needs (missing
+    TitleReveal/Outro, or one of them missing a required prop) - the caller
+    skips the cover instead of handing render.mjs's poster schema something
+    it will reject anyway."""
+    scenes_by_component = {}
+    for s in composition_spec.get("scenes", []):
+        if isinstance(s, dict) and isinstance(s.get("props"), dict):
+            scenes_by_component[s.get("component")] = s["props"]
 
     cover_props = {}
     for component, source_key, cover_key in _COVER_FIELD_MAP:
         props = scenes_by_component.get(component, {})
         if source_key in props:
             cover_props[cover_key] = props[source_key]
+
+    if not _REQUIRED_COVER_PROPS <= cover_props.keys():
+        return None
 
     for component in ("TitleReveal", "Outro"):
         decoration_src = scenes_by_component.get(component, {}).get("decorationSrc")
@@ -59,7 +74,13 @@ def render(job_state: dict, output_dir: Path) -> Path:
         # take it, so every video gets at most one decoration, not one per
         # eligible scene.
         for scene in composition_spec["scenes"]:
-            if scene["component"] in ("TitleReveal", "Outro"):
+            # .get() rather than scene["props"] - composition_validator.py
+            # retries composition_agent up to MAX_QUALITY_RETRIES times on a
+            # malformed scene (e.g. missing "props") but still renders
+            # whatever's left after that, by design; this loop shouldn't be
+            # the thing that turns a validator-reported problem into an
+            # unhandled crash instead of a controlled Revideo-side failure.
+            if scene.get("component") in ("TitleReveal", "Outro") and isinstance(scene.get("props"), dict):
                 scene["props"]["decorationSrc"] = decoration_asset
                 break
 
@@ -72,8 +93,10 @@ def render(job_state: dict, output_dir: Path) -> Path:
     return raw_clip, composition_spec
 
 
-def render_cover(composition_spec: dict, output_dir: Path) -> Path:
+def render_cover(composition_spec: dict, output_dir: Path) -> Path | None:
     cover_props = derive_cover_props(composition_spec)
+    if cover_props is None:
+        return None
 
     output_dir.mkdir(parents=True, exist_ok=True)
     props_path = output_dir / "cover_props.json"
@@ -90,13 +113,15 @@ def run(job_id: str) -> None:
     raw_clip, composition_spec = render(job_state, output_dir)
     raw_cover = render_cover(composition_spec, output_dir)
 
-    final_cover = settings.OUTPUT_DIR / job_id / "cover.png"
-    final_cover.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(raw_cover, final_cover)
+    final_cover = None
+    if raw_cover is not None:
+        final_cover = settings.OUTPUT_DIR / job_id / "cover.png"
+        final_cover.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(raw_cover, final_cover)
 
     job_state = state.load(job_id)
     job_state["artifacts"]["raw_clip"] = str(raw_clip)
-    job_state["artifacts"]["cover_image"] = str(final_cover)
+    job_state["artifacts"]["cover_image"] = str(final_cover) if final_cover else None
     job_state["current_step"] = "ENCODE"
     state.save(job_state)
 

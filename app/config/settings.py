@@ -15,6 +15,11 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
 OLLAMA_TIMEOUT_SECONDS = 120
 MAX_QUALITY_RETRIES = 2
 
+# Standard video length. composition_agent.py is told to aim for this, not just
+# stay under it - a ceiling alone doesn't stop a small local LLM from defaulting
+# short (observed: 9s against a 20s cap before this was made an explicit target).
+VIDEO_TARGET_DURATION_SECONDS = 30
+
 # Rendering - both video and poster render via the sibling revideo/ Node
 # project (headless Chromium), not a local or remote diffusion model. See
 # docs-mpostele/03 Workflow/03 Video Rendering Path.md and 02 Poster

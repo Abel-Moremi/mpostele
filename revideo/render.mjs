@@ -18,7 +18,7 @@
 process.env.DISABLE_TELEMETRY = 'true';
 
 import {execFileSync} from 'node:child_process';
-import {mkdtempSync, renameSync, rmSync} from 'node:fs';
+import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
@@ -70,15 +70,12 @@ async function renderPosterProject(props, outPath) {
 		settings: {outFile: tmpVideo, outDir: tmpDir, logProgress: true},
 	});
 
-	execFileSync(ffmpegInstaller.path, [
-		'-y',
-		'-i',
-		path.join(tmpDir, tmpVideo),
-		'-frames:v',
-		'1',
-		path.join(tmpDir, 'frame.png'),
-	]);
-	renameSync(path.join(tmpDir, 'frame.png'), outPath);
+	// Extract straight to outPath rather than a tmp path + rename - the
+	// caller's output directory always already exists by the time this
+	// runs (video_engine.py/poster_engine.py both mkdir it before calling
+	// run_revideo), and this sidesteps renameSync's EXDEV failure when the
+	// OS temp dir and the output dir are on different volumes/mounts.
+	execFileSync(ffmpegInstaller.path, ['-y', '-i', path.join(tmpDir, tmpVideo), '-frames:v', '1', outPath]);
 	rmSync(tmpDir, {recursive: true, force: true});
 }
 
