@@ -22,6 +22,8 @@ AGENT_MODULES = {
     "poster_validator": "app.agents.poster_validator",
     "composition": "app.agents.composition_agent",
     "composition_validator": "app.agents.composition_validator",
+    "svg": "app.agents.svg_agent",
+    "svg_validator": "app.agents.svg_validator",
 }
 
 
@@ -33,7 +35,11 @@ def run_job(media_type: str, aspect_ratio: str, input_brief: dict) -> str:
     run_stage(AGENT_MODULES["script"], job_id)
     _run_quality_gate(job_id)
 
+    _run_svg_gate(job_id)
+
     memory.unload_ollama_model()
+
+    run_stage("app.media.svg_engine", job_id)
 
     if media_type == "poster":
         _run_poster_gate(job_id)
@@ -82,6 +88,21 @@ def _run_poster_gate(job_id: str) -> None:
         if result.returncode == 0:
             return
         run_stage(AGENT_MODULES["poster_layout"], job_id)
+
+
+def _run_svg_gate(job_id: str) -> None:
+    """Bounded retries of svg_agent on a failed svg_validator check, same as
+    the other gates - but on final failure this falls through to no
+    decoration at all, not "render with whatever's there": a missing accent
+    is never as severe as bad copy, so it isn't worth risking a broken/
+    unvalidated decoration just to have one."""
+    run_stage(AGENT_MODULES["svg"], job_id)
+    for _ in range(settings.MAX_QUALITY_RETRIES):
+        result = run_stage(AGENT_MODULES["svg_validator"], job_id, check_exit_code=False)
+        if result.returncode == 0:
+            return
+        run_stage(AGENT_MODULES["svg"], job_id)
+    state.update(job_id, "decoration_spec", {"action": "none"})
 
 
 def _cleanup_intermediates(job_id: str) -> None:

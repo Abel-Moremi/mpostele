@@ -1,5 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Img, staticFile} from 'remotion';
+import {getContrastColor} from '../color';
 
 /**
  * Static - rendered via `remotion still` (a single frame capture), so no
@@ -17,19 +18,25 @@ export const Poster: React.FC<{
 	backgroundColor: string;
 	accentColor: string;
 	headlineColor?: string;
+	ctaTextColor?: string;
 	headlineFontFamily?: string;
 	ctaFontFamily?: string;
 	logoSrc?: string;
+	decorationSrc?: string;
 }> = ({
 	headline,
 	ctaText,
 	backgroundColor,
 	accentColor,
-	headlineColor = '#FFFFFF',
+	headlineColor,
+	ctaTextColor,
 	headlineFontFamily = 'sans-serif',
 	ctaFontFamily = 'sans-serif',
 	logoSrc,
+	decorationSrc,
 }) => {
+	const resolvedHeadlineColor = headlineColor ?? getContrastColor(backgroundColor);
+	const resolvedCtaTextColor = ctaTextColor ?? getContrastColor(accentColor);
 	return (
 		<AbsoluteFill
 			style={{
@@ -39,6 +46,12 @@ export const Poster: React.FC<{
 				padding: '10%',
 			}}
 		>
+			{decorationSrc && (
+				<Img
+					src={staticFile(decorationSrc)}
+					style={{position: 'absolute', top: 64, right: 64, width: 150}}
+				/>
+			)}
 			{logoSrc && <Img src={staticFile(logoSrc)} style={{width: 140, marginBottom: 48}} />}
 			<div style={{width: 96, height: 10, backgroundColor: accentColor, marginBottom: 40}} />
 			<div
@@ -48,7 +61,7 @@ export const Poster: React.FC<{
 					fontSize: 84,
 					lineHeight: 1.15,
 					letterSpacing: '-0.01em',
-					color: headlineColor,
+					color: resolvedHeadlineColor,
 					textAlign: 'center',
 					marginBottom: 80,
 				}}
@@ -60,7 +73,7 @@ export const Poster: React.FC<{
 					padding: '12px 24px',
 					borderRadius: 999,
 					backgroundColor: accentColor,
-					color: '#FFFFFF',
+					color: resolvedCtaTextColor,
 					fontFamily: ctaFontFamily,
 					fontWeight: 600,
 					fontSize: 44,

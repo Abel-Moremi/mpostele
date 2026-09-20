@@ -8,8 +8,10 @@ import {z} from 'zod';
 //
 // fontFamily/textColor/logoSrc fields are optional brand overrides (see
 // remotion/src/fonts.ts and remotion/public/design/design.md) - components
-// fall back to a generic sans-serif/white default when they're omitted, so
-// a differently-branded job doesn't need to set them at all.
+// fall back to a generic sans-serif font and a computed contrast-safe text
+// color (remotion/src/color.ts) when these are omitted, so a differently-
+// branded job doesn't need to set them at all and can't render illegible
+// text against whatever background color it picks.
 
 const titleRevealScene = z.object({
 	component: z.literal('TitleReveal'),
@@ -20,6 +22,7 @@ const titleRevealScene = z.object({
 		accentColor: z.string(),
 		textColor: z.string().optional(),
 		fontFamily: z.string().optional(),
+		decorationSrc: z.string().optional(),
 	}),
 });
 
@@ -41,8 +44,10 @@ const outroScene = z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
 		accentColor: z.string(),
+		textColor: z.string().optional(),
 		fontFamily: z.string().optional(),
 		logoSrc: z.string().optional(),
+		decorationSrc: z.string().optional(),
 	}),
 });
 
@@ -67,9 +72,11 @@ export const posterPropsSchema = z.object({
 	backgroundColor: z.string(),
 	accentColor: z.string(),
 	headlineColor: z.string().optional(),
+	ctaTextColor: z.string().optional(),
 	headlineFontFamily: z.string().optional(),
 	ctaFontFamily: z.string().optional(),
 	logoSrc: z.string().optional(),
+	decorationSrc: z.string().optional(),
 });
 
 export type PosterProps = z.infer<typeof posterPropsSchema>;

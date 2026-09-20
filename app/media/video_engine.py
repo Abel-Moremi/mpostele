@@ -28,9 +28,22 @@ def render(job_state: dict, output_dir: Path) -> Path:
     if node_binary is None:
         raise RuntimeError(f"NODE_BINARY ({settings.NODE_BINARY!r}) was not found on PATH. Install Node.js + npm.")
 
+    composition_spec = json.loads(json.dumps(job_state["composition_spec"]))  # deep copy before mutating
+    decoration_asset = job_state.get("decoration_asset")
+    if decoration_asset:
+        # Only TitleReveal/Outro have a reserved corner slot for this (see
+        # remotion/src/scenes/) - CaptionOverlay's word-by-word reveal has no
+        # safe spot for a static accent. Attach to the first scene that can
+        # take it, so every video gets at most one decoration, not one per
+        # eligible scene.
+        for scene in composition_spec["scenes"]:
+            if scene["component"] in ("TitleReveal", "Outro"):
+                scene["props"]["decorationSrc"] = decoration_asset
+                break
+
     output_dir.mkdir(parents=True, exist_ok=True)
     props_path = output_dir / "composition_props.json"
-    props_path.write_text(json.dumps(job_state["composition_spec"]), encoding="utf-8")
+    props_path.write_text(json.dumps(composition_spec), encoding="utf-8")
 
     raw_clip = output_dir / "raw_clip.mp4"
     subprocess.run(

@@ -1,5 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
+import {getContrastColor} from '../color';
 
 /**
  * Word-by-word caption reveal, timed by splitting the scene's own duration
@@ -18,7 +19,8 @@ export const CaptionOverlay: React.FC<{
 	durationInFrames: number;
 	textColor?: string;
 	fontFamily?: string;
-}> = ({text, backgroundColor, durationInFrames, textColor = '#FFFFFF', fontFamily = 'sans-serif'}) => {
+}> = ({text, backgroundColor, durationInFrames, textColor, fontFamily = 'sans-serif'}) => {
+	const resolvedTextColor = textColor ?? getContrastColor(backgroundColor);
 	const frame = useCurrentFrame();
 	const words = text.split(/\s+/).filter(Boolean);
 
@@ -40,7 +42,7 @@ export const CaptionOverlay: React.FC<{
 					fontWeight: 600,
 					fontSize: 56,
 					lineHeight: 1.7,
-					color: textColor,
+					color: resolvedTextColor,
 					textAlign: 'center',
 				}}
 			>

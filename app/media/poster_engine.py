@@ -25,9 +25,13 @@ def render(job_state: dict, output_dir: Path) -> Path:
     if node_binary is None:
         raise RuntimeError(f"NODE_BINARY ({settings.NODE_BINARY!r}) was not found on PATH. Install Node.js + npm.")
 
+    props = dict(job_state["poster_layout"])
+    if job_state.get("decoration_asset"):
+        props["decorationSrc"] = job_state["decoration_asset"]
+
     output_dir.mkdir(parents=True, exist_ok=True)
     props_path = output_dir / "poster_props.json"
-    props_path.write_text(json.dumps(job_state["poster_layout"]), encoding="utf-8")
+    props_path.write_text(json.dumps(props), encoding="utf-8")
 
     poster_png = output_dir / "poster.png"
     subprocess.run(

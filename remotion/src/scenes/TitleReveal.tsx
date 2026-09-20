@@ -1,5 +1,6 @@
 import React from 'react';
-import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {getContrastColor} from '../color';
 
 export const TitleReveal: React.FC<{
 	text: string;
@@ -7,7 +8,9 @@ export const TitleReveal: React.FC<{
 	accentColor: string;
 	textColor?: string;
 	fontFamily?: string;
-}> = ({text, backgroundColor, accentColor, textColor = '#FFFFFF', fontFamily = 'sans-serif'}) => {
+	decorationSrc?: string;
+}> = ({text, backgroundColor, accentColor, textColor, fontFamily = 'sans-serif', decorationSrc}) => {
+	const resolvedTextColor = textColor ?? getContrastColor(backgroundColor);
 	const frame = useCurrentFrame();
 	const {fps} = useVideoConfig();
 
@@ -25,6 +28,12 @@ export const TitleReveal: React.FC<{
 				padding: '10%',
 			}}
 		>
+			{decorationSrc && (
+				<Img
+					src={staticFile(decorationSrc)}
+					style={{position: 'absolute', top: 48, right: 48, width: 120, opacity}}
+				/>
+			)}
 			<div style={{width: 64, height: 8, backgroundColor: accentColor, marginBottom: 32, opacity}} />
 			<div
 				style={{
@@ -33,7 +42,7 @@ export const TitleReveal: React.FC<{
 					fontSize: 72,
 					lineHeight: 1.15,
 					letterSpacing: '-0.01em',
-					color: textColor,
+					color: resolvedTextColor,
 					textAlign: 'center',
 					opacity,
 					transform: `scale(${scale})`,
