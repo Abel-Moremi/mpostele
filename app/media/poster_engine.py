@@ -6,25 +6,15 @@ to state. Mirrors video_engine.py's subprocess pattern exactly.
 """
 import json
 import shutil
-import subprocess
 from pathlib import Path
 
 from app.cli import parse_job_arg
 from app.config import settings
+from app.media.remotion_cli import run_remotion
 from app.orchestrator import state
 
 
 def render(job_state: dict, output_dir: Path) -> Path:
-    if not settings.REMOTION_PROJECT_DIR.is_dir():
-        raise RuntimeError(
-            f"REMOTION_PROJECT_DIR ({settings.REMOTION_PROJECT_DIR}) does not exist. "
-            "Run `npm install` inside remotion/ first."
-        )
-
-    node_binary = shutil.which(settings.NODE_BINARY)
-    if node_binary is None:
-        raise RuntimeError(f"NODE_BINARY ({settings.NODE_BINARY!r}) was not found on PATH. Install Node.js + npm.")
-
     props = dict(job_state["poster_layout"])
     if job_state.get("decoration_asset"):
         props["decorationSrc"] = job_state["decoration_asset"]
@@ -34,20 +24,7 @@ def render(job_state: dict, output_dir: Path) -> Path:
     props_path.write_text(json.dumps(props), encoding="utf-8")
 
     poster_png = output_dir / "poster.png"
-    subprocess.run(
-        [
-            node_binary,
-            "remotion",
-            "still",
-            settings.REMOTION_POSTER_COMPOSITION_ID,
-            str(poster_png),
-            "--props",
-            str(props_path),
-        ],
-        cwd=settings.REMOTION_PROJECT_DIR,
-        check=True,
-        timeout=settings.REMOTION_RENDER_TIMEOUT_SECONDS,
-    )
+    run_remotion(["remotion", "still", settings.REMOTION_POSTER_COMPOSITION_ID, str(poster_png), "--props", str(props_path)])
     return poster_png
 
 

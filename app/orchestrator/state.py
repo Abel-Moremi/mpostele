@@ -28,6 +28,7 @@ def create(
         "artifacts": {
             "final_poster": None,
             "rendered_video": None,
+            "cover_image": None,
         },
     }
     save(job_state)
