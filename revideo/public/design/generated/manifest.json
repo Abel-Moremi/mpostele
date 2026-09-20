@@ -88,6 +88,16 @@
       },
       "file": "generated/sparkle-cluster-cream-small-ba7af41a.svg",
       "created_at": "2026-09-20T18:08:52Z"
+    },
+    {
+      "id": "sparkle-cluster-gold-large-0a9b3849",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "gold",
+        "size": "large"
+      },
+      "file": "generated/sparkle-cluster-gold-large-0a9b3849.svg",
+      "created_at": "2026-09-20T18:17:04Z"
     }
   ]
 }
