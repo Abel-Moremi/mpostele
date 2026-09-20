@@ -13,34 +13,32 @@
 Agent Pipeline Swarm   ◄──►  Local State Manager
 (transient subprocesses)     (state.json on disk)
       │
-      ├──► [ Poster Path ] ──► Local SD1.5 background + Pillow compositor
+      ├──► [ Poster Path ] ──► Remotion still render (single frame)
       │
-      └──► [ Video Path ]  ──► Local SD1.5 + AnimateDiff (fallback)
-                               OR Remote Wan2.1 dispatch (primary)
-                               OR Remotion code-driven render (opt-in, no diffusion model)
+      └──► [ Video Path ]  ──► Remotion render (Series of scenes) ──► FFmpeg encode
 ```
 
 ## Components
 
 ### 1. Orchestrator Engine
 
-Controls pipeline execution, state machine progression, error recovery, and process termination. Spawns each phase as an independent OS-level subprocess, and forcefully signals model unloads and CUDA cache flushes before launching the next one.
+Controls pipeline execution, state machine progression, error recovery, and process termination. Spawns each phase as an independent OS-level subprocess, and issues the Ollama unload signal before rendering begins.
 
 ### 2. Agent Pipeline Swarm
 
-`Qwen2.5-1.5B` via Ollama, executing task-specific prompts sequentially: Strategy & Trend, Script & Layout, Keyframe Prompt, Motion Director, Poster Composition, Quality Inspector, Platform Adaptor, and the Execution Dispatcher. The orchestrator unloads the model from RAM before any image or video generation process is spawned. See [[03 Workflow/01 Agent Pipeline Swarm]].
+`Qwen2.5-1.5B` via Ollama, executing task-specific prompts sequentially: Strategy & Trend, Script & Layout, Quality Inspector, then a media-type-specific pair — Poster Layout + Poster Validator, or Composition Director + Composition Validator — and Platform Adaptor. The orchestrator unloads the model from RAM before any render process is spawned. See [[03 Workflow/01 Agent Pipeline Swarm]].
 
 ### 3. Poster Rendering Engine
 
-A local SD1.5 (or LCM/Turbo derivative) generates a text-free background under ~2.5GB VRAM. Pillow composites text, badges, and logos on top using bounding-box-aware word wrapping. See [[03 Workflow/02 Poster Rendering Path]].
+`poster_layout_agent` produces a small data spec (headline, CTA text, two colors); `app/media/poster_engine.py` renders it via `npx remotion still` — a single-frame Remotion composition (`remotion/src/scenes/Poster.tsx`). No diffusion model, no separate background/composite step. See [[03 Workflow/02 Poster Rendering Path]].
 
 ### 4. Video Processing Engine
 
-SD1.5 + AnimateDiff renders locally at low frame counts as the fallback path; Wan2.1 is dispatched to a remote runtime (Colab/Modal/RunPod) as the primary, higher-fidelity path. A third, opt-in path renders via Remotion (Node/React, headless Chromium) — no diffusion model at all, code-driven motion graphics from a fixed scene-component library, so it carries no VRAM risk. RIFE interpolates frames and FFmpeg handles audio multiplexing and H.264 encoding for the AnimateDiff/Wan2.1 paths; the Remotion path renders at its target frame rate directly and skips interpolation. See [[03 Workflow/03 Video Rendering Path]].
+`composition_agent` produces a scene list (which fixed component, in what order, for how long, with what text/colors); `app/media/video_engine.py` renders it via `npx remotion render` against `remotion/src/MainComposition.tsx`'s `<Series>`. FFmpeg then multiplexes audio and encodes the final H.264 output. No diffusion model, no VRAM dependency, no RIFE interpolation step (Remotion renders natively at its target frame rate). See [[03 Workflow/03 Video Rendering Path]].
 
 ## Practical fit
 
-This architecture matches the hardware constraints not by avoiding diffusion models, but by never letting more than one generative stage hold GPU/RAM state at a time — every stage boundary is also a memory-reset boundary, enforced by subprocess isolation plus explicit unload hooks.
+Both render paths are deterministic and code-driven: a small, hand-written library of scene/poster components in `remotion/src/`, reused across every job, with only the *data* that feeds them coming from the agent swarm — never agent-generated code. That data is always checked by a deterministic validator (`quality_inspector.py`, `composition_validator.py`, `poster_validator.py`) before a render subprocess is spawned. Every stage boundary is still a process-isolation boundary, even without a VRAM budget to manage — subprocess isolation keeps failures contained and state debuggable via `state.json`.
 
 ## Related notes
 

@@ -1,22 +1,10 @@
 # Core
 requests==2.34.2
 
-# Poster compositing (no GPU)
-Pillow==12.3.0
-
-# Diffusion: poster background + local AnimateDiff fallback
-# torch needs the CUDA wheel: pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0
-torch==2.6.0
-diffusers==0.40.0
-transformers==5.17.0
-accelerate==1.15.0
-safetensors==0.8.0
-
 # System dependencies NOT installed via pip - see docs-mpostele/05 Implementation/03 Setup Checklist.md
 #   - Ollama (https://ollama.com/), then `ollama pull qwen2.5:1.5b`
-#   - FFmpeg, with NVENC support if available
-#   - a RIFE binary, path configured via the RIFE_BINARY env var
-#   - Node.js + npm, then `cd remotion && npm install` (only needed for
-#     --execution-mode remotion - see docs-mpostele/03 Workflow/03 Video
+#   - FFmpeg (for the final audio mux/encode pass)
+#   - Node.js + npm, then `cd remotion && npm install` (renders both the
+#     video and poster paths - see docs-mpostele/03 Workflow/03 Video
 #     Rendering Path.md; note Remotion's license requires a paid company
 #     license past a small-team size, see remotion.dev/license)

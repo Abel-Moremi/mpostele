@@ -1,15 +1,16 @@
 # mpostele
 
-This vault is the knowledge base for a local-first autonomous content studio: an LLM agent swarm plus diffusion-based image/video generation, run under a strict Sequential Execution Contract on a GTX 1050 Ti (4GB VRAM) / 8GB RAM machine.
+This vault is the knowledge base for a local-first autonomous content studio: an LLM agent swarm plus code-driven rendering (Remotion), run under a Sequential Execution Contract.
 
 ## Core idea
 
-The project generates both short-form marketing video and high-resolution static posters from the same planning layer. Instead of avoiding generative models, it constrains how they run:
+The project generates both short-form marketing video and high-resolution static posters from the same planning layer. Rendering is deterministic and code-driven, not model inference:
 
-- `Qwen2.5-1.5B` via Ollama for strategy, script, prompt, and layout planning
-- local SD1.5 for poster backgrounds, composited with Pillow
-- local SD1.5 + AnimateDiff as a video fallback, remote Wan2.1 dispatch as the primary video path
+- `Qwen2.5-1.5B` via Ollama for strategy, script, and per-media-type composition planning
+- Remotion (headless Chromium) renders both paths — `npx remotion still` for posters, `npx remotion render` for video — from a small, hand-written component library
 - every stage is a transient subprocess with an explicit unload hook before the next one starts
+
+This replaced an earlier local-diffusion-based design (SD1.5, AnimateDiff, remote Wan2.1 dispatch) once the Remotion path proved more reliable in practice — see [[04 Research/01 Local Diffusion Model Options]] for that history.
 
 ## Workflow
 
@@ -48,4 +49,4 @@ The project generates both short-form marketing video and high-resolution static
 
 ## Why this project exists
 
-The main design constraint is a fixed 4GB VRAM / 8GB RAM budget. Rather than excluding diffusion and LLM inference outright, the project isolates every generative step into its own disposable process with explicit memory-unload hooks, so no single job can accumulate resident state and push the machine into OOM or swap thrashing.
+Rather than running resident LLM/render services, the project isolates every generative step into its own disposable process with an explicit memory-unload hook, so no single job can accumulate resident state across runs.

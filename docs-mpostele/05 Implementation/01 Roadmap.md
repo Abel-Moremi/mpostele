@@ -4,37 +4,41 @@
 
 - define the `state.json` data contract and job lifecycle
 - build the orchestrator's subprocess spawn/kill loop
-- verify Ollama and a local SD1.5 checkpoint run on the target hardware
+- verify Ollama runs locally
 
 ## Phase 2: Agent swarm
 
-- implement the 8 agents (strategy, script, keyframe prompt, motion director, poster composition, quality inspector, platform adaptor, execution dispatcher)
-- wire the Quality Inspector's bounded 2-retry loop
-- confirm `keep_alive: 0` reliably releases `Qwen2.5-1.5B` before the next phase
+- implement the agents (strategy, script, quality inspector, composition director + composition validator, poster layout + poster validator, platform adaptor)
+- wire each validator's bounded 2-retry loop
+- confirm `keep_alive: 0` reliably releases `Qwen2.5-1.5B` before rendering starts
 
 ## Phase 3: Poster path
 
-- SD1.5 text-free background generation under the VRAM budget
-- Pillow compositor: text wrapping, badges, logos
-- validate against `poster_layout` schema end to end
+- `poster_layout_agent` producing a headline/CTA/color spec
+- `remotion/src/scenes/Poster.tsx` + `npx remotion still` rendering it
+- validate against the `poster_layout` schema end to end
 
 ## Phase 4: Video path
 
-- local SD1.5 + AnimateDiff fallback, measure actual VRAM ceiling and frame-count limits on the 1050 Ti
-- remote Wan2.1 dispatch client (Colab/Modal/RunPod)
-- RIFE interpolation and FFmpeg audio mux/encode
+- `composition_agent` producing a scene-list spec
+- `remotion/src/MainComposition.tsx` + `npx remotion render` rendering it
+- FFmpeg audio mux/encode
 
 ## Phase 5: Memory & process protocol
 
-- explicit unload hooks between every phase boundary
-- cleanup of intermediate frames/dumps/temp audio on job completion
-- confirm process isolation actually prevents cross-stage VRAM accumulation under load
+- explicit Ollama unload hook before rendering starts
+- cleanup of intermediate props/temp files on job completion
+- confirm process isolation holds under repeated runs
 
 ## Phase 6: Platform adaptation & automation
 
 - Platform Adaptor Agent output for TikTok/Instagram/X/LinkedIn
-- CLI or simple orchestrator entry point for running jobs end to end
+- CLI entry point for running jobs end to end
 - package the workflow for reuse
+
+## Superseded phases
+
+An earlier version of this roadmap planned local SD1.5/AnimateDiff generation and remote Wan2.1 dispatch for the video path, and Pillow compositing for the poster path. That stack was built, confirmed working, and then removed in favor of Remotion once it proved more reliable in practice — see [[04 Research/01 Local Diffusion Model Options]].
 
 ## Related notes
 

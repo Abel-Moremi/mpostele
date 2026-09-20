@@ -3,32 +3,36 @@
 ## Milestone 1: repo and docs foundation
 
 - initialize the project structure
-- document the sequential execution contract and hardware constraints
+- document the Sequential Execution Contract
 - define the `state.json` schema
 
 ## Milestone 2: agent swarm
 
 - get Ollama serving `Qwen2.5-1.5B` locally
-- implement all 8 agents against the state contract
-- validate the quality-inspector retry loop end to end
+- implement the agents against the state contract
+- validate each validator's retry loop end to end
 
 ## Milestone 3: poster path
 
-- SD1.5 background generation under budget
-- Pillow compositor producing a final poster from a sample `poster_layout`
-- fix the known word-wrap edge cases (see [[04 Research/04 Pillow Compositor Notes]])
+- `poster_layout_agent` producing a headline/CTA/color spec
+- `npx remotion still` rendering `remotion/src/scenes/Poster.tsx` into a final poster PNG
+- confirmed working end to end against a live Ollama server (2026-09-19)
 
 ## Milestone 4: video path
 
-- measure AnimateDiff's real VRAM footprint on the 1050 Ti at various frame counts
-- stand up the Wan2.1 remote dispatch client
-- RIFE + FFmpeg producing a final encoded clip
+- `composition_agent` producing a scene-list spec
+- `npx remotion render` rendering `remotion/src/MainComposition.tsx`'s `<Series>`, then FFmpeg encode
+- confirmed working end to end against a live Ollama server (2026-09-19), including two real bugs found and fixed (Windows `npx` resolution, nvenc driver mismatch) — see [[06 Operations/02 Troubleshooting]]
 
 ## Milestone 5: full pipeline
 
 - run a job end to end for both media types
-- confirm memory unload hooks and process isolation hold under repeated runs
+- confirm the Ollama unload hook and process isolation hold under repeated runs
 - confirm intermediate artifact cleanup actually fires on completion
+
+## Superseded milestones
+
+Earlier milestones covered local SD1.5/AnimateDiff generation, a remote Wan2.1 dispatch client, RIFE interpolation, and a Pillow compositor — all built, measured, and later removed in favor of the Remotion-only pipeline above. See [[04 Research/01 Local Diffusion Model Options]].
 
 ## Related notes
 

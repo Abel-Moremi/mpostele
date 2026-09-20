@@ -1,11 +1,13 @@
 import React from 'react';
-import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 
 export const Outro: React.FC<{
 	text: string;
 	backgroundColor: string;
 	accentColor: string;
-}> = ({text, backgroundColor, accentColor}) => {
+	fontFamily?: string;
+	logoSrc?: string;
+}> = ({text, backgroundColor, accentColor, fontFamily = 'sans-serif', logoSrc}) => {
 	const frame = useCurrentFrame();
 	const {fps} = useVideoConfig();
 
@@ -22,14 +24,15 @@ export const Outro: React.FC<{
 				padding: '10%',
 			}}
 		>
+			{logoSrc && <Img src={staticFile(logoSrc)} style={{width: 96, marginBottom: 40, opacity}} />}
 			<div
 				style={{
-					padding: '20px 40px',
+					padding: '12px 24px',
 					borderRadius: 999,
 					backgroundColor: accentColor,
 					color: '#FFFFFF',
-					fontFamily: 'sans-serif',
-					fontWeight: 700,
+					fontFamily,
+					fontWeight: 600,
 					fontSize: 40,
 					textAlign: 'center',
 					opacity,

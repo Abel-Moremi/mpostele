@@ -5,6 +5,11 @@ import {z} from 'zod';
 // REQUIRED_PROPS and app/agents/composition_agent.py's PROMPT - the Python
 // side validates before a render is even spawned, this schema is the last
 // check before the scene data reaches React.
+//
+// fontFamily/textColor/logoSrc fields are optional brand overrides (see
+// remotion/src/fonts.ts and remotion/public/design/design.md) - components
+// fall back to a generic sans-serif/white default when they're omitted, so
+// a differently-branded job doesn't need to set them at all.
 
 const titleRevealScene = z.object({
 	component: z.literal('TitleReveal'),
@@ -13,6 +18,8 @@ const titleRevealScene = z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
 		accentColor: z.string(),
+		textColor: z.string().optional(),
+		fontFamily: z.string().optional(),
 	}),
 });
 
@@ -22,6 +29,8 @@ const captionOverlayScene = z.object({
 	props: z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
+		textColor: z.string().optional(),
+		fontFamily: z.string().optional(),
 	}),
 });
 
@@ -32,6 +41,8 @@ const outroScene = z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
 		accentColor: z.string(),
+		fontFamily: z.string().optional(),
+		logoSrc: z.string().optional(),
 	}),
 });
 
@@ -47,3 +58,18 @@ export const compositionPropsSchema = z.object({
 
 export type CompositionProps = z.infer<typeof compositionPropsSchema>;
 export type Scene = z.infer<typeof sceneSchema>;
+
+// Poster path - keep in sync with app/agents/poster_validator.py's
+// REQUIRED_KEYS and app/agents/poster_layout_agent.py's PROMPT.
+export const posterPropsSchema = z.object({
+	headline: z.string(),
+	ctaText: z.string(),
+	backgroundColor: z.string(),
+	accentColor: z.string(),
+	headlineColor: z.string().optional(),
+	headlineFontFamily: z.string().optional(),
+	ctaFontFamily: z.string().optional(),
+	logoSrc: z.string().optional(),
+});
+
+export type PosterProps = z.infer<typeof posterPropsSchema>;

@@ -1,12 +1,11 @@
 """Composition Director Agent: converts the script into a Remotion scene list.
 
-Video path, Remotion target only - the orchestrator doesn't call this for
-poster jobs or for the local/remote AI-motion video targets. Produces data
-(which fixed scene components to use, in what order, for how long, with what
-text/colors) - never JSX. The scene components themselves are hand-written
-once in remotion/src/scenes/ and reused across every job; only this spec is
-agent-generated, same split as poster_layout_agent's coordinate map versus
-compositor.py's fixed rendering logic.
+Video path only - the orchestrator doesn't call this for poster jobs. Produces
+data (which fixed scene components to use, in what order, for how long, with
+what text/colors) - never JSX. The scene components themselves are
+hand-written once in remotion/src/scenes/ and reused across every job; only
+this spec is agent-generated, same split as poster_layout_agent's props
+versus remotion/src/scenes/Poster.tsx's fixed rendering logic.
 """
 from app.agents.base import call_ollama, extract_json
 from app.cli import parse_job_arg

@@ -16,7 +16,9 @@ export const CaptionOverlay: React.FC<{
 	text: string;
 	backgroundColor: string;
 	durationInFrames: number;
-}> = ({text, backgroundColor, durationInFrames}) => {
+	textColor?: string;
+	fontFamily?: string;
+}> = ({text, backgroundColor, durationInFrames, textColor = '#FFFFFF', fontFamily = 'sans-serif'}) => {
 	const frame = useCurrentFrame();
 	const words = text.split(/\s+/).filter(Boolean);
 
@@ -34,11 +36,11 @@ export const CaptionOverlay: React.FC<{
 		>
 			<div
 				style={{
-					fontFamily: 'sans-serif',
-					fontWeight: 700,
+					fontFamily,
+					fontWeight: 600,
 					fontSize: 56,
-					lineHeight: 1.3,
-					color: '#FFFFFF',
+					lineHeight: 1.7,
+					color: textColor,
 					textAlign: 'center',
 				}}
 			>

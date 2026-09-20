@@ -1,6 +1,8 @@
 # Pillow Compositor Notes
 
-Pillow is the vector/text compositor for the poster path — it never touches the GPU, so it can run right after the SD1.5 background subprocess exits with no VRAM concerns.
+> **Superseded.** The Pillow-based poster compositor was removed in favor of a Remotion `still` render (`remotion/src/scenes/Poster.tsx`) — see [[03 Workflow/02 Poster Rendering Path]]. Kept as the design record for the real edge cases found while it was in use.
+
+Pillow was the vector/text compositor for the poster path — it never touched the GPU, so it could run right after the SD1.5 background subprocess exited with no VRAM concerns.
 
 ## Word-wrap implementation
 

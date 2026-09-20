@@ -1,6 +1,6 @@
-"""Manual smoke test: runs the LLM agent swarm (strategy -> script -> keyframe
--> quality inspector) against a live Ollama server and prints the resulting
-state.json, without touching the diffusion stages.
+"""Manual smoke test: runs the LLM agent swarm (strategy -> script -> quality
+inspector) against a live Ollama server and prints the resulting state.json,
+without touching the Remotion render stages.
 
 Usage:
     python scripts/smoke_test_agents.py [path/to/brief.json]
@@ -22,12 +22,11 @@ def main(brief_path: str) -> None:
         input_brief = json.load(f)
 
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-    state.create(job_id, "poster", "9:16", "local", input_brief)
+    state.create(job_id, "poster", "9:16", input_brief)
     print(f"job: {job_id}")
 
     run_stage("app.agents.strategy_agent", job_id)
     run_stage("app.agents.script_agent", job_id)
-    run_stage("app.agents.keyframe_agent", job_id)
 
     for attempt in range(settings.MAX_QUALITY_RETRIES + 1):
         result = run_stage("app.agents.quality_inspector", job_id, check_exit_code=False)
@@ -36,7 +35,6 @@ def main(brief_path: str) -> None:
         if passed or attempt == settings.MAX_QUALITY_RETRIES:
             break
         run_stage("app.agents.script_agent", job_id)
-        run_stage("app.agents.keyframe_agent", job_id)
 
     print(json.dumps(state.load(job_id), indent=2))
 

@@ -16,19 +16,16 @@ def create(
     job_id: str,
     media_type: str,
     aspect_ratio: str,
-    execution_mode: str,
     input_brief: dict,
 ) -> dict:
     job_state = {
         "job_id": job_id,
         "media_type": media_type,
         "aspect_ratio": aspect_ratio,
-        "execution_mode": execution_mode,
         "status": "PROCESSING",
         "current_step": "STRATEGY_AGENT",
         "input_brief": input_brief,
         "artifacts": {
-            "raw_background": None,
             "final_poster": None,
             "rendered_video": None,
         },

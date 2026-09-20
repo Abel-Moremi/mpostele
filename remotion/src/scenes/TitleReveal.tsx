@@ -5,7 +5,9 @@ export const TitleReveal: React.FC<{
 	text: string;
 	backgroundColor: string;
 	accentColor: string;
-}> = ({text, backgroundColor, accentColor}) => {
+	textColor?: string;
+	fontFamily?: string;
+}> = ({text, backgroundColor, accentColor, textColor = '#FFFFFF', fontFamily = 'sans-serif'}) => {
 	const frame = useCurrentFrame();
 	const {fps} = useVideoConfig();
 
@@ -26,11 +28,12 @@ export const TitleReveal: React.FC<{
 			<div style={{width: 64, height: 8, backgroundColor: accentColor, marginBottom: 32, opacity}} />
 			<div
 				style={{
-					fontFamily: 'sans-serif',
+					fontFamily,
 					fontWeight: 800,
 					fontSize: 72,
 					lineHeight: 1.15,
-					color: '#FFFFFF',
+					letterSpacing: '-0.01em',
+					color: textColor,
 					textAlign: 'center',
 					opacity,
 					transform: `scale(${scale})`,

@@ -1,8 +1,4 @@
-"""Central configuration for the mpostele pipeline.
-
-VRAM/RAM-relevant defaults live here so they stay visible and boundable,
-per the Sequential Execution Contract (docs-mpostele/03 Workflow/04 Memory & Process Protocol.md).
-"""
+"""Central configuration for the mpostele pipeline."""
 import os
 from pathlib import Path
 
@@ -11,7 +7,7 @@ ASSETS_DIR = APP_DIR / "media" / "assets"
 JOBS_DIR = ASSETS_DIR / "jobs"
 TMP_DIR = ASSETS_DIR / "tmp"
 OUTPUT_DIR = ASSETS_DIR / "output"
-FONT_DIR = ASSETS_DIR / "fonts"  # .ttf files are not bundled - place them here
+FONT_DIR = ASSETS_DIR / "fonts"  # unused now that rendering is Remotion-only; kept for any future local text needs
 
 # Agent swarm (Ollama)
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
@@ -19,60 +15,21 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
 OLLAMA_TIMEOUT_SECONDS = 120
 MAX_QUALITY_RETRIES = 2
 
-# Poster path (local SD1.5, hard-capped - no SDXL, see AGENTS.md)
-SD15_MODEL_ID = os.environ.get("SD15_MODEL_ID", "runwayml/stable-diffusion-v1-5")
-SD15_STEPS = 20
-# CONFIRMED WORKING end to end on the target 1050 Ti (2026-09-18/19).
-# 768x1344 (the original guess) OOM'd even with attention slicing - 4.13GB
-# already allocated, needed 1.94GB more, well past the 4GB card. SD1.5 was
-# trained at 512x512; going well beyond that scales attention memory
-# sharply. Raising this is untested - increase incrementally.
-POSTER_GEN_WIDTH = 512
-POSTER_GEN_HEIGHT = 896
-
-# Video path - local fallback. CONFIRMED NOT VIABLE on the target 1050 Ti at
-# 4 or 16 frames under every configuration tried - see docs-mpostele/04
-# Research/01 Local Diffusion Model Options.md. Do not rely on this path
-# without re-testing after a real fix (lower resolution, a smaller
-# checkpoint, or accepting >1 min/frame).
-ANIMATEDIFF_MOTION_ADAPTER_ID = os.environ.get(
-    "ANIMATEDIFF_MOTION_ADAPTER_ID", "guoyww/animatediff-motion-adapter-v1-5-2"
-)
-ANIMATEDIFF_FRAME_COUNT = 8
-
-# Video path - remote dispatch (primary path, leaves the device - see
-# docs-mpostele/03 Workflow/03 Video Rendering Path.md). Colab has no
-# official job API, so this points at a small server run manually inside
-# colab/wan21_server.ipynb and exposed via ngrok. The URL changes every
-# time that notebook is restarted - re-set this each session.
-WAN21_REMOTE_ENDPOINT = os.environ.get("WAN21_REMOTE_ENDPOINT", "")
-WAN21_API_KEY = os.environ.get("WAN21_API_KEY", "")  # must match the notebook's API_KEY cell
-# CONFIRMED WORKING on a live Colab T4 (2026-09-18) at these exact values,
-# with the notebook using device_map="balanced" + attention_slicing +
-# vae.enable_slicing()/enable_tiling() - see docs-mpostele/03 Workflow/03
-# Video Rendering Path.md for the five failed configurations that preceded
-# this one. Raising these is untested - increase incrementally.
-WAN21_FRAME_COUNT = 9
-WAN21_WIDTH = 320
-WAN21_HEIGHT = 576
-WAN21_POLL_INTERVAL_SECONDS = 5
-WAN21_POLL_TIMEOUT_SECONDS = 900
-
-# Interpolation / encode
-RIFE_BINARY = os.environ.get("RIFE_BINARY", "")
-INTERPOLATION_TARGET_FPS = 32
-VIDEO_ENCODER = os.environ.get("VIDEO_ENCODER", "h264_nvenc")
-
-# Video path - Remotion dispatch (opt-in third option, see docs-mpostele/03
-# Workflow/03 Video Rendering Path.md). No diffusion model involved at all -
-# code-driven motion graphics rendered via headless Chromium, so it carries
-# no VRAM risk, unlike the other two video paths. Never selected by the
-# local/remote auto-fallback in dispatcher.py; only via explicit
-# --execution-mode remotion.
+# Rendering - both video and poster render via the sibling remotion/ Node
+# project (headless Chromium), not a local or remote diffusion model. See
+# docs-mpostele/03 Workflow/03 Video Rendering Path.md and 02 Poster
+# Rendering Path.md.
 NODE_BINARY = os.environ.get("NODE_BINARY", "npx")
 REMOTION_PROJECT_DIR = APP_DIR.parent / "remotion"
 REMOTION_COMPOSITION_ID = "MainComposition"
+REMOTION_POSTER_COMPOSITION_ID = "Poster"
 REMOTION_WIDTH = 1080
 REMOTION_HEIGHT = 1920
 REMOTION_FPS = 30
 REMOTION_RENDER_TIMEOUT_SECONDS = 300
+
+# Final encode. Default was h264_nvenc, but that failed on this machine's
+# driver (nvenc API 13.1 required, 13.0 found) - libx264 (software) has no
+# driver dependency and is the safer out-of-the-box default; override to
+# h264_nvenc if your driver supports it and you want the speedup.
+VIDEO_ENCODER = os.environ.get("VIDEO_ENCODER", "libx264")

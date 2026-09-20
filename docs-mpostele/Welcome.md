@@ -1,6 +1,6 @@
 # Welcome
 
-This vault is organized around the mpostele autonomous content studio: an LLM agent swarm and diffusion pipeline for generating posters and short-form video, built around a Sequential Execution Contract for 4GB VRAM / 8GB RAM hardware.
+This vault is organized around the mpostele autonomous content studio: an LLM agent swarm plus code-driven Remotion rendering for generating posters and short-form video, built around a Sequential Execution Contract.
 
 Start here:
 

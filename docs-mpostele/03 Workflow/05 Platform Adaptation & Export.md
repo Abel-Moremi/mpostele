@@ -19,7 +19,7 @@ Reformats the raw script and captions into platform-native copy for TikTok, Inst
 
 ## Cleanup
 
-Intermediate frame sequences, raw diffusion dumps, and temp audio clips are purged at this point — only the final output artifacts remain in the destination directory.
+Intermediate render props and temp files are purged at this point — only the final output artifacts remain in the destination directory.
 
 ## Related notes
 

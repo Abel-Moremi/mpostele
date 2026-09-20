@@ -4,7 +4,7 @@ Notes on running the agent swarm against a locally-served `Qwen2.5-1.5B` model.
 
 ## Model choice
 
-`Qwen2.5-1.5B` is small enough to load quickly and cheaply on 8GB system RAM, while still being capable enough for the swarm's structured, task-specific prompts (strategy, script, keyframe prompt, layout, QA, platform adaptation).
+`Qwen2.5-1.5B` is small enough to load quickly and cheaply on modest system RAM, while still being capable enough for the swarm's structured, task-specific prompts (strategy, script, composition/layout, QA, platform adaptation).
 
 ## Unload pattern
 
@@ -18,11 +18,11 @@ requests.post(
 )
 ```
 
-This must run before any diffusion subprocess is spawned — it releases RAM, not VRAM, but on an 8GB machine that headroom still matters once SD1.5/AnimateDiff processes start allocating their own working memory.
+This must run before the Remotion render subprocess is spawned — it frees RAM the LLM was holding before a headless-Chromium process starts allocating its own.
 
 ## Invocation pattern
 
-Each agent call is a single prompt sent to the already-running server, executed from its own short-lived subprocess on the orchestrator side — the LLM call itself doesn't need process-per-call isolation the way diffusion does, since Ollama already manages the model's residency; the subprocess boundary here is about keeping the orchestrator's own code decoupled from any one stage's failure.
+Each agent call is a single prompt sent to the already-running server, executed from its own short-lived subprocess on the orchestrator side — the LLM call itself doesn't need process-per-call isolation the way a render does, since Ollama already manages the model's residency; the subprocess boundary here is about keeping the orchestrator's own code decoupled from any one stage's failure.
 
 ## Related notes
 

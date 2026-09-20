@@ -22,10 +22,6 @@ def check(job_state: dict) -> list:
     if len(script) > MAX_SCRIPT_CHARS:
         problems.append(f"script_text exceeds {MAX_SCRIPT_CHARS} characters ({len(script)})")
 
-    keyframe = job_state.get("keyframe_prompt", {})
-    if job_state.get("media_type") == "poster" and "text" not in keyframe.get("negative", "").lower():
-        problems.append("poster negative prompt must exclude rendered text")
-
     return problems
 
 

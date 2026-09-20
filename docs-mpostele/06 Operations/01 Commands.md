@@ -1,6 +1,6 @@
 # Commands
 
-This note should hold the practical terminal commands used in the project.
+This note holds the practical terminal commands used in the project.
 
 ## Ollama
 
@@ -11,28 +11,31 @@ curl -X POST http://localhost:11434/api/generate \
   -d '{"model": "qwen2.5:1.5b", "keep_alive": 0}'
 ```
 
-## Diffusion (example, adjust to actual entry script)
+## Remotion setup (one-time)
 
 ```bash
-python -m app.media.poster_engine --job job_01H123456789
-python -m app.media.video_engine --job job_01H123456789
+cd remotion && npm install
 ```
 
-## Remote video dispatch (Wan2.1 via Colab)
+## Running a job
 
 ```bash
-# after opening colab/wan21_server.ipynb and running all cells, copy its printed URL:
-export WAN21_REMOTE_ENDPOINT="https://<something>.ngrok-free.app"
-export WAN21_API_KEY="<same value as the notebook's API_KEY cell>"
+python -m app.main --media-type poster --brief-file examples/sample_brief.json
+python -m app.main --media-type video --brief-file examples/sample_brief.json
+```
 
-# verify the client logic without a live Colab session:
-python scripts/smoke_test_remote_dispatch.py
+## Rendering a composition directly (for debugging, without the Python orchestrator)
+
+```bash
+cd remotion
+npx remotion still Poster out/test.png --props='{"headline":"...","ctaText":"...","backgroundColor":"#0B1220","accentColor":"#2563EB"}'
+npx remotion render MainComposition out/test.mp4 --props='{"scenes":[...]}'
 ```
 
 ## FFmpeg
 
 ```bash
-ffmpeg -i frames_%04d.png -i audio.wav -c:v h264_nvenc -c:a aac output.mp4
+ffmpeg -i raw_clip.mp4 -c:v libx264 -c:a aac output.mp4
 ```
 
 ## Python

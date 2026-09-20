@@ -1,17 +1,15 @@
 # FFmpeg Notes
 
-FFmpeg handles the last mile of the video path: taking RIFE-interpolated frames plus the audio track and producing the final deliverable, without adding any GPU inference cost of its own.
+FFmpeg handles the last mile of the video path: taking Remotion's rendered clip plus the audio track and producing the final deliverable. There's no interpolation step feeding it any more (RIFE was removed along with the diffusion paths it served) — it encodes straight from `artifacts.raw_clip`.
 
 ## Useful techniques
 
-- assembling interpolated frame sequences back into a video stream
-- multiplexing the narration/audio track onto the visual stream
-- `h264_nvenc` for hardware-accelerated encoding where available
+- multiplexing the narration/audio track onto the Remotion-rendered visual stream
 - trim/concat for joining sequential scenes
 
-## Constraints
+## Encoder choice
 
-FFmpeg's own memory footprint is very low, but it runs *after* the diffusion and interpolation stages have already used and released VRAM — sequence it last in the subprocess chain so it never overlaps with a GPU-heavy stage.
+Default is `libx264` (software) — see `app/config/settings.py`'s `VIDEO_ENCODER`. `h264_nvenc` (hardware-accelerated) is available via the same setting, but **failed on the actual dev machine's driver** (nvenc API 13.1 required, 13.0 found) — real measured failure, not a guess. Software encoding has no driver dependency and is the safer out-of-the-box default now that there's no VRAM budget forcing the hardware-encode choice.
 
 ## Related notes
 

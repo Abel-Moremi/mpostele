@@ -1,10 +1,9 @@
 """Composition Validator Agent: validates the Remotion scene list before a render is spawned.
 
 Deterministic checks rather than another LLM call, same rationale as
-quality_inspector.py. poster_layout_agent's output has no equivalent gate
-before compositor.py consumes it and can KeyError on malformed shape - this
-exists so the Remotion path doesn't repeat that gap. Exits non-zero on
-failure so the orchestrator's subprocess check can drive the retry loop.
+quality_inspector.py and poster_validator.py's equivalent gate on the poster
+path. Exits non-zero on failure so the orchestrator's subprocess check can
+drive the retry loop.
 """
 from app.agents.quality_inspector import MAX_OVERLAY_CHARS, MAX_SCRIPT_CHARS
 from app.cli import parse_job_arg

@@ -1,5 +1,7 @@
 # Tool Comparison
 
+> **Superseded.** This compares the diffusion-era tool stack (SD1.5, AnimateDiff, Wan2.1, Pillow, RIFE), all since removed in favor of Remotion + FFmpeg — see [[04 Research/01 Local Diffusion Model Options]]. Kept as the design record for the original tradeoff analysis.
+
 ## Comparison table
 
 | Tool | Best use | Memory profile | Fit for this project |

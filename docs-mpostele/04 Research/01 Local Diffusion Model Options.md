@@ -1,5 +1,7 @@
 # Local Diffusion Model Options
 
+> **Superseded.** The local diffusion path (and the remote Wan2.1 dispatch path it motivated) was removed from the pipeline in favor of Remotion (code-driven rendering, no diffusion model) once that path was confirmed reliably working — see [[03 Workflow/03 Video Rendering Path]]. Kept as the design record for why: the findings below are real, measured results, not guesses.
+
 This note captures the practical choices for running local diffusion within the 4GB VRAM budget.
 
 ## Allowed
