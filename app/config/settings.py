@@ -15,10 +15,20 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
 OLLAMA_TIMEOUT_SECONDS = 120
 MAX_QUALITY_RETRIES = 2
 
-# Standard video length. composition_agent.py is told to aim for this, not just
-# stay under it - a ceiling alone doesn't stop a small local LLM from defaulting
-# short (observed: 9s against a 20s cap before this was made an explicit target).
+# Narration-length pacing target for script_agent.py (how much narration text
+# to write, via MAX_SCRIPT_CHARS) - NOT a video-duration target. The video's
+# actual duration is derived from the real synthesized narration length (see
+# narration_engine.py) plus the fixed title/outro beats below, not this
+# constant - composition_agent.py no longer guesses toward it.
 VIDEO_TARGET_DURATION_SECONDS = 30
+
+# Fixed hold length for the two silent title-card scenes (TitleReveal/Outro -
+# narration only ever covers CaptionOverlay's script_text, see
+# narration_engine.py), sized against each scene's own hardcoded intro
+# animation in revideo/src/scenes/ (0.6s reveal, 1.1s badge pulse) plus a
+# beat of hold time to actually read the text.
+TITLE_REVEAL_SECONDS = 2.5
+OUTRO_HOLD_SECONDS = 3.0
 
 # Rendering - both video and poster render via the sibling revideo/ Node
 # project (headless Chromium), not a local or remote diffusion model. See
@@ -69,11 +79,10 @@ MUSIC_DIR = APP_DIR / "media" / "music"
 # loudnorm=I=-23) - this is an ADDITIONAL reduction on top of that, applied
 # at mix time. -21 compounded with the source's own -23ish LUFS put the
 # music around -45 to -49dB (measured), inaudible on typical playback - and
-# since script_text is usually much shorter than the video's target
-# duration, most of a video's runtime has no voiceover at all, so that
-# silence reads as "the video has no sound." A few dB under the voiceover's
-# peaks is enough separation to keep speech clear without burying the music
-# outside the voiceover's span.
+# TitleReveal/Outro (TITLE_REVEAL_SECONDS/OUTRO_HOLD_SECONDS above) have no
+# voiceover at all, so that silence reads as "the video has no sound" during
+# those beats. A few dB under the voiceover's peaks is enough separation to
+# keep speech clear without burying the music outside the voiceover's span.
 MUSIC_VOLUME_DB = -9
 AUDIO_FADE_SECONDS = 1.5
 AUDIO_MIX_TIMEOUT_SECONDS = 60

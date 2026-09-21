@@ -2,9 +2,15 @@
 
 This stage produces the short-form video from the `composition_spec` block written by `composition_agent` — the only video path in the pipeline now. It replaced two earlier approaches (local SD1.5 + AnimateDiff, remote Wan2.1 dispatch via Colab) that were removed once this path was confirmed reliably working; see [[04 Research/01 Local Diffusion Model Options]] for the full history of why.
 
+## Narration Engine
+
+`app/media/narration_engine.py` runs *before* composition: it synthesizes the Piper voiceover from `content.script_text` and probes its real duration with `ffprobe`, writing `narration.duration_seconds` to state. This runs ahead of `composition_agent` deliberately — see below.
+
 ## Composition Director Agent
 
-`app/agents/composition_agent.py` (Ollama) produces a *data* spec — an ordered list of scenes, each naming one of three fixed components (`TitleReveal`, `CaptionOverlay`, `Outro`) plus duration and text/color props — never scene code. The scene generators themselves are hand-written once in `revideo/src/scenes/` and reused across every job.
+`app/agents/composition_agent.py` (Ollama) produces a *data* spec — an ordered list of scenes, each naming one of three fixed components (`TitleReveal`, `CaptionOverlay`, `Outro`) plus text/color props — never scene code. The scene generators themselves are hand-written once in `revideo/src/scenes/` and reused across every job.
+
+Scene *duration* is not part of what the LLM decides. Narration only ever covers `CaptionOverlay`'s script body (narration_engine.py synthesizes from `content.script_text` alone), so `CaptionOverlay`'s `durationInFrames` is set in Python to exactly match the real narration length measured above; `TitleReveal`/`Outro` are fixed silent title-card beats (`settings.TITLE_REVEAL_SECONDS`/`OUTRO_HOLD_SECONDS`). Earlier, the LLM guessed all three durations toward a fixed target with no knowledge of real narration length, which meant the render could either cut off narration mid-sentence or run dead silent before Outro — this ordering removes that failure mode.
 
 ## Composition Validator
 
@@ -28,7 +34,7 @@ Nothing leaves the machine — Revideo renders entirely via a local headless-Chr
 
 ## Frame interpolation and audio
 
-No frame interpolation step exists any more (RIFE was removed along with the diffusion paths it served). FFmpeg multiplexes the narration/audio track and encodes the final H.264 output directly from Revideo's output.
+No frame interpolation step exists any more (RIFE was removed along with the diffusion paths it served). The narration voiceover is synthesized up front by `narration_engine.py` (see above), then `app/media/audio_engine.py` mixes it with a music bed after the video render (it needs the rendered clip's duration to probe, for the mix's fade timing) and `encode.py` multiplexes the result and encodes the final H.264 output directly from Revideo's output.
 
 ## Related notes
 

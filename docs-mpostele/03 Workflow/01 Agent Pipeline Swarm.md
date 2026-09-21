@@ -7,11 +7,12 @@ The agent swarm is the planning layer of the pipeline. It runs sequentially, one
 1. **Strategy & Trend Agent** — turns business guidelines and campaign inputs into target hooks and calls to action.
 2. **Script & Layout Agent** — generates spoken scripts, visual concepts, and text overlays.
 3. **Quality Inspector Agent** — validates output against constraints such as text length limits.
-4. **Composition Director Agent** (video only) — converts the script into a Revideo scene list: which fixed component, in what order, for how long, with what text/colors. Data only, never scene code.
-5. **Composition Validator Agent** (video only) — deterministic gate on the scene list before a render is spawned.
-6. **Poster Composition Agent** (poster only) — converts visual copy into a headline, a short CTA label, and two colors. Revideo handles layout itself, so no coordinates or canvas math are needed here any more.
-7. **Poster Validator Agent** (poster only) — deterministic gate on the poster spec before a render is spawned.
-8. **Platform Adaptor Agent** — formats raw scripts into platform-native copy (TikTok, Instagram, X, LinkedIn).
+4. **Narration Engine** (video only, not an LLM agent) — synthesizes the Piper voiceover from the script and measures its real duration *before* composition runs, so scene timing can be derived from it rather than guessed.
+5. **Composition Director Agent** (video only) — converts the script into a Revideo scene list: which fixed component, in what order, with what text/colors. Duration is assigned deterministically from the real narration length (CaptionOverlay) or fixed title/outro beats, not decided by the LLM. Data only, never scene code.
+6. **Composition Validator Agent** (video only) — deterministic gate on the scene list before a render is spawned.
+7. **Poster Composition Agent** (poster only) — converts visual copy into a headline, a short CTA label, and two colors. Revideo handles layout itself, so no coordinates or canvas math are needed here any more.
+8. **Poster Validator Agent** (poster only) — deterministic gate on the poster spec before a render is spawned.
+9. **Platform Adaptor Agent** — formats raw scripts into platform-native copy (TikTok, Instagram, X, LinkedIn).
 
 ## Retry behavior
 

@@ -9,7 +9,6 @@ import re
 
 from app.agents.quality_inspector import MAX_OVERLAY_CHARS, MAX_SCRIPT_CHARS
 from app.cli import parse_job_arg
-from app.config import settings
 from app.orchestrator import state
 
 # Keep in sync with revideo/src/schema.ts's component union and
@@ -21,7 +20,6 @@ REQUIRED_PROPS = {
     "Outro": {"text", "backgroundColor", "accentColor"},
 }
 COLOR_PROPS = {"backgroundColor", "accentColor"}
-MAX_TOTAL_FRAMES = settings.REVIDEO_FPS * settings.VIDEO_TARGET_DURATION_SECONDS
 
 # revideo/src/color.ts's getContrastColor only computes real contrast for a
 # strict 6-digit #RRGGBB string - anything else (a CSS name, "#fff", an alpha
@@ -40,7 +38,6 @@ def check(job_state: dict) -> list:
     if not isinstance(scenes, list) or not scenes:
         return ["composition_spec.scenes must be a non-empty list"]
 
-    total_frames = 0
     seen_components = set()
     for i, scene in enumerate(scenes):
         component = scene.get("component")
@@ -49,11 +46,14 @@ def check(job_state: dict) -> list:
             continue
         seen_components.add(component)
 
+        # durationInFrames is assigned deterministically by
+        # composition_agent.py's _assign_durations (real narration length for
+        # CaptionOverlay, fixed beats for TitleReveal/Outro), not LLM output -
+        # this still guards against a scene whose component the LLM produced
+        # but _assign_durations couldn't recognize.
         duration = scene.get("durationInFrames")
         if not isinstance(duration, int) or duration <= 0:
             problems.append(f"scene {i}: durationInFrames must be a positive integer, got {duration!r}")
-        else:
-            total_frames += duration
 
         props = scene.get("props", {})
         missing = REQUIRED_PROPS[component] - props.keys()
@@ -77,9 +77,6 @@ def check(job_state: dict) -> list:
         # rather than ship a video with blank-looking on-screen text.
         if not isinstance(text, str) or not re.search(r"[A-Za-z0-9]", text):
             problems.append(f"scene {i}: text is empty or placeholder-only ({text!r})")
-
-    if total_frames > MAX_TOTAL_FRAMES:
-        problems.append(f"total durationInFrames {total_frames} exceeds cap {MAX_TOTAL_FRAMES}")
 
     # TitleReveal/Outro must each appear at least once - video_engine.py's
     # derive_cover_props() reads the cover image's headline/CTA/colors from

@@ -1,72 +1,24 @@
-"""Audio engine: synthesizes the voiceover and mixes it with a background
-music bed into a single track for encode.py to mux in.
+"""Audio engine: mixes the already-synthesized narration voiceover with a
+background music bed into a single track for encode.py to mux in.
 
-Runs after video_engine.py (needs the rendered clip's duration) and before
-encode.py (which already knows how to mux a single artifacts["audio_track"]
-into the final render - this is the first stage that actually produces one).
-Voiceover comes from Piper (local TTS, no network calls - same "nothing
-leaves the machine" posture as the Ollama/ffmpeg/Revideo stages). Music comes
-from the synthesized placeholder beds in app/media/music/ - see
+Runs after video_engine.py (needs the rendered clip's duration to probe) and
+before encode.py (which already knows how to mux a single
+artifacts["audio_track"] into the final render - this is the first stage
+that actually produces one). The voiceover itself is synthesized earlier, by
+narration_engine.py, so composition_agent.py can size scene durations against
+its real length instead of guessing - this stage just probes and mixes.
+Music comes from the synthesized placeholder beds in app/media/music/ - see
 app/media/music/generate_placeholders.py for how those were made and how to
 regenerate or replace them with licensed tracks.
 """
 import hashlib
-import json
-import shutil
 import subprocess
 from pathlib import Path
 
 from app.cli import parse_job_arg
 from app.config import settings
+from app.media.narration_engine import probe_duration_seconds
 from app.orchestrator import state
-
-
-def resolve_piper_binary() -> str:
-    piper_binary = shutil.which(settings.PIPER_BINARY)
-    if piper_binary is None:
-        raise RuntimeError(
-            f"PIPER_BINARY ({settings.PIPER_BINARY!r}) was not found on PATH. Install Piper from "
-            "https://github.com/rhasspy/piper/releases and put it on PATH, or set PIPER_BINARY to "
-            "its full path."
-        )
-    if not settings.PIPER_VOICE_MODEL:
-        raise RuntimeError(
-            "PIPER_VOICE_MODEL is not set. Download a voice (.onnx + .onnx.json pair) from "
-            "https://huggingface.co/rhasspy/piper-voices and set PIPER_VOICE_MODEL to the .onnx path."
-        )
-    return piper_binary
-
-
-def synthesize_voiceover(script_text: str, out_path: Path) -> None:
-    piper_binary = resolve_piper_binary()
-    subprocess.run(
-        [
-            piper_binary,
-            "--model", settings.PIPER_VOICE_MODEL,
-            "--output_file", str(out_path),
-            "--noise_scale", str(settings.PIPER_NOISE_SCALE),
-            "--noise_w", str(settings.PIPER_NOISE_W),
-            "--length_scale", str(settings.PIPER_LENGTH_SCALE),
-        ],
-        input=script_text,
-        encoding="utf-8",
-        check=True,
-        timeout=settings.PIPER_TIMEOUT_SECONDS,
-    )
-
-
-def probe_duration_seconds(media_path: Path) -> float:
-    result = subprocess.run(
-        [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "json", str(media_path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return float(json.loads(result.stdout)["format"]["duration"])
 
 
 def pick_music_track(job_id: str) -> Path:
@@ -127,8 +79,7 @@ def run(job_id: str) -> None:
     output_dir = settings.TMP_DIR / job_id
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    voiceover_path = output_dir / "voiceover.wav"
-    synthesize_voiceover(job_state["content"]["script_text"], voiceover_path)
+    voiceover_path = Path(job_state["artifacts"]["voiceover"])
 
     raw_clip = Path(job_state["artifacts"]["raw_clip"])
     clip_duration = probe_duration_seconds(raw_clip)

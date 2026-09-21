@@ -34,7 +34,7 @@ Controls pipeline execution, state machine progression, error recovery, and proc
 
 ### 4. Video Processing Engine
 
-`composition_agent` produces a scene list (which fixed component, in what order, for how long, with what text/colors); `app/media/video_engine.py` renders it via `node render.mjs --project video` against `revideo/src/video-project.ts`'s master scene, which dispatches each entry to a hand-written generator. FFmpeg then multiplexes audio and encodes the final H.264 output. No diffusion model, no VRAM dependency, no RIFE interpolation step (Revideo renders natively at its target frame rate). See [[03 Workflow/03 Video Rendering Path]].
+`app/media/narration_engine.py` synthesizes the Piper narration voiceover and measures its real duration *before* composition runs. `composition_agent` produces a scene list (which fixed component, in what order, with what text/colors) with duration assigned deterministically in Python from that real narration length, not guessed by the LLM; `app/media/video_engine.py` renders it via `node render.mjs --project video` against `revideo/src/video-project.ts`'s master scene, which dispatches each entry to a hand-written generator. FFmpeg then multiplexes audio and encodes the final H.264 output. No diffusion model, no VRAM dependency, no RIFE interpolation step (Revideo renders natively at its target frame rate). See [[03 Workflow/03 Video Rendering Path]].
 
 ## Practical fit
 

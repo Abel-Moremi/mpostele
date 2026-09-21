@@ -45,6 +45,7 @@ def run_job(media_type: str, aspect_ratio: str, input_brief: dict) -> str:
         _run_poster_gate(job_id)
         run_stage("app.media.poster_engine", job_id)
     else:
+        run_stage("app.media.narration_engine", job_id)
         _run_composition_gate(job_id)
         run_stage("app.media.video_engine", job_id)
         run_stage("app.media.audio_engine", job_id)
