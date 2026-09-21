@@ -1,4 +1,14 @@
-"""Final FFmpeg pass: multiplex the audio track, embed the cover image, encode the deliverable video."""
+"""Final FFmpeg pass: multiplex the audio track, embed the cover image, encode the deliverable video.
+
+Both branches pass -movflags +faststart - without it ffmpeg writes the moov
+atom (the track/codec index a player reads before it can find the audio
+track at all) after the mdat payload. Every real player can still play a
+file like that by seeking, but several progressive/streaming-style players
+(browsers' <video> element among them) parse front-to-back and can end up
+rendering picture with no sound, or nothing at all, if they give up before
+reaching a moov atom that far in. Costs a few KB of read-ahead at encode
+time, nothing at playback time.
+"""
 import subprocess
 from pathlib import Path
 
@@ -12,9 +22,18 @@ def encode(raw_clip: Path, output_path: Path, audio_path: Path = None, cover_pat
     cmd = ["ffmpeg", "-y", "-i", str(raw_clip)]
 
     if not cover_path:
+        # raw_clip already carries its own silent placeholder audio track
+        # (Revideo bakes one into every render) - without an explicit map,
+        # ffmpeg's automatic stream selection can pick THAT over the real
+        # mixed track from audio_path instead of just using whichever one
+        # was given last (confirmed: it does, silently - the deliverable
+        # plays with an apparently-valid but inaudible audio stream).
         if audio_path:
             cmd += ["-i", str(audio_path)]
-        cmd += ["-c:v", settings.VIDEO_ENCODER, "-c:a", "aac", str(output_path)]
+        cmd += ["-map", "0:v"]
+        if audio_path:
+            cmd += ["-map", "1:a"]
+        cmd += ["-c:v", settings.VIDEO_ENCODER, "-c:a", "aac", "-movflags", "+faststart", str(output_path)]
         subprocess.run(cmd, check=True)
         return output_path
 
@@ -38,7 +57,7 @@ def encode(raw_clip: Path, output_path: Path, audio_path: Path = None, cover_pat
     cmd += ["-c:v", settings.VIDEO_ENCODER]
     if audio_path:
         cmd += ["-c:a", "aac"]
-    cmd += ["-c:v:1", "png", "-disposition:v:1", "attached_pic", str(output_path)]
+    cmd += ["-c:v:1", "png", "-disposition:v:1", "attached_pic", "-movflags", "+faststart", str(output_path)]
 
     subprocess.run(cmd, check=True)
     return output_path
