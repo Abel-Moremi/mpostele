@@ -40,7 +40,14 @@ def resolve_piper_binary() -> str:
 def synthesize_voiceover(script_text: str, out_path: Path) -> None:
     piper_binary = resolve_piper_binary()
     subprocess.run(
-        [piper_binary, "--model", settings.PIPER_VOICE_MODEL, "--output_file", str(out_path)],
+        [
+            piper_binary,
+            "--model", settings.PIPER_VOICE_MODEL,
+            "--output_file", str(out_path),
+            "--noise_scale", str(settings.PIPER_NOISE_SCALE),
+            "--noise_w", str(settings.PIPER_NOISE_W),
+            "--length_scale", str(settings.PIPER_LENGTH_SCALE),
+        ],
         input=script_text,
         encoding="utf-8",
         check=True,
@@ -76,8 +83,25 @@ def pick_music_track(job_id: str) -> Path:
 def mix_audio(voiceover_path: Path, music_path: Path, clip_duration: float, out_path: Path) -> None:
     fade = min(settings.AUDIO_FADE_SECONDS, max(clip_duration - 0.1, 0))
     fade_out_start = max(clip_duration - fade, 0)
+    # Piper's raw output is dry and peaks near 0dB - this "humanizing" chain
+    # takes the digital edge off before mixing: a little headroom, a warmth
+    # bump around 200Hz, a cut around 4.5kHz (where neural TTS tends to
+    # sound harshest/most synthetic), gentle compression for consistency, a
+    # touch of short room reflection (not an audible echo - just enough to
+    # not sound recorded in a dead-silent booth), and a limiter as a safety
+    # net against the EQ/compression pushing it back into clipping.
+    voice_chain = (
+        "aresample=44100,aformat=channel_layouts=stereo,"
+        "volume=-3dB,"
+        "highpass=f=80,"
+        "equalizer=f=200:t=q:w=1:g=2,"
+        "equalizer=f=4500:t=q:w=1:g=-3,"
+        "acompressor=threshold=-18dB:ratio=3:attack=5:release=60:makeup=4,"
+        "aecho=0.8:0.7:35:0.18,"
+        "alimiter=limit=0.97"
+    )
     filter_complex = (
-        "[0:a]aresample=44100,aformat=channel_layouts=stereo[voice];"
+        f"[0:a]{voice_chain}[voice];"
         "[1:a]aresample=44100,aformat=channel_layouts=stereo,"
         f"volume={settings.MUSIC_VOLUME_DB}dB,"
         f"afade=t=in:st=0:d={fade},afade=t=out:st={fade_out_start}:d={fade}[music];"

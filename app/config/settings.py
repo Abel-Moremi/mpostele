@@ -42,16 +42,38 @@ VIDEO_ENCODER = os.environ.get("VIDEO_ENCODER", "libx264")
 # repo). Get a binary from https://github.com/rhasspy/piper/releases and a
 # voice (.onnx + .onnx.json pair) from
 # https://huggingface.co/rhasspy/piper-voices, then point these at them -
-# see docs-mpostele/05 Implementation/03 Setup Checklist.md.
+# see docs-mpostele/05 Implementation/03 Setup Checklist.md. Prefer a "high"
+# quality tier voice (e.g. en_US-lessac-high) over "medium"/"low" - the
+# larger model is the single biggest lever on how synthetic the narration
+# sounds, well worth the extra few seconds of inference time per job.
 PIPER_BINARY = os.environ.get("PIPER_BINARY", "piper")
 PIPER_VOICE_MODEL = os.environ.get("PIPER_VOICE_MODEL")
 PIPER_TIMEOUT_SECONDS = 60
+
+# Synthesis tuning, away from Piper's own defaults (noise_scale=0.667,
+# noise_w=0.8, length_scale=1.0) - a touch more stochastic variation in
+# pitch/duration reads as less flat/robotic, and a slightly slower pace
+# reads as less rushed. All three are exposed as env vars so a voice that
+# doesn't need the nudge isn't forced to take it.
+PIPER_NOISE_SCALE = float(os.environ.get("PIPER_NOISE_SCALE", "0.75"))
+PIPER_NOISE_W = float(os.environ.get("PIPER_NOISE_W", "0.9"))
+PIPER_LENGTH_SCALE = float(os.environ.get("PIPER_LENGTH_SCALE", "1.05"))
 
 # Background music. app/media/music/ holds synthesized placeholder beds
 # (generate_placeholders.py) standing in for licensed tracks - audio_engine.py
 # just picks a filename from this directory, so swapping in real music later
 # needs no code change.
 MUSIC_DIR = APP_DIR / "media" / "music"
-MUSIC_VOLUME_DB = -21  # ducked well under the voiceover, audible not distracting
+# The placeholder tracks are already loudness-normalized to a quiet
+# background level at generation time (see generate_placeholders.py's
+# loudnorm=I=-23) - this is an ADDITIONAL reduction on top of that, applied
+# at mix time. -21 compounded with the source's own -23ish LUFS put the
+# music around -45 to -49dB (measured), inaudible on typical playback - and
+# since script_text is usually much shorter than the video's target
+# duration, most of a video's runtime has no voiceover at all, so that
+# silence reads as "the video has no sound." A few dB under the voiceover's
+# peaks is enough separation to keep speech clear without burying the music
+# outside the voiceover's span.
+MUSIC_VOLUME_DB = -9
 AUDIO_FADE_SECONDS = 1.5
 AUDIO_MIX_TIMEOUT_SECONDS = 60
