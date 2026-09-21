@@ -236,6 +236,26 @@
       },
       "file": "generated/sparkle-cluster-gold-small-5784346b.svg",
       "created_at": "2026-09-21T04:31:49Z"
+    },
+    {
+      "id": "sparkle-cluster-gold-medium-26586e15",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "gold",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-gold-medium-26586e15.svg",
+      "created_at": "2026-09-21T05:02:45Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-medium-cc6a5e2e",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-cream-medium-cc6a5e2e.svg",
+      "created_at": "2026-09-21T05:06:16Z"
     }
   ]
 }

@@ -10,4 +10,4 @@ requests==2.34.2
 #   - Piper (https://github.com/rhasspy/piper/releases) for local
 #     text-to-speech, plus a voice from https://huggingface.co/rhasspy/piper-voices
 #     (.onnx + .onnx.json pair) - put piper on PATH (or set PIPER_BINARY) and
-#     set PIPER_VOICE_MODEL to the .onnx path. See app/media/audio_engine.py.
+#     set PIPER_VOICE_MODEL to the .onnx path. See app/media/narration_engine.py.

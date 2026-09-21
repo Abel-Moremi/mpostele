@@ -32,7 +32,13 @@ def pick_music_track(job_id: str) -> Path:
     return tracks[index]
 
 
-def mix_audio(voiceover_path: Path, music_path: Path, clip_duration: float, out_path: Path) -> None:
+def mix_audio(
+    voiceover_path: Path,
+    music_path: Path,
+    clip_duration: float,
+    out_path: Path,
+    voice_delay_seconds: float = 0.0,
+) -> None:
     fade = min(settings.AUDIO_FADE_SECONDS, max(clip_duration - 0.1, 0))
     fade_out_start = max(clip_duration - fade, 0)
     # Piper's raw output is dry and peaks near 0dB - this "humanizing" chain
@@ -42,8 +48,17 @@ def mix_audio(voiceover_path: Path, music_path: Path, clip_duration: float, out_
     # touch of short room reflection (not an audible echo - just enough to
     # not sound recorded in a dead-silent booth), and a limiter as a safety
     # net against the EQ/compression pushing it back into clipping.
+    #
+    # adelay shifts the voice to start when CaptionOverlay actually appears
+    # on screen (voice_delay_seconds - the caller passes
+    # settings.TITLE_REVEAL_SECONDS), not at t=0 - without it, narration
+    # would play over the silent TitleReveal title card instead of the
+    # caption text it's meant to accompany, since narration_engine.py only
+    # synthesizes content.script_text (CaptionOverlay's copy).
+    voice_delay_ms = round(voice_delay_seconds * 1000)
     voice_chain = (
         "aresample=44100,aformat=channel_layouts=stereo,"
+        f"adelay=delays={voice_delay_ms}:all=1,"
         "volume=-3dB,"
         "highpass=f=80,"
         "equalizer=f=200:t=q:w=1:g=2,"
@@ -86,7 +101,13 @@ def run(job_id: str) -> None:
     music_path = pick_music_track(job_id)
 
     audio_track_path = output_dir / "audio_track.m4a"
-    mix_audio(voiceover_path, music_path, clip_duration, audio_track_path)
+    mix_audio(
+        voiceover_path,
+        music_path,
+        clip_duration,
+        audio_track_path,
+        voice_delay_seconds=settings.TITLE_REVEAL_SECONDS,
+    )
 
     job_state = state.load(job_id)
     job_state["artifacts"]["audio_track"] = str(audio_track_path)
