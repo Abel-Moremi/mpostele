@@ -36,3 +36,22 @@ REVIDEO_RENDER_TIMEOUT_SECONDS = 300
 # driver dependency and is the safer out-of-the-box default; override to
 # h264_nvenc if your driver supports it and you want the speedup.
 VIDEO_ENCODER = os.environ.get("VIDEO_ENCODER", "libx264")
+
+# Voiceover (Piper, local TTS - same "nothing leaves the machine" pattern as
+# Ollama/ffmpeg/Node: an external tool installed once, not managed by this
+# repo). Get a binary from https://github.com/rhasspy/piper/releases and a
+# voice (.onnx + .onnx.json pair) from
+# https://huggingface.co/rhasspy/piper-voices, then point these at them -
+# see docs-mpostele/05 Implementation/03 Setup Checklist.md.
+PIPER_BINARY = os.environ.get("PIPER_BINARY", "piper")
+PIPER_VOICE_MODEL = os.environ.get("PIPER_VOICE_MODEL")
+PIPER_TIMEOUT_SECONDS = 60
+
+# Background music. app/media/music/ holds synthesized placeholder beds
+# (generate_placeholders.py) standing in for licensed tracks - audio_engine.py
+# just picks a filename from this directory, so swapping in real music later
+# needs no code change.
+MUSIC_DIR = APP_DIR / "media" / "music"
+MUSIC_VOLUME_DB = -21  # ducked well under the voiceover, audible not distracting
+AUDIO_FADE_SECONDS = 1.5
+AUDIO_MIX_TIMEOUT_SECONDS = 60

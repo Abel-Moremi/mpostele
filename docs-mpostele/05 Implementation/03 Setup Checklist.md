@@ -5,7 +5,8 @@
 - [ ] verify Python version and dependencies (`pip install -r requirements.txt`)
 - [ ] install Ollama and pull `qwen2.5:1.5b`
 - [ ] install Node.js + npm, then `cd revideo && npm install` (required for both the poster and video paths)
-- [ ] install FFmpeg (needed for the final video encode/mux pass)
+- [ ] install FFmpeg (needed for the audio mix and final video encode/mux passes)
+- [ ] install Piper for local text-to-speech and download a voice model, then set `PIPER_BINARY`/`PIPER_VOICE_MODEL` (see `requirements.txt`)
 
 ## Project files
 

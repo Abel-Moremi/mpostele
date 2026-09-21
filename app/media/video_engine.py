@@ -122,7 +122,7 @@ def run(job_id: str) -> None:
     job_state = state.load(job_id)
     job_state["artifacts"]["raw_clip"] = str(raw_clip)
     job_state["artifacts"]["cover_image"] = str(final_cover) if final_cover else None
-    job_state["current_step"] = "ENCODE"
+    job_state["current_step"] = "AUDIO_ENGINE"
     state.save(job_state)
 
 

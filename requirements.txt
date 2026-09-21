@@ -3,7 +3,11 @@ requests==2.34.2
 
 # System dependencies NOT installed via pip - see docs-mpostele/05 Implementation/03 Setup Checklist.md
 #   - Ollama (https://ollama.com/), then `ollama pull qwen2.5:1.5b`
-#   - FFmpeg (for the final audio mux/encode pass)
+#   - FFmpeg (for the audio mix and final mux/encode passes)
 #   - Node.js + npm, then `cd revideo && npm install` (renders both the
 #     video and poster paths - see docs-mpostele/03 Workflow/03 Video
 #     Rendering Path.md)
+#   - Piper (https://github.com/rhasspy/piper/releases) for local
+#     text-to-speech, plus a voice from https://huggingface.co/rhasspy/piper-voices
+#     (.onnx + .onnx.json pair) - put piper on PATH (or set PIPER_BINARY) and
+#     set PIPER_VOICE_MODEL to the .onnx path. See app/media/audio_engine.py.

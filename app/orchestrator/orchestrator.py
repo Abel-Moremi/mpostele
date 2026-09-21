@@ -47,6 +47,7 @@ def run_job(media_type: str, aspect_ratio: str, input_brief: dict) -> str:
     else:
         _run_composition_gate(job_id)
         run_stage("app.media.video_engine", job_id)
+        run_stage("app.media.audio_engine", job_id)
         run_stage("app.media.encode", job_id)
 
     run_stage(AGENT_MODULES["platform_adaptor"], job_id)

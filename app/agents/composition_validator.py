@@ -71,6 +71,13 @@ def check(job_state: dict) -> list:
         elif component in ("TitleReveal", "Outro") and len(text) > MAX_OVERLAY_CHARS:
             problems.append(f"scene {i}: text exceeds {MAX_OVERLAY_CHARS} characters ({len(text)})")
 
+        # The prompt asks for real words, but a small local model has been
+        # observed echoing the "..." placeholder from its own example shape
+        # back verbatim - reject anything with no actual letters/digits
+        # rather than ship a video with blank-looking on-screen text.
+        if not isinstance(text, str) or not re.search(r"[A-Za-z0-9]", text):
+            problems.append(f"scene {i}: text is empty or placeholder-only ({text!r})")
+
     if total_frames > MAX_TOTAL_FRAMES:
         problems.append(f"total durationInFrames {total_frames} exceeds cap {MAX_TOTAL_FRAMES}")
 
