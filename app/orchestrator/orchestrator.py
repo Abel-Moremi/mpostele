@@ -17,6 +17,7 @@ AGENT_MODULES = {
     "strategy": "app.agents.strategy_agent",
     "script": "app.agents.script_agent",
     "quality_inspector": "app.agents.quality_inspector",
+    "creative_critic": "app.agents.creative_critic",
     "platform_adaptor": "app.agents.platform_adaptor",
     "poster_layout": "app.agents.poster_layout_agent",
     "poster_validator": "app.agents.poster_validator",
@@ -34,10 +35,12 @@ def run_job(media_type: str, aspect_ratio: str, input_brief: dict) -> str:
     run_stage(AGENT_MODULES["strategy"], job_id)
     run_stage(AGENT_MODULES["script"], job_id)
     _run_quality_gate(job_id)
+    _run_creative_gate(job_id)
 
     _run_svg_gate(job_id)
 
     memory.unload_ollama_model()
+    memory.unload_ollama_model(settings.OLLAMA_CREATIVE_MODEL)
 
     run_stage("app.media.svg_engine", job_id)
 
@@ -65,6 +68,20 @@ def _run_quality_gate(job_id: str) -> None:
     last failure rather than looping forever (AGENTS.md guardrail)."""
     for _ in range(settings.MAX_QUALITY_RETRIES):
         result = run_stage(AGENT_MODULES["quality_inspector"], job_id, check_exit_code=False)
+        if result.returncode == 0:
+            return
+        run_stage(AGENT_MODULES["script"], job_id)
+
+
+def _run_creative_gate(job_id: str) -> None:
+    """Same bounded-retry-then-fall-through shape as _run_quality_gate, but
+    re-running script_agent on a failed creative_critic check (holistic
+    "does this read naturally" judgment, not structural limits - runs for
+    both poster and video jobs). Not cross-checked against
+    quality_inspector.py's own limits afterward - same independent-gates
+    shape _run_svg_gate/_run_composition_gate already have."""
+    for _ in range(settings.MAX_QUALITY_RETRIES):
+        result = run_stage(AGENT_MODULES["creative_critic"], job_id, check_exit_code=False)
         if result.returncode == 0:
             return
         run_stage(AGENT_MODULES["script"], job_id)

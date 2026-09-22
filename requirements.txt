@@ -1,6 +1,9 @@
 # Core
 requests==2.34.2
 
+# Testing
+pytest==9.1.1
+
 # System dependencies NOT installed via pip - see docs-mpostele/05 Implementation/03 Setup Checklist.md
 #   - Ollama (https://ollama.com/), then `ollama pull qwen2.5:1.5b`
 #   - FFmpeg (for the audio mix and final mux/encode passes)

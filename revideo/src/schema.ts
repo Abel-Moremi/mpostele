@@ -13,9 +13,15 @@ import {z} from 'zod';
 // them at all and can't render illegible text against whatever background
 // color it picks.
 
+// Keep in sync with revideo/src/transitions.ts's TransitionKind and
+// app/agents/composition_agent.py's _TRANSITIONS. Optional and absent on the
+// last scene - there's nothing to transition into after it.
+const transitionOut = z.enum(['crossfade', 'slide', 'matchCut']).optional();
+
 const titleRevealScene = z.object({
 	component: z.literal('TitleReveal'),
 	durationInFrames: z.number().int().positive(),
+	transitionOut,
 	props: z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
@@ -29,9 +35,11 @@ const titleRevealScene = z.object({
 const captionOverlayScene = z.object({
 	component: z.literal('CaptionOverlay'),
 	durationInFrames: z.number().int().positive(),
+	transitionOut,
 	props: z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
+		accentColor: z.string(),
 		textColor: z.string().optional(),
 		fontFamily: z.string().optional(),
 	}),
@@ -40,6 +48,7 @@ const captionOverlayScene = z.object({
 const outroScene = z.object({
 	component: z.literal('Outro'),
 	durationInFrames: z.number().int().positive(),
+	transitionOut,
 	props: z.object({
 		text: z.string(),
 		backgroundColor: z.string(),

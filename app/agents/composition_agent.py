@@ -2,73 +2,135 @@
 
 Video path only - the orchestrator doesn't call this for poster jobs. Produces
 data (which fixed scene components to use, in what order, with what
-text/colors) - never scene code. The scene generators themselves are
-hand-written once in revideo/src/scenes/ and reused across every job; only
-this spec is agent-generated, same split as poster_layout_agent's props
+text/colors/transitions) - never scene code. The scene generators themselves
+are hand-written once in revideo/src/scenes/ and reused across every job;
+only this spec is agent-generated, same split as poster_layout_agent's props
 versus revideo/src/scenes/poster.tsx's fixed rendering logic.
 
-Scene *duration* is deliberately not part of what the LLM decides (see
-_assign_durations) - narration only ever covers CaptionOverlay's script body
-(narration_engine.py synthesizes from content.script_text alone), so its
-duration is set in Python to exactly match the real synthesized narration
-length, and TitleReveal/Outro get fixed silent-title-card beats from
-settings.TITLE_REVEAL_SECONDS/OUTRO_HOLD_SECONDS. A small local model guessing
-frame counts toward a target was a source of drift (the model has no way to
-know real narration length) and exact arithmetic it isn't reliable at
-regardless.
+Scene *count*, *duration*, and *text* for CaptionOverlay are deliberately not
+part of what the LLM decides (see _build_scenes): narration_engine.py already
+splits content.script_text into one real, measured segment per sentence, so
+Python builds one CaptionOverlay scene per segment directly from that -
+there's nothing left for the LLM to guess. Its only remaining job is
+adapting the hook/call-to-action into TitleReveal/Outro's on-screen text.
+
+Transition choice (see _assign_transitions/_propose_transitions) is a
+judgment call handed to the creative-tier model, with Python kept as the
+safety net that guarantees a valid, non-repeating result regardless of what
+the model proposes - so unlike the two text-generation calls above, a bad
+proposal here never needs a retry, it just falls back silently.
 """
+import hashlib
+
 from app.agents import brand
 from app.agents.base import call_ollama, extract_json
 from app.cli import parse_job_arg
 from app.config import settings
 from app.orchestrator import state
 
-# Keep in sync with revideo/src/schema.ts's component union and
-# app/agents/composition_validator.py's ALLOWED_COMPONENTS.
-PROMPT = """You are a video composition director. Given this script hook, script body, and call to
-action, respond with ONLY a JSON object matching this shape. Use ONLY these three scene
-components, in this order: "TitleReveal" (opens with the hook), "CaptionOverlay" (delivers the
-script body as on-screen caption text), "Outro" (closes with the call to action). Colors and fonts
-are fixed by the brand elsewhere, so do not include them - only "text". Every "text" value must be
-real words copied or adapted from the hook/script body/call to action below - never a placeholder
-like "..." or an empty string. Example shape (with placeholder example text your answer must NOT
-reuse - fill each "text" from this job's own hook/script body/call to action):
+PROMPT = """You are a video composition director. Given this campaign's hook and call to action,
+respond with ONLY a JSON object with two keys: "title_text" (a punchy on-screen adaptation of the
+hook, opening the video) and "outro_text" (a short on-screen adaptation of the call to action,
+closing the video). Both must be real words adapted from the hook/call to action below - never a
+placeholder like "..." or an empty string. No prose, no markdown fences. Example shape (placeholder
+text your answer must NOT reuse):
 {{
-  "scenes": [
-    {{"component": "TitleReveal", "props": {{"text": "Stop wrestling with setup scripts"}}}},
-    {{"component": "CaptionOverlay",
-      "props": {{"text": "Our CLI gets your containers running in one command, every time, on every machine your team touches."}}}},
-    {{"component": "Outro", "props": {{"text": "Try our CLI tool today"}}}}
-  ]
+  "title_text": "Stop wrestling with setup scripts",
+  "outro_text": "Try our CLI tool today"
 }}
-No prose, no markdown fences.
 
-Script hook: {target_hook}
-Script body: {script_text}
+Hook: {target_hook}
 Call to action: {call_to_action}
 """
 
-# Component -> fixed duration in seconds, except CaptionOverlay which is set
-# per job from the real narration length (see _assign_durations).
-_FIXED_SCENE_SECONDS = {
-    "TitleReveal": settings.TITLE_REVEAL_SECONDS,
-    "Outro": settings.OUTRO_HOLD_SECONDS,
-}
+# The Revideo transition library's known transition types
+# (revideo/src/transitions.ts) - keep in sync with schema.ts's transitionOut
+# enum. Component names below must likewise stay in sync with schema.ts's
+# component union and composition_validator.py's ALLOWED_COMPONENTS.
+_TRANSITIONS = ["crossfade", "slide", "matchCut"]
+
+TRANSITION_PROMPT = """You are a video editor choosing cut styles. Given this sequence of on-screen
+text moments in order, choose one transition for EACH of the {n_cuts} cuts between consecutive
+moments. Respond with ONLY a JSON object: {{"transitions": [...]}}, a list of exactly {n_cuts}
+values, each one of: crossfade, slide, matchCut. Pick whichever fits that specific cut's mood/pacing
+best - crossfade for a calm continuation, slide for an energetic/fast beat, matchCut for a dramatic
+or tightly connected idea. No prose, no markdown fences.
+
+Sequence:
+{sequence}
+"""
 
 
-def _assign_durations(composition_spec: dict, narration_seconds: float, fps: int) -> None:
-    """Injects durationInFrames per scene - deterministic, not agent output
-    (see module docstring for why). Leaves durationInFrames unset on any scene
-    with an unrecognized component instead of raising: composition_validator.py
-    already rejects a missing/non-positive durationInFrames, so a malformed
-    LLM scene list still flows through the existing retry-then-fall-through
-    gate in orchestrator.py rather than crashing the job outright."""
-    for scene in composition_spec.get("scenes", []):
-        component = scene.get("component")
-        if component == "CaptionOverlay":
-            scene["durationInFrames"] = round(narration_seconds * fps)
-        elif component in _FIXED_SCENE_SECONDS:
-            scene["durationInFrames"] = round(_FIXED_SCENE_SECONDS[component] * fps)
+def _frames(seconds: float) -> int:
+    return round(seconds * settings.REVIDEO_FPS)
+
+
+def _build_scenes(job_state: dict, title_text: str, outro_text: str) -> list:
+    scenes = [
+        {
+            "component": "TitleReveal",
+            "durationInFrames": _frames(settings.TITLE_REVEAL_SECONDS),
+            "props": {"text": title_text},
+        }
+    ]
+    for segment in job_state["narration"]["segments"]:
+        scenes.append(
+            {
+                "component": "CaptionOverlay",
+                "durationInFrames": _frames(segment["duration_seconds"]),
+                "props": {"text": segment["text"]},
+            }
+        )
+    scenes.append(
+        {
+            "component": "Outro",
+            "durationInFrames": _frames(settings.OUTRO_HOLD_SECONDS),
+            "props": {"text": outro_text},
+        }
+    )
+    return scenes
+
+
+def _propose_transitions(texts: list, n_cuts: int) -> list:
+    """Best-effort creative-tier proposal for which transition fits each
+    cut's mood/pacing - _assign_transitions treats anything invalid (wrong
+    count, unknown value, a repeat) as absent and falls back to its own
+    deterministic pick for that cut, so a failed or nonsensical proposal
+    never produces a broken result, just a less creatively-informed one."""
+    try:
+        sequence = "\n".join(f"{i + 1}. {text}" for i, text in enumerate(texts))
+        response = call_ollama(
+            TRANSITION_PROMPT.format(n_cuts=n_cuts, sequence=sequence),
+            model=settings.OLLAMA_CREATIVE_MODEL,
+        )
+        proposed = extract_json(response).get("transitions")
+        return proposed if isinstance(proposed, list) else []
+    except Exception as exc:
+        print(f"Warning: transition proposal failed, falling back to deterministic picks: {exc}")
+        return []
+
+
+def _assign_transitions(scenes: list, job_id: str) -> None:
+    """Picks a transitionOut for every scene except the last (nothing to
+    transition into). _propose_transitions supplies a creative-tier guess
+    per cut from each moment's on-screen text; Python is the safety net -
+    deterministic, job_id-seeded (same reproducible-but-varied approach
+    audio_engine.py's pick_music_track already uses) - guaranteeing every
+    cut still gets a *valid*, non-repeating transition regardless of what
+    (if anything) was proposed for it."""
+    texts = [scene["props"]["text"] for scene in scenes]
+    proposed = _propose_transitions(texts, len(scenes) - 1)
+
+    seed = int(hashlib.sha1(job_id.encode("utf-8")).hexdigest(), 16)
+    previous = None
+    for i, scene in enumerate(scenes[:-1]):
+        candidate = proposed[i] if i < len(proposed) else None
+        if candidate not in _TRANSITIONS or candidate == previous:
+            choices = [t for t in _TRANSITIONS if t != previous]
+            candidate = choices[seed % len(choices)]
+            seed //= len(choices)
+        scene["transitionOut"] = candidate
+        previous = candidate
 
 
 def _apply_brand(composition_spec: dict) -> None:
@@ -77,11 +139,19 @@ def _apply_brand(composition_spec: dict) -> None:
     the LLM produced (or omitted) rather than trust it, same reasoning
     app/agents/svg_agent.py already applies to decoration colors.
 
+    Every scene gets accentColor now, not just TitleReveal/Outro - all three
+    scene types render a small accent-colored anchor shape that a matchCut
+    transition can carry through the cut (see revideo/src/transitions.ts and
+    scenes/caption-overlay.tsx's new accent underline).
+
     Outro's text renders inside its terracotta badge/pill, not on the cream
     page background (revideo/src/scenes/outro.tsx) - it needs ink that
     contrasts with ACCENT_COLOR, per design.md's "put white ink on
     terracotta instead". TitleReveal/CaptionOverlay's text sits directly on
     the cream page, so it takes the normal body-text color instead.
+
+    Outro also gets the brand logo (revideo/src/scenes/outro.tsx has always
+    supported a logoSrc prop - it just had nothing setting it until now).
     """
     for scene in composition_spec.get("scenes", []):
         props = scene.get("props")
@@ -89,15 +159,16 @@ def _apply_brand(composition_spec: dict) -> None:
             continue
         component = scene.get("component")
         props["backgroundColor"] = brand.BACKGROUND_COLOR
+        props["accentColor"] = brand.ACCENT_COLOR
         if component == "CaptionOverlay":
             props["textColor"] = brand.TEXT_COLOR
             props["fontFamily"] = brand.BODY_FONT
         elif component == "Outro":
-            props["accentColor"] = brand.ACCENT_COLOR
             props["textColor"] = brand.ON_ACCENT_COLOR
             props["fontFamily"] = brand.HEADLINE_FONT
+            if brand.LOGO_SRC:
+                props["logoSrc"] = brand.LOGO_SRC
         else:
-            props["accentColor"] = brand.ACCENT_COLOR
             props["textColor"] = brand.TEXT_COLOR
             props["fontFamily"] = brand.HEADLINE_FONT
 
@@ -107,12 +178,17 @@ def run(job_id: str) -> None:
     response = call_ollama(
         PROMPT.format(
             target_hook=job_state["strategy_brief"]["target_hook"],
-            script_text=job_state["content"]["script_text"],
             call_to_action=job_state["strategy_brief"]["call_to_action"],
         )
     )
-    composition_spec = extract_json(response)
-    _assign_durations(composition_spec, job_state["narration"]["duration_seconds"], settings.REVIDEO_FPS)
+    llm_text = extract_json(response)
+    scenes = _build_scenes(
+        job_state,
+        title_text=llm_text.get("title_text", ""),
+        outro_text=llm_text.get("outro_text", ""),
+    )
+    _assign_transitions(scenes, job_id)
+    composition_spec = {"scenes": scenes}
     _apply_brand(composition_spec)
     state.update(job_id, "composition_spec", composition_spec, current_step="COMPOSITION_VALIDATOR")
 

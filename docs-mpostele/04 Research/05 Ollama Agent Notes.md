@@ -6,6 +6,8 @@ Notes on running the agent swarm against a locally-served `Qwen2.5-1.5B` model.
 
 `Qwen2.5-1.5B` is small enough to load quickly and cheaply on modest system RAM, while still being capable enough for the swarm's structured, task-specific prompts (strategy, script, composition/layout, QA, platform adaptation).
 
+A second, larger model - `Qwen2.5-3B` (`settings.OLLAMA_CREATIVE_MODEL`) - is reserved for actual judgment calls the fast model isn't well suited to, currently just `strategy_agent.py`'s mood tag (feeds `audio_engine.py`'s music pick - see [[03 Workflow/01 Agent Pipeline Swarm]]). Sized against this project's real hardware (an 8GB-RAM machine, often under 1GB free) - a 7B+ model risks thrashing here, especially with a Chromium render also in the picture, so 3B is the ceiling until that changes.
+
 ## Unload pattern
 
 Ollama's server process (`ollama serve`) stays running as infrastructure. Individual models are released from RAM by calling `/api/generate` with `keep_alive: 0`:
@@ -18,7 +20,7 @@ requests.post(
 )
 ```
 
-This must run before the Revideo render subprocess is spawned — it frees RAM the LLM was holding before a headless-Chromium process starts allocating its own.
+This must run before the Revideo render subprocess is spawned — it frees RAM the LLM was holding before a headless-Chromium process starts allocating its own. Both models get this treatment (`orchestrator.py` calls `memory.unload_ollama_model()` once per model) - the creative-tier model is loaded only briefly, for the mood-tagging call, but it's unloaded at the same point regardless.
 
 ## Invocation pattern
 

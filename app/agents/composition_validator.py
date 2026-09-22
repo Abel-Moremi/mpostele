@@ -16,7 +16,7 @@ from app.orchestrator import state
 ALLOWED_COMPONENTS = {"TitleReveal", "CaptionOverlay", "Outro"}
 REQUIRED_PROPS = {
     "TitleReveal": {"text", "backgroundColor", "accentColor"},
-    "CaptionOverlay": {"text", "backgroundColor"},
+    "CaptionOverlay": {"text", "backgroundColor", "accentColor"},
     "Outro": {"text", "backgroundColor", "accentColor"},
 }
 COLOR_PROPS = {"backgroundColor", "accentColor"}

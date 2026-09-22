@@ -48,6 +48,11 @@ def run(job_id: str) -> None:
             "ctaFontFamily": brand.BODY_FONT,
         }
     )
+    # revideo/src/scenes/poster.tsx has always supported a logoSrc prop too -
+    # it just had nothing setting it until now, same gap as the video path's
+    # Outro scene (see composition_agent.py's _apply_brand).
+    if brand.LOGO_SRC:
+        poster_layout["logoSrc"] = brand.LOGO_SRC
     state.update(job_id, "poster_layout", poster_layout, current_step="POSTER_VALIDATOR")
 
 

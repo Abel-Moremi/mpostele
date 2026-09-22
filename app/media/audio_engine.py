@@ -21,10 +21,18 @@ from app.media.narration_engine import probe_duration_seconds
 from app.orchestrator import state
 
 
-def pick_music_track(job_id: str) -> Path:
-    """Deterministic per job_id (reproducible re-renders) but varied across
-    jobs - no mood signal exists upstream to pick by (see strategy_brief) to
-    match against yet, so a stable hash is the simplest fair choice."""
+def pick_music_track(job_id: str, mood: str = None) -> Path:
+    """Prefers the track matching strategy_brief's mood tag (see
+    strategy_agent.py's _tag_mood and settings.MUSIC_MOODS) when there is
+    one and its file exists. Falls back to a job_id hash - deterministic per
+    job_id (reproducible re-renders) but varied across jobs - for a poster
+    job (no mood tagged at all), a mood tagging failure, or a mood value
+    that doesn't match a real file; never worth failing a job over."""
+    if mood:
+        candidate = settings.MUSIC_DIR / f"{mood}.mp3"
+        if candidate.exists():
+            return candidate
+
     tracks = sorted(settings.MUSIC_DIR.glob("*.mp3"))
     if not tracks:
         raise RuntimeError(f"No placeholder tracks found in {settings.MUSIC_DIR}.")
@@ -98,7 +106,7 @@ def run(job_id: str) -> None:
 
     raw_clip = Path(job_state["artifacts"]["raw_clip"])
     clip_duration = probe_duration_seconds(raw_clip)
-    music_path = pick_music_track(job_id)
+    music_path = pick_music_track(job_id, job_state["strategy_brief"].get("mood"))
 
     audio_track_path = output_dir / "audio_track.m4a"
     mix_audio(

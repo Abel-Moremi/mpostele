@@ -32,3 +32,12 @@ ON_ACCENT_COLOR = "#FFFFFF"
 # Type table: headlines/CTAs in Crimson Pro, body copy in Inter.
 HEADLINE_FONT = "Crimson Pro"
 BODY_FONT = "Inter"
+
+# Logo mark, rendered by revideo/src/scenes/outro.tsx and poster.tsx when
+# given a logoSrc prop - both already support it (an optional <Img>), it was
+# just never populated by composition_agent.py/poster_layout_agent.py, so
+# this asset has sat unused since it was added. Fixed brand identity like
+# the colors/fonts above, not a per-job choice - None (and so omitted from
+# props entirely, never a broken image reference) if the file is missing.
+_LOGO_PATH = settings.REVIDEO_PROJECT_DIR / "public" / "design" / "logo.png"
+LOGO_SRC = "design/logo.png" if _LOGO_PATH.exists() else None

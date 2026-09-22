@@ -15,6 +15,16 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
 OLLAMA_TIMEOUT_SECONDS = 120
 MAX_QUALITY_RETRIES = 2
 
+# Second, larger model reserved for judgment calls the fast structured-
+# extraction model (OLLAMA_MODEL) isn't well suited to - currently just
+# strategy_agent.py's mood tag (see MUSIC_MOODS below). Sized for this
+# project's actual hardware (an 8GB-RAM machine, often under 1GB free) -
+# qwen2.5:3b (~2GB at Q4 quant) is a real step up from 1.5B without risking
+# the thrashing a 7B+ model could cause here, especially with a Chromium
+# render also in the picture. Like OLLAMA_MODEL, must be explicitly unloaded
+# before any render subprocess spawns - see memory.py / orchestrator.py.
+OLLAMA_CREATIVE_MODEL = os.environ.get("OLLAMA_CREATIVE_MODEL", "qwen2.5:3b")
+
 # Narration-length pacing target for script_agent.py (how much narration text
 # to write, via MAX_SCRIPT_CHARS) - NOT a video-duration target. The video's
 # actual duration is derived from the real synthesized narration length (see
@@ -29,6 +39,23 @@ VIDEO_TARGET_DURATION_SECONDS = 30
 # beat of hold time to actually read the text.
 TITLE_REVEAL_SECONDS = 2.5
 OUTRO_HOLD_SECONDS = 3.0
+
+# Sentence segmentation for CaptionOverlay (narration_engine.py splits
+# content.script_text into one Piper synthesis + one scene per sentence, so
+# cuts land on real speech boundaries instead of one continuous block). A
+# sentence under this many characters gets merged into its neighbor before
+# synthesis - Piper's duration for a very short sentence can end up close to
+# or under TRANSITION_SECONDS, which would leave a transition with nothing
+# to overlap and read as a flash-cut glitch rather than a real scene.
+MIN_CAPTION_SEGMENT_CHARS = 25
+
+# Scene-to-scene transition length. MUST stay in sync with
+# revideo/src/transitions.ts's own TRANSITION_SECONDS constant - same
+# manual-sync pattern already used for REVIDEO_WIDTH/HEIGHT/FPS against
+# video-project.ts's WIDTH/HEIGHT/FPS. This doesn't add to a scene's own
+# durationInFrames total (see revideo/src/video-project.ts) - it borrows a
+# brief visual overlap from the outgoing scene's own tail instead.
+TRANSITION_SECONDS = 0.5
 
 # Rendering - both video and poster render via the sibling revideo/ Node
 # project (headless Chromium), not a local or remote diffusion model. See
@@ -74,6 +101,11 @@ PIPER_LENGTH_SCALE = float(os.environ.get("PIPER_LENGTH_SCALE", "1.05"))
 # just picks a filename from this directory, so swapping in real music later
 # needs no code change.
 MUSIC_DIR = APP_DIR / "media" / "music"
+# Single source of truth for the three placeholder tracks' mood names (keep
+# in sync with generate_placeholders.py's TRACKS keys, minus ".mp3") - both
+# strategy_agent.py's mood-tagging prompt and audio_engine.py's
+# pick_music_track reference this rather than hardcoding the list twice.
+MUSIC_MOODS = ("calm", "upbeat", "corporate")
 # The placeholder tracks are already loudness-normalized to a quiet
 # background level at generation time (see generate_placeholders.py's
 # loudnorm=I=-23) - this is an ADDITIONAL reduction on top of that, applied

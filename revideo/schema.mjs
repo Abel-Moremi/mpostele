@@ -5,9 +5,15 @@ import {z} from 'zod';
 // scene data reaches Revideo" validation boundary. Keep both in sync - see
 // src/schema.ts's own header comment for the rest of that boundary's chain.
 
+// Keep in sync with src/transitions.ts's TransitionKind and
+// app/agents/composition_agent.py's _TRANSITIONS. Optional and absent on the
+// last scene - there's nothing to transition into after it.
+const transitionOut = z.enum(['crossfade', 'slide', 'matchCut']).optional();
+
 const titleRevealScene = z.object({
 	component: z.literal('TitleReveal'),
 	durationInFrames: z.number().int().positive(),
+	transitionOut,
 	props: z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
@@ -21,9 +27,11 @@ const titleRevealScene = z.object({
 const captionOverlayScene = z.object({
 	component: z.literal('CaptionOverlay'),
 	durationInFrames: z.number().int().positive(),
+	transitionOut,
 	props: z.object({
 		text: z.string(),
 		backgroundColor: z.string(),
+		accentColor: z.string(),
 		textColor: z.string().optional(),
 		fontFamily: z.string().optional(),
 	}),
@@ -32,6 +40,7 @@ const captionOverlayScene = z.object({
 const outroScene = z.object({
 	component: z.literal('Outro'),
 	durationInFrames: z.number().int().positive(),
+	transitionOut,
 	props: z.object({
 		text: z.string(),
 		backgroundColor: z.string(),

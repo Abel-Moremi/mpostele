@@ -256,6 +256,105 @@
       },
       "file": "generated/sparkle-cluster-cream-medium-cc6a5e2e.svg",
       "created_at": "2026-09-21T05:06:16Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-medium-cc6a5e2e",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-cream-medium-cc6a5e2e.svg",
+      "created_at": "2026-09-21T05:27:47Z"
+    },
+    {
+      "id": "sparkle-cluster-gold-medium-26586e15",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "gold",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-gold-medium-26586e15.svg",
+      "created_at": "2026-09-21T05:51:33Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-medium-cc6a5e2e",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-cream-medium-cc6a5e2e.svg",
+      "created_at": "2026-09-21T16:19:49Z"
+    },
+    {
+      "id": "sparkle-cluster-gold-medium-26586e15",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "gold",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-gold-medium-26586e15.svg",
+      "created_at": "2026-09-21T16:41:51Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-ba0c5acf",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream"
+      },
+      "file": "generated/sparkle-cluster-cream-ba0c5acf.svg",
+      "created_at": "2026-09-21T16:44:21Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-small-ba7af41a",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "small"
+      },
+      "file": "generated/sparkle-cluster-cream-small-ba7af41a.svg",
+      "created_at": "2026-09-21T19:01:30Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-small-ba7af41a",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "small"
+      },
+      "file": "generated/sparkle-cluster-cream-small-ba7af41a.svg",
+      "created_at": "2026-09-22T02:41:16Z"
+    },
+    {
+      "id": "sparkle-cluster-gold-small-5784346b",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "gold",
+        "size": "small"
+      },
+      "file": "generated/sparkle-cluster-gold-small-5784346b.svg",
+      "created_at": "2026-09-22T02:58:56Z"
+    },
+    {
+      "id": "sparkle-cluster-gold-medium-26586e15",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "gold",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-gold-medium-26586e15.svg",
+      "created_at": "2026-09-22T03:05:20Z"
+    },
+    {
+      "id": "sparkle-cluster-gold-small-5784346b",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "gold",
+        "size": "small"
+      },
+      "file": "generated/sparkle-cluster-gold-small-5784346b.svg",
+      "created_at": "2026-09-22T03:08:31Z"
     }
   ]
 }
