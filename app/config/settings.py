@@ -129,3 +129,29 @@ MUSIC_MOODS = ("calm", "upbeat", "corporate")
 MUSIC_VOLUME_DB = -9
 AUDIO_FADE_SECONDS = 1.5
 AUDIO_MIX_TIMEOUT_SECONDS = 60
+
+# Social publishing (Postiz, self-hosted or hosted - see
+# docs.postiz.com/public-api). Opt-in only, via app.main's --publish flag -
+# a job's video/poster render is never blocked on this being configured.
+# Default URL is the hosted instance; point at a self-hosted one instead.
+POSTIZ_API_URL = os.environ.get("POSTIZ_API_URL", "https://api.postiz.com/public/v1")
+POSTIZ_API_KEY = os.environ.get("POSTIZ_API_KEY")
+POSTIZ_REQUEST_TIMEOUT_SECONDS = 30
+
+# One Postiz integration (connected-account) ID per platform key
+# platform_adaptor.py already produces captions for. Each account is
+# connected once through Postiz's own dashboard (OAuth isn't something this
+# pipeline can automate) - a platform with no ID configured here is skipped
+# rather than failing the job.
+POSTIZ_INTEGRATION_IDS = {
+    "tiktok": os.environ.get("POSTIZ_INTEGRATION_TIKTOK"),
+    "instagram": os.environ.get("POSTIZ_INTEGRATION_INSTAGRAM"),
+    "x": os.environ.get("POSTIZ_INTEGRATION_X"),
+    "linkedin": os.environ.get("POSTIZ_INTEGRATION_LINKEDIN"),
+}
+
+# Default is "schedule" a bit out, not "now" - the public API has no true
+# draft state (docs.postiz.com/public-api), so a delayed schedule is what
+# gives a human a review window in Postiz's own calendar before anything
+# actually goes out. --publish-now overrides this per job.
+POSTIZ_SCHEDULE_DELAY_MINUTES = int(os.environ.get("POSTIZ_SCHEDULE_DELAY_MINUTES", "60"))

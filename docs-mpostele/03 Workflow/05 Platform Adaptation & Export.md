@@ -21,6 +21,15 @@ Reformats the raw script and captions into platform-native copy for TikTok, Inst
 
 Intermediate render props and temp files are purged at this point — only the final output artifacts remain in the destination directory.
 
+## Publish engine (opt-in)
+
+`app/media/publish_engine.py` runs last, after platform adaptation, only when a job is started with `--publish` or `--publish-now`. It schedules the finished artifact to social platforms through a self-hosted or hosted [Postiz](https://docs.postiz.com/public-api) instance, one post per platform that has both a caption in `platform_copy` and a connected Postiz integration ID (`POSTIZ_INTEGRATION_*` env vars in `app/config/settings.py`).
+
+- **Postiz over Mixpost:** Postiz's free/self-hosted tier covers all four platforms `platform_adaptor.py` already writes copy for; Mixpost's open-core edition gates broader platform support behind its paid tier.
+- **Scheduled by default, not immediate:** Postiz's public API has no true draft state, so the default (`--publish`) schedules `POSTIZ_SCHEDULE_DELAY_MINUTES` out instead of posting with `"type": "now"` — that delay is the review window before anything goes out. `--publish-now` skips it.
+- **Account connection is manual:** Postiz's OAuth flow for connecting a social account happens once, in its own dashboard — this pipeline only submits/schedules to already-connected integration IDs, it doesn't do account onboarding.
+- **Never blocks a render:** a missing API key, an unconfigured platform, or a Postiz outage all degrade to a recorded `job_state["publish_status"]`, the same proportionate-degradation shape as `strategy_agent.py`'s mood tagging — a publish failure never undoes an already-rendered video/poster.
+
 ## Related notes
 
 - [[03 Workflow/01 Agent Pipeline Swarm]]

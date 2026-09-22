@@ -17,6 +17,7 @@ def create(
     media_type: str,
     aspect_ratio: str,
     input_brief: dict,
+    publish_now: bool = False,
 ) -> dict:
     job_state = {
         "job_id": job_id,
@@ -25,6 +26,10 @@ def create(
         "status": "PROCESSING",
         "current_step": "STRATEGY_AGENT",
         "input_brief": input_brief,
+        # Set at creation, not by publish_engine.py itself, so the flag is
+        # already on disk by the time that stage's subprocess reads state.json.
+        "publish_now": publish_now,
+        "publish_status": None,
         "artifacts": {
             "final_poster": None,
             "rendered_video": None,

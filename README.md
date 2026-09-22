@@ -78,6 +78,7 @@ mpostele/
 │       ├── poster_engine.py     # single-frame poster render
 │       ├── video_engine.py      # dispatched-scene video render
 │       ├── encode.py            # FFmpeg audio mux + final encode
+│       ├── publish_engine.py    # opt-in: schedules the finished artifact via Postiz
 │       └── assets/
 │           ├── jobs/     # one state.json per job (gitignored)
 │           ├── tmp/      # intermediate frames, purged on completion
@@ -110,6 +111,8 @@ python -m app.main --media-type video --brief-file examples/sample_brief.json
 ```
 
 Font files aren't needed (Revideo/CSS handles all text rendering) — see [docs-mpostele/05 Implementation/03 Setup Checklist](docs-mpostele/05%20Implementation/03%20Setup%20Checklist.md) for the full environment checklist.
+
+Add `--publish` (or `--publish-now`) to also schedule the finished artifact to social platforms via a self-hosted or hosted [Postiz](https://docs.postiz.com/public-api) instance — opt-in, and off by default. See [docs-mpostele/03 Workflow/05 Platform Adaptation & Export](docs-mpostele/03%20Workflow/05%20Platform%20Adaptation%20%26%20Export.md) for setup and behavior.
 
 ## Project goals
 

@@ -28,9 +28,15 @@ AGENT_MODULES = {
 }
 
 
-def run_job(media_type: str, aspect_ratio: str, input_brief: dict) -> str:
+def run_job(
+    media_type: str,
+    aspect_ratio: str,
+    input_brief: dict,
+    publish: bool = False,
+    publish_now: bool = False,
+) -> str:
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-    state.create(job_id, media_type, aspect_ratio, input_brief)
+    state.create(job_id, media_type, aspect_ratio, input_brief, publish_now=publish_now)
 
     run_stage(AGENT_MODULES["strategy"], job_id)
     run_stage(AGENT_MODULES["script"], job_id)
@@ -55,6 +61,14 @@ def run_job(media_type: str, aspect_ratio: str, input_brief: dict) -> str:
         run_stage("app.media.encode", job_id)
 
     run_stage(AGENT_MODULES["platform_adaptor"], job_id)
+
+    if publish:
+        # check_exit_code=False: a Postiz outage or misconfiguration is
+        # never worth failing a job whose video/poster already rendered -
+        # publish_engine.py itself degrades to a recorded publish_status
+        # rather than raising, this is just a second layer of the same
+        # proportionate-degradation guarantee.
+        run_stage("app.media.publish_engine", job_id, check_exit_code=False)
 
     job_state = state.load(job_id)
     job_state["status"] = "COMPLETE"
