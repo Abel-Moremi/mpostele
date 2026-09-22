@@ -1,4 +1,17 @@
 from app.agents import strategy_agent
+from app.config import settings
+
+
+def test_load_product_brief_reads_configured_file(tmp_path, monkeypatch):
+    brief_path = tmp_path / "product_brief.md"
+    brief_path.write_text("# Dreamcraftr\nwarm, poetic voice", encoding="utf-8")
+    monkeypatch.setattr(settings, "PRODUCT_BRIEF_PATH", str(brief_path))
+    assert "warm, poetic voice" in strategy_agent._load_product_brief()
+
+
+def test_load_product_brief_degrades_when_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PRODUCT_BRIEF_PATH", str(tmp_path / "missing.md"))
+    assert strategy_agent._load_product_brief() == ""
 
 
 def test_tag_mood_returns_recognized_value(monkeypatch):

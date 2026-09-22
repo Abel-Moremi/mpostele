@@ -9,6 +9,17 @@ TMP_DIR = ASSETS_DIR / "tmp"
 OUTPUT_DIR = ASSETS_DIR / "output"
 FONT_DIR = ASSETS_DIR / "fonts"  # unused now that rendering is Revideo-only; kept for any future local text needs
 
+# Persistent product context for strategy_agent.py, on top of the per-job
+# input_brief (examples/*_brief.json). The per-job brief is a one-line
+# campaign angle; this file carries the durable positioning/voice/audience
+# detail that should stay consistent across every campaign for the same
+# product, so it doesn't need to be re-typed into every brief JSON.
+# Env-overridable for a future different product, same pattern as
+# PIPER_VOICE_MODEL below.
+PRODUCT_BRIEF_PATH = os.environ.get(
+    "PRODUCT_BRIEF_PATH", str(Path(__file__).resolve().parent / "product_brief.md")
+)
+
 # Agent swarm (Ollama)
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")

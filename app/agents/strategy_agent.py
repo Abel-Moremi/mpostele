@@ -1,11 +1,17 @@
 """Strategy & Trend Agent: turns campaign inputs into a target hook and CTA."""
+from pathlib import Path
+
 from app.agents.base import call_ollama, extract_json
 from app.cli import parse_job_arg
 from app.config import settings
 from app.orchestrator import state
 
-PROMPT = """You are a marketing strategist. Given this campaign brief, respond with ONLY a JSON
-object with keys "topic", "target_hook", and "call_to_action". No prose, no markdown fences.
+PROMPT = """You are a marketing strategist. Given the product brief and campaign brief below,
+respond with ONLY a JSON object with keys "topic", "target_hook", and "call_to_action". No prose,
+no markdown fences.
+
+Product brief:
+{product_brief}
 
 Campaign brief:
 {brief}
@@ -22,6 +28,17 @@ object with one key "mood", whose value is exactly one of: {moods}. No prose, no
 Campaign brief:
 {brief}
 """
+
+
+def _load_product_brief() -> str:
+    """Best-effort, same degradation shape as _tag_mood below - a missing or
+    unreadable product_brief.md shouldn't crash the pipeline's first stage,
+    it should just fall back to campaign-brief-only strategy generation."""
+    try:
+        return Path(settings.PRODUCT_BRIEF_PATH).read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"Warning: product brief unavailable, continuing without it: {exc}")
+        return ""
 
 
 def _tag_mood(input_brief: dict) -> str:
@@ -46,7 +63,9 @@ def _tag_mood(input_brief: dict) -> str:
 
 def run(job_id: str) -> None:
     job_state = state.load(job_id)
-    response = call_ollama(PROMPT.format(brief=job_state["input_brief"]))
+    response = call_ollama(
+        PROMPT.format(product_brief=_load_product_brief(), brief=job_state["input_brief"])
+    )
     strategy_brief = extract_json(response)
 
     if job_state["media_type"] != "poster":
