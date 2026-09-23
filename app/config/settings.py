@@ -51,6 +51,15 @@ VIDEO_TARGET_DURATION_SECONDS = 30
 TITLE_REVEAL_SECONDS = 2.5
 OUTRO_HOLD_SECONDS = 3.0
 
+# Fixed hold lengths for the two new scene beats (composition_agent.py's
+# _build_scenes) - sized against their own hardcoded intro animation in
+# revideo/src/scenes/ the same way TITLE_REVEAL_SECONDS/OUTRO_HOLD_SECONDS
+# above are: ILLUSTRATED_EXAMPLE_SECONDS covers 2-3 staggered item reveals
+# (~0.4s each) plus a beat of hold; TRANSITION_BEAT_SECONDS is deliberately
+# short - it's a connective beat, not content to read.
+ILLUSTRATED_EXAMPLE_SECONDS = 3.5
+TRANSITION_BEAT_SECONDS = 1.2
+
 # Sentence segmentation for CaptionOverlay (narration_engine.py splits
 # content.script_text into one Piper synthesis + one scene per sentence, so
 # cuts land on real speech boundaries instead of one continuous block). A

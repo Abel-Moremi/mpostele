@@ -25,6 +25,13 @@ BACKGROUND_COLOR = _palette["cream"]
 ACCENT_COLOR = _palette["terracotta"]
 TEXT_COLOR = _palette["charcoal"]
 
+# Two more fixed brand tones, for AbstractTransition's gradient orb (the only
+# scene using more than one accent color at once) - design.md: "Gold -
+# celebration and highlight" / "Sage - confirmations, checkmarks". Fixed
+# identity like the three colors above, not a per-job choice.
+SECONDARY_ACCENT_COLOR = _palette["gold"]
+TERTIARY_ACCENT_COLOR = _palette["sage"]
+
 # "Button ... Primary is terracotta/white" (design.md) - ink that sits on top
 # of ACCENT_COLOR (a CTA pill, an Outro accent bar), not on the page itself.
 ON_ACCENT_COLOR = "#FFFFFF"

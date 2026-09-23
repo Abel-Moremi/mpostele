@@ -19,14 +19,27 @@ judgment call handed to the creative-tier model, with Python kept as the
 safety net that guarantees a valid, non-repeating result regardless of what
 the model proposes - so unlike the two text-generation calls above, a bad
 proposal here never needs a retry, it just falls back silently.
+
+Which IllustratedExample archetypes to feature (see _choose_archetypes/
+_propose_archetypes) is the same shape of judgment call handed to the
+creative-tier model, with the same Python safety net - the model picks
+*ids* from revideo/public/design/archetypes/manifest.json's fixed, hand-
+authored icon set (never invents or draws one, see
+revideo/src/scenes/illustrated-example.tsx's module docstring), and a bad or
+missing proposal falls back to a deterministic, job_id-seeded pick rather
+than blocking the job.
 """
 import hashlib
+import json
 
 from app.agents import brand
 from app.agents.base import call_ollama, extract_json
 from app.cli import parse_job_arg
 from app.config import settings
 from app.orchestrator import state
+
+_ARCHETYPE_MANIFEST_PATH = settings.REVIDEO_PROJECT_DIR / "public" / "design" / "archetypes" / "manifest.json"
+_ARCHETYPE_COUNT = 3
 
 PROMPT = """You are a video composition director. Given this campaign's hook and call to action,
 respond with ONLY a JSON object with two keys: "title_text" (a punchy on-screen adaptation of the
@@ -60,18 +73,103 @@ Sequence:
 {sequence}
 """
 
+ARCHETYPE_PROMPT = """You are a children's-story casting director. Given this campaign's topic, pick exactly
+{n} character archetypes from the list below that would make good illustrated examples for a short teaser
+about it, and write one short (max 6 words) caption for each in the story's own voice. Respond with ONLY a
+JSON object: {{"items": [{{"iconId": "<id>", "caption": "<short phrase>"}}, ...]}}, exactly {n} entries, ids
+only from the list below, no prose, no markdown fences.
+
+Available archetypes: {archetype_ids}
+
+Topic: {topic}
+"""
+
 
 def _frames(seconds: float) -> int:
     return round(seconds * settings.REVIDEO_FPS)
 
 
-def _build_scenes(job_state: dict, title_text: str, outro_text: str) -> list:
+def _load_archetypes() -> list:
+    return json.loads(_ARCHETYPE_MANIFEST_PATH.read_text(encoding="utf-8"))
+
+
+def _propose_archetypes(topic: str, archetypes: list) -> list:
+    """Best-effort creative-tier proposal - see module docstring. Mirrors
+    _propose_transitions's shape exactly: anything that comes back wrong
+    (missing, not a list, bad JSON) is treated as absent, never retried."""
+    try:
+        response = call_ollama(
+            ARCHETYPE_PROMPT.format(
+                n=_ARCHETYPE_COUNT,
+                archetype_ids=[a["id"] for a in archetypes],
+                topic=topic,
+            ),
+            model=settings.OLLAMA_CREATIVE_MODEL,
+        )
+        proposed = extract_json(response).get("items")
+        return proposed if isinstance(proposed, list) else []
+    except Exception as exc:
+        print(f"Warning: archetype proposal failed, falling back to deterministic picks: {exc}")
+        return []
+
+
+def _choose_archetypes(job_state: dict, job_id: str) -> list:
+    """Picks _ARCHETYPE_COUNT archetypes for the IllustratedExample scene.
+    _propose_archetypes supplies a creative-tier guess; Python is the safety
+    net - deterministic, job_id-seeded (same approach _assign_transitions and
+    audio_engine.py's pick_music_track already use) - guaranteeing a valid,
+    non-repeating iconId/caption pair for every slot regardless of what (if
+    anything) was proposed for it."""
+    archetypes = _load_archetypes()
+    valid_ids = {a["id"] for a in archetypes}
+    topic = job_state.get("strategy_brief", {}).get("topic", "")
+    proposed = _propose_archetypes(topic, archetypes)
+
+    seed = int(hashlib.sha1(job_id.encode("utf-8")).hexdigest(), 16)
+    items = []
+    used_ids = set()
+    for i in range(_ARCHETYPE_COUNT):
+        candidate = proposed[i] if i < len(proposed) else {}
+        icon_id = candidate.get("iconId") if isinstance(candidate, dict) else None
+        caption = candidate.get("caption") if isinstance(candidate, dict) else None
+        valid_caption = isinstance(caption, str) and caption.strip()
+        if icon_id not in valid_ids or icon_id in used_ids or not valid_caption:
+            choices = [a for a in archetypes if a["id"] not in used_ids]
+            chosen = choices[seed % len(choices)]
+            seed //= len(choices)
+            icon_id, caption = chosen["id"], chosen["label"]
+        used_ids.add(icon_id)
+        items.append({"iconId": icon_id, "caption": caption.strip()})
+    return items
+
+
+def _scene_summary_text(scene: dict) -> str:
+    """_assign_transitions needs one representative string per scene to hand
+    the mood-picking prompt - TitleReveal/CaptionOverlay/Outro already have a
+    top-level "text" prop, but IllustratedExample (items) and
+    AbstractTransition (textless) don't, so this derives a stand-in instead
+    of the KeyError a plain props["text"] lookup would hit."""
+    props = scene.get("props", {})
+    if "text" in props:
+        return props["text"]
+    items = props.get("items")
+    if isinstance(items, list):
+        return "; ".join(item.get("caption", "") for item in items if isinstance(item, dict))
+    return ""
+
+
+def _build_scenes(job_state: dict, title_text: str, outro_text: str, example_items: list) -> list:
     scenes = [
         {
             "component": "TitleReveal",
             "durationInFrames": _frames(settings.TITLE_REVEAL_SECONDS),
             "props": {"text": title_text},
-        }
+        },
+        {
+            "component": "IllustratedExample",
+            "durationInFrames": _frames(settings.ILLUSTRATED_EXAMPLE_SECONDS),
+            "props": {"items": example_items},
+        },
     ]
     for segment in job_state["narration"]["segments"]:
         scenes.append(
@@ -81,6 +179,13 @@ def _build_scenes(job_state: dict, title_text: str, outro_text: str) -> list:
                 "props": {"text": segment["text"]},
             }
         )
+    scenes.append(
+        {
+            "component": "AbstractTransition",
+            "durationInFrames": _frames(settings.TRANSITION_BEAT_SECONDS),
+            "props": {},
+        }
+    )
     scenes.append(
         {
             "component": "Outro",
@@ -118,7 +223,7 @@ def _assign_transitions(scenes: list, job_id: str) -> None:
     audio_engine.py's pick_music_track already uses) - guaranteeing every
     cut still gets a *valid*, non-repeating transition regardless of what
     (if anything) was proposed for it."""
-    texts = [scene["props"]["text"] for scene in scenes]
+    texts = [_scene_summary_text(scene) for scene in scenes]
     proposed = _propose_transitions(texts, len(scenes) - 1)
 
     seed = int(hashlib.sha1(job_id.encode("utf-8")).hexdigest(), 16)
@@ -152,6 +257,12 @@ def _apply_brand(composition_spec: dict) -> None:
 
     Outro also gets the brand logo (revideo/src/scenes/outro.tsx has always
     supported a logoSrc prop - it just had nothing setting it until now).
+
+    IllustratedExample's captions are short labels under each icon, not a
+    headline, so they take the body font/color like CaptionOverlay rather
+    than the else-branch's headline styling. AbstractTransition is textless
+    and instead needs the two extra fixed accent tones its gradient orb
+    cycles through (revideo/src/scenes/abstract-transition.tsx).
     """
     for scene in composition_spec.get("scenes", []):
         props = scene.get("props")
@@ -160,7 +271,7 @@ def _apply_brand(composition_spec: dict) -> None:
         component = scene.get("component")
         props["backgroundColor"] = brand.BACKGROUND_COLOR
         props["accentColor"] = brand.ACCENT_COLOR
-        if component == "CaptionOverlay":
+        if component in ("CaptionOverlay", "IllustratedExample"):
             props["textColor"] = brand.TEXT_COLOR
             props["fontFamily"] = brand.BODY_FONT
         elif component == "Outro":
@@ -168,6 +279,9 @@ def _apply_brand(composition_spec: dict) -> None:
             props["fontFamily"] = brand.HEADLINE_FONT
             if brand.LOGO_SRC:
                 props["logoSrc"] = brand.LOGO_SRC
+        elif component == "AbstractTransition":
+            props["secondaryColor"] = brand.SECONDARY_ACCENT_COLOR
+            props["tertiaryColor"] = brand.TERTIARY_ACCENT_COLOR
         else:
             props["textColor"] = brand.TEXT_COLOR
             props["fontFamily"] = brand.HEADLINE_FONT
@@ -182,10 +296,12 @@ def run(job_id: str) -> None:
         )
     )
     llm_text = extract_json(response)
+    example_items = _choose_archetypes(job_state, job_id)
     scenes = _build_scenes(
         job_state,
         title_text=llm_text.get("title_text", ""),
         outro_text=llm_text.get("outro_text", ""),
+        example_items=example_items,
     )
     _assign_transitions(scenes, job_id)
     composition_spec = {"scenes": scenes}

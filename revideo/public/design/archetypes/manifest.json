@@ -1,0 +1,12 @@
+[
+  {"id": "astronaut", "label": "an astronaut"},
+  {"id": "knight", "label": "a brave knight"},
+  {"id": "dinosaur", "label": "a curious dinosaur"},
+  {"id": "wizard", "label": "a wise wizard"},
+  {"id": "dragon", "label": "a friendly dragon"},
+  {"id": "robot", "label": "a clever robot"},
+  {"id": "mermaid", "label": "a singing mermaid"},
+  {"id": "superhero", "label": "an everyday superhero"},
+  {"id": "explorer", "label": "a jungle explorer"},
+  {"id": "princess", "label": "a fearless princess"}
+]

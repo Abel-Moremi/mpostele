@@ -60,10 +60,48 @@ const outroScene = z.object({
 	}),
 });
 
+// iconId is checked against revideo/public/design/archetypes/manifest.json
+// by app/agents/composition_validator.py before a render is ever spawned -
+// not re-validated here, same trust boundary decorationSrc/logoSrc already
+// cross (a path/id Python has already checked, not raw agent content).
+const illustratedExampleScene = z.object({
+	component: z.literal('IllustratedExample'),
+	durationInFrames: z.number().int().positive(),
+	transitionOut,
+	props: z.object({
+		backgroundColor: z.string(),
+		accentColor: z.string(),
+		textColor: z.string().optional(),
+		fontFamily: z.string().optional(),
+		items: z
+			.array(z.object({iconId: z.string(), caption: z.string()}))
+			.min(1)
+			.max(3),
+	}),
+});
+
+// Textless - see abstract-transition.tsx's module docstring. secondaryColor/
+// tertiaryColor are additional fixed brand tones (gold/sage), same status as
+// accentColor - never LLM-invented, always set by composition_agent.py's
+// _apply_brand.
+const abstractTransitionScene = z.object({
+	component: z.literal('AbstractTransition'),
+	durationInFrames: z.number().int().positive(),
+	transitionOut,
+	props: z.object({
+		backgroundColor: z.string(),
+		accentColor: z.string(),
+		secondaryColor: z.string(),
+		tertiaryColor: z.string(),
+	}),
+});
+
 export const sceneSchema = z.discriminatedUnion('component', [
 	titleRevealScene,
 	captionOverlayScene,
 	outroScene,
+	illustratedExampleScene,
+	abstractTransitionScene,
 ]);
 
 export const compositionPropsSchema = z.object({

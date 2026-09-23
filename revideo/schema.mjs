@@ -52,7 +52,41 @@ const outroScene = z.object({
 	}),
 });
 
-const sceneSchema = z.discriminatedUnion('component', [titleRevealScene, captionOverlayScene, outroScene]);
+const illustratedExampleScene = z.object({
+	component: z.literal('IllustratedExample'),
+	durationInFrames: z.number().int().positive(),
+	transitionOut,
+	props: z.object({
+		backgroundColor: z.string(),
+		accentColor: z.string(),
+		textColor: z.string().optional(),
+		fontFamily: z.string().optional(),
+		items: z
+			.array(z.object({iconId: z.string(), caption: z.string()}))
+			.min(1)
+			.max(3),
+	}),
+});
+
+const abstractTransitionScene = z.object({
+	component: z.literal('AbstractTransition'),
+	durationInFrames: z.number().int().positive(),
+	transitionOut,
+	props: z.object({
+		backgroundColor: z.string(),
+		accentColor: z.string(),
+		secondaryColor: z.string(),
+		tertiaryColor: z.string(),
+	}),
+});
+
+const sceneSchema = z.discriminatedUnion('component', [
+	titleRevealScene,
+	captionOverlayScene,
+	outroScene,
+	illustratedExampleScene,
+	abstractTransitionScene,
+]);
 
 export const compositionPropsSchema = z.object({
 	scenes: z.array(sceneSchema).min(1),

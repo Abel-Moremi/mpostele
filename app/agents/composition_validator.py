@@ -5,21 +5,36 @@ quality_inspector.py and poster_validator.py's equivalent gate on the poster
 path. Exits non-zero on failure so the orchestrator's subprocess check can
 drive the retry loop.
 """
+import json
 import re
 
 from app.agents.quality_inspector import MAX_OVERLAY_CHARS, MAX_SCRIPT_CHARS
 from app.cli import parse_job_arg
+from app.config import settings
 from app.orchestrator import state
 
 # Keep in sync with revideo/src/schema.ts's component union and
 # app/agents/composition_agent.py's PROMPT.
-ALLOWED_COMPONENTS = {"TitleReveal", "CaptionOverlay", "Outro"}
+ALLOWED_COMPONENTS = {"TitleReveal", "CaptionOverlay", "Outro", "IllustratedExample", "AbstractTransition"}
 REQUIRED_PROPS = {
     "TitleReveal": {"text", "backgroundColor", "accentColor"},
     "CaptionOverlay": {"text", "backgroundColor", "accentColor"},
     "Outro": {"text", "backgroundColor", "accentColor"},
+    "IllustratedExample": {"items", "backgroundColor", "accentColor"},
+    "AbstractTransition": {"backgroundColor", "accentColor", "secondaryColor", "tertiaryColor"},
 }
-COLOR_PROPS = {"backgroundColor", "accentColor"}
+COLOR_PROPS = {"backgroundColor", "accentColor", "secondaryColor", "tertiaryColor"}
+
+# IllustratedExample's items[].iconId must be one of these - the fixed,
+# hand-authored icon set app/agents/composition_agent.py's _choose_archetypes
+# already constrains its own proposal to (see that module's docstring); this
+# is the last check before a render is spawned, same role HEX_COLOR_RE plays
+# for colors below.
+_ARCHETYPE_MANIFEST_PATH = settings.REVIDEO_PROJECT_DIR / "public" / "design" / "archetypes" / "manifest.json"
+_VALID_ARCHETYPE_IDS = {
+    a["id"] for a in json.loads(_ARCHETYPE_MANIFEST_PATH.read_text(encoding="utf-8"))
+}
+MAX_EXAMPLE_ITEMS = 3
 
 # revideo/src/color.ts's getContrastColor only computes real contrast for a
 # strict 6-digit #RRGGBB string - anything else (a CSS name, "#fff", an alpha
@@ -64,6 +79,34 @@ def check(job_state: dict) -> list:
             value = props[color_prop]
             if not isinstance(value, str) or not HEX_COLOR_RE.match(value):
                 problems.append(f"scene {i}: {color_prop} must be a 6-digit hex color like #0B1220, got {value!r}")
+
+        # IllustratedExample (items) and AbstractTransition (no on-screen
+        # text at all) don't have a top-level "text" prop - the generic
+        # text checks below would either KeyError-equivalent (via .get
+        # defaulting to "") and wrongly flag them as placeholder-only, or
+        # simply not apply. Validate items here instead and skip past the
+        # text checks entirely for both.
+        if component == "IllustratedExample":
+            items = props.get("items")
+            if not isinstance(items, list) or not (1 <= len(items) <= MAX_EXAMPLE_ITEMS):
+                problems.append(f"scene {i}: items must be a list of 1 to {MAX_EXAMPLE_ITEMS} entries, got {items!r}")
+            else:
+                for j, item in enumerate(items):
+                    if not isinstance(item, dict):
+                        problems.append(f"scene {i} item {j}: must be an object, got {item!r}")
+                        continue
+                    icon_id = item.get("iconId")
+                    if icon_id not in _VALID_ARCHETYPE_IDS:
+                        problems.append(f"scene {i} item {j}: unknown iconId {icon_id!r}")
+                    caption = item.get("caption")
+                    if not isinstance(caption, str) or not caption.strip():
+                        problems.append(f"scene {i} item {j}: caption is empty or placeholder-only ({caption!r})")
+                    elif len(caption) > MAX_OVERLAY_CHARS:
+                        problems.append(f"scene {i} item {j}: caption exceeds {MAX_OVERLAY_CHARS} characters ({len(caption)})")
+            continue
+
+        if component == "AbstractTransition":
+            continue
 
         text = props.get("text", "")
         if component == "CaptionOverlay" and len(text) > MAX_SCRIPT_CHARS:

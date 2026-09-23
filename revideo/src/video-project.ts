@@ -2,7 +2,9 @@ import {Layout, makeScene2D, Rect} from '@revideo/2d';
 import {makeProject, Reference, ThreadGenerator, useScene} from '@revideo/core';
 
 import '../global.css';
+import {mountAbstractTransition, playAbstractTransition, AbstractTransitionRefs} from './scenes/abstract-transition';
 import {mountCaptionOverlay, playCaptionOverlay, CaptionOverlayRefs} from './scenes/caption-overlay';
+import {mountIllustratedExample, playIllustratedExample, IllustratedExampleRefs} from './scenes/illustrated-example';
 import {mountOutro, playOutro, OutroRefs} from './scenes/outro';
 import {mountTitleReveal, playTitleReveal, TitleRevealRefs} from './scenes/title-reveal';
 import type {Scene} from './schema';
@@ -35,6 +37,10 @@ function mountScene(view: Layout, scene: Scene): MountedScene {
 			return mountCaptionOverlay(view, scene.props);
 		case 'Outro':
 			return mountOutro(view, scene.props);
+		case 'IllustratedExample':
+			return mountIllustratedExample(view, scene.props);
+		case 'AbstractTransition':
+			return mountAbstractTransition(view, scene.props);
 	}
 }
 
@@ -48,6 +54,26 @@ function* playScene(mounted: MountedScene, scene: Scene, headSeconds: number, ta
 			return;
 		case 'Outro':
 			yield* playOutro(mounted as OutroRefs, scene.props, scene.durationInFrames, FPS, headSeconds, tailSeconds);
+			return;
+		case 'IllustratedExample':
+			yield* playIllustratedExample(
+				mounted as IllustratedExampleRefs,
+				scene.props,
+				scene.durationInFrames,
+				FPS,
+				headSeconds,
+				tailSeconds,
+			);
+			return;
+		case 'AbstractTransition':
+			yield* playAbstractTransition(
+				mounted as AbstractTransitionRefs,
+				scene.props,
+				scene.durationInFrames,
+				FPS,
+				headSeconds,
+				tailSeconds,
+			);
 			return;
 	}
 }
