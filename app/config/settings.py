@@ -149,9 +149,3 @@ POSTIZ_INTEGRATION_IDS = {
     "x": os.environ.get("POSTIZ_INTEGRATION_X"),
     "linkedin": os.environ.get("POSTIZ_INTEGRATION_LINKEDIN"),
 }
-
-# Default is "schedule" a bit out, not "now" - the public API has no true
-# draft state (docs.postiz.com/public-api), so a delayed schedule is what
-# gives a human a review window in Postiz's own calendar before anything
-# actually goes out. --publish-now overrides this per job.
-POSTIZ_SCHEDULE_DELAY_MINUTES = int(os.environ.get("POSTIZ_SCHEDULE_DELAY_MINUTES", "60"))

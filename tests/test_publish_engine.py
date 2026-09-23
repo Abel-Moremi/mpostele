@@ -80,15 +80,15 @@ def test_partial_integration_config_only_posts_configured_platforms(job, monkeyp
     assert captured["body"]["posts"][0]["settings"]["__type"] == "tiktok"
 
 
-def test_defaults_to_scheduled_not_immediate(job, monkeypatch):
+def test_defaults_to_draft_not_immediate(job, monkeypatch):
     monkeypatch.setattr(settings, "POSTIZ_API_KEY", "key")
     monkeypatch.setattr(settings, "POSTIZ_INTEGRATION_IDS", {"tiktok": "abc", "x": "def"})
     captured = {}
     monkeypatch.setattr(publish_engine.requests, "post", _fake_post({"id": "img1"}, captured))
     publish_engine.run(job)
-    assert captured["body"]["type"] == "schedule"
+    assert captured["body"]["type"] == "draft"
     assert len(captured["body"]["posts"]) == 2
-    assert state.load(job)["publish_status"]["status"] == "scheduled"
+    assert state.load(job)["publish_status"]["status"] == "drafted"
 
 
 def test_publish_now_flag_posts_immediately(tmp_path, monkeypatch):

@@ -1,5 +1,5 @@
-"""Publish engine: schedules the finished artifact to social platforms via
-a self-hosted or hosted Postiz instance (docs.postiz.com/public-api).
+"""Publish engine: sends the finished artifact to social platforms via a
+self-hosted or hosted Postiz instance (docs.postiz.com/public-api).
 
 Runs last, after platform_adaptor.py, and only when a job opts in
 (app.main's --publish/--publish-now flags -> job_state["publish_now"], set
@@ -8,8 +8,14 @@ as strategy_agent.py's mood tagging: a Postiz outage, a missing API key, or
 a platform with no connected integration ID should never undo an
 already-rendered video/poster, so every failure here degrades to a recorded
 publish_status rather than raising.
+
+Default (--publish) creates a real Postiz draft ("type": "draft") rather
+than an immediate or scheduled post - confirmed directly against the
+v2.11.3 source (posts.service.ts) that a draft's publish job is never
+enqueued, so it only goes out once a human promotes it from the Postiz UI.
+--publish-now ("type": "now") skips that review step entirely.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
@@ -80,10 +86,10 @@ def run(job_id: str) -> None:
         posts = _build_posts(configured, media)
 
         publish_now = job_state.get("publish_now", False)
-        post_date = datetime.now(timezone.utc)
-        if not publish_now:
-            post_date += timedelta(minutes=settings.POSTIZ_SCHEDULE_DELAY_MINUTES)
-
+        # "date" is required by Postiz's DTO regardless of type, but a
+        # draft's date is purely informational (createPost only reads it
+        # for "now"/"schedule" - see posts.service.ts) - "now" is a fine
+        # placeholder either way.
         response = requests.post(
             f"{settings.POSTIZ_API_URL}/posts",
             headers={
@@ -91,8 +97,8 @@ def run(job_id: str) -> None:
                 "Content-Type": "application/json",
             },
             json={
-                "type": "now" if publish_now else "schedule",
-                "date": post_date.isoformat(),
+                "type": "now" if publish_now else "draft",
+                "date": datetime.now(timezone.utc).isoformat(),
                 "shortLink": False,
                 "tags": [],
                 "posts": posts,
@@ -102,8 +108,8 @@ def run(job_id: str) -> None:
         response.raise_for_status()
         _finish(
             job_id,
-            "published" if publish_now else "scheduled",
-            f"{len(posts)} platform(s), scheduled_for={post_date.isoformat()}",
+            "published" if publish_now else "drafted",
+            f"{len(posts)} platform(s)",
         )
     except (requests.RequestException, OSError) as exc:
         print(f"Warning: publish to Postiz failed, continuing without it: {exc}")

@@ -20,6 +20,9 @@ __pycache__/
 revideo/node_modules/
 revideo/output/
 
+# Postiz (postiz/) - real secrets live in .env, never .env.example
+postiz/.env
+
 # Generated job artifacts and local fonts/model assets
 # (folder structure tracked via .gitkeep, contents ignored)
 app/media/assets/jobs/*
