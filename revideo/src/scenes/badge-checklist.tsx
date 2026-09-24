@@ -43,6 +43,20 @@ export interface BadgeChecklistRefs {
 
 const iconSrc = (iconId: string): string => `design/archetypes/${iconId}.svg`;
 
+// Each card's own slot width/gap for manual horizontal placement below -
+// matches the caption's own `width` prop, the widest element in a card.
+const ITEM_SLOT_WIDTH = 220;
+const ITEM_GAP = 56;
+
+/** x offset for the i-th of `count` cards, centered as a group around 0 -
+ * see mountBadgeChecklist's own comment for why this is computed by hand
+ * rather than a flex row. */
+function cardX(i: number, count: number): number {
+	const totalWidth = count * ITEM_SLOT_WIDTH + (count - 1) * ITEM_GAP;
+	const startX = -(totalWidth - ITEM_SLOT_WIDTH) / 2;
+	return startX + i * (ITEM_SLOT_WIDTH + ITEM_GAP);
+}
+
 /**
  * The "everything's included" payoff beat - deliberately reuses the exact
  * same items composition_agent.py already chose for IllustratedExample
@@ -75,14 +89,31 @@ export function mountBadgeChecklist(view: Layout, props: BadgeChecklistProps): B
 			padding={96}
 			opacity={0}
 		>
-			<Rect direction={'row'} alignItems={'center'} justifyContent={'center'} gap={56}>
+			{/* No `layout` on this group wrapper - each card is placed via its
+			    own explicit x (cardX), not a flex row. A flex row here was
+			    found (empirically) to distort each card's circle into an
+			    oval: giving the icon-group wrapper below an explicit size
+			    made it a flex row item and un-distorted the row's centering
+			    at the cost of squashing the circle; leaving it unsized fixed
+			    the circle but threw off the row's own centering instead.
+			    Sidestepping the row entirely avoids the tradeoff. */}
+			<Rect>
 				{shown.map((item, i) => (
-					<Rect ref={itemRefs[i].card} key={`badge-${i}`} direction={'column'} alignItems={'center'} gap={20} opacity={0} scale={0}>
-						{/* No `layout` on this wrapper - the circle, icon and
-						    checkmark all stack concentrically at (0,0), the
+					<Rect
+						ref={itemRefs[i].card}
+						key={`badge-${i}`}
+						x={cardX(i, shown.length)}
+						direction={'column'}
+						alignItems={'center'}
+						gap={20}
+						opacity={0}
+						scale={0}
+					>
+						{/* No `layout` on this wrapper either - the circle, icon
+						    and checkmark all stack concentrically at (0,0), the
 						    same "absolute, not flex" trick abstract-transition.tsx
 						    uses for its orb + orbit group. */}
-						<Rect width={CIRCLE_DIAMETER} height={CIRCLE_DIAMETER}>
+						<Rect>
 							<Circle width={CIRCLE_DIAMETER} height={CIRCLE_DIAMETER} fill={accentColor} opacity={0.14} />
 							<Img src={iconSrc(item.iconId)} width={CIRCLE_DIAMETER * 0.5} />
 							<Circle ref={itemRefs[i].check} width={44} height={44} fill={check} x={CIRCLE_DIAMETER * 0.32} y={CIRCLE_DIAMETER * 0.32} scale={0}>
@@ -97,7 +128,7 @@ export function mountBadgeChecklist(view: Layout, props: BadgeChecklistProps): B
 							fill={resolvedTextColor}
 							textAlign={'center'}
 							textWrap={true}
-							width={220}
+							width={ITEM_SLOT_WIDTH}
 						/>
 					</Rect>
 				))}

@@ -385,6 +385,16 @@
       },
       "file": "generated/sparkle-cluster-terracotta-medium-7f672e78.svg",
       "created_at": "2026-09-24T03:51:36Z"
+    },
+    {
+      "id": "sparkle-cluster-cream-medium-cc6a5e2e",
+      "generator": "sparkle-cluster",
+      "params": {
+        "color": "cream",
+        "size": "medium"
+      },
+      "file": "generated/sparkle-cluster-cream-medium-cc6a5e2e.svg",
+      "created_at": "2026-09-24T04:46:35Z"
     }
   ]
 }
