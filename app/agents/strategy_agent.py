@@ -1,4 +1,5 @@
 """Strategy & Trend Agent: turns campaign inputs into a target hook and CTA."""
+import re
 from pathlib import Path
 
 from app.agents.base import call_ollama, extract_json
@@ -10,12 +11,36 @@ PROMPT = """You are a marketing strategist. Given the product brief and campaign
 respond with ONLY a JSON object with keys "topic", "target_hook", and "call_to_action". No prose,
 no markdown fences.
 
+"target_hook" and "call_to_action" must each be exactly ONE hook and ONE call to action - never two
+alternative options separated by a slash, "or", or a line break. Pick the single strongest version
+yourself rather than handing back a choice.
+
 Product brief:
 {product_brief}
 
 Campaign brief:
 {brief}
 """
+
+# qwen2.5:1.5b has been observed ignoring the "exactly ONE" instruction
+# above and handing back two alternative hooks/CTAs separated by " / "
+# (e.g. "Option A... / Option B..."), which then reads as a literal stray
+# "/" once it reaches on-screen text downstream (script_agent.py's
+# script_text/overlay_text, composition_agent.py's title_text/outro_text).
+# Not caught by any length/placeholder check since it's real, well-formed
+# text - just two ideas where one was asked for. This is the deterministic
+# safety net, same "Python cleans up what the model actually returns"
+# pattern composition_agent.py's _clean_short_text/_choose_archetypes
+# already use. Requires whitespace on both sides of the slash, so a
+# genuine "and/or" or "3/4" (no surrounding spaces) is left untouched.
+_ALTERNATIVES_SPLIT_RE = re.compile(r"\s+/\s+")
+
+
+def _first_alternative(value):
+    if not isinstance(value, str):
+        return value
+    parts = _ALTERNATIVES_SPLIT_RE.split(value, maxsplit=1)
+    return parts[0].strip() if len(parts) > 1 else value
 
 # Video path only (see run()) - keep in sync with settings.MUSIC_MOODS and
 # the three placeholder tracks in app/media/music/. Deliberately a separate
@@ -67,6 +92,10 @@ def run(job_id: str) -> None:
         PROMPT.format(product_brief=_load_product_brief(), brief=job_state["input_brief"])
     )
     strategy_brief = extract_json(response)
+    if "target_hook" in strategy_brief:
+        strategy_brief["target_hook"] = _first_alternative(strategy_brief["target_hook"])
+    if "call_to_action" in strategy_brief:
+        strategy_brief["call_to_action"] = _first_alternative(strategy_brief["call_to_action"])
 
     if job_state["media_type"] != "poster":
         mood = _tag_mood(job_state["input_brief"])

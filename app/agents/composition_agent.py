@@ -31,6 +31,7 @@ than blocking the job.
 """
 import hashlib
 import json
+import re
 
 from app.agents import brand
 from app.agents.base import call_ollama, extract_json
@@ -41,20 +42,76 @@ from app.orchestrator import state
 _ARCHETYPE_MANIFEST_PATH = settings.REVIDEO_PROJECT_DIR / "public" / "design" / "archetypes" / "manifest.json"
 _ARCHETYPE_COUNT = 3
 
+# UI chrome for ProductMockup - fixed copy, not agent data, same status as
+# TitleReveal/Outro's decorative shapes (see product-mockup.tsx's own
+# docstring: only headline/typedText/items are data, the rest is hand-written).
+_MOCKUP_HEADLINE = "What's your story about?"
+
+# Caps for the optional emphasis-word fields below - short enough that
+# title-reveal.tsx/outro.tsx's fixed-width underline always reads as "under
+# the phrase" (see those files' EMPHASIS_UNDERLINE_WIDTH comment).
+_MAX_EMPHASIS_CHARS = 32
+_MAX_TAGLINE_CHARS = 60
+
+# PROMPT's own example values below, lowercased - qwen2.5:1.5b has been
+# observed echoing these back verbatim for a real brief (e.g. producing the
+# literal outro_emphasis "for once." for a bedtime-story-app job that has
+# nothing to do with it), the same class of failure composition_validator.py's
+# "..." placeholder check already guards against for text/text-like fields.
+# Short generic phrases like these are exactly what a small model latches
+# onto, so they need an explicit exact-match reject, not just the generic
+# "contains a letter" check in _clean_short_text.
+_EXAMPLE_PLACEHOLDER_VALUES = {
+    "finally.",
+    "for once.",
+    "let the tool handle the busywork",
+    "stop wrestling with setup scripts",
+    "try our cli tool today",
+}
+
+
+def _is_example_placeholder(value) -> bool:
+    return isinstance(value, str) and value.strip().lower() in _EXAMPLE_PLACEHOLDER_VALUES
+
 PROMPT = """You are a video composition director. Given this campaign's hook and call to action,
-respond with ONLY a JSON object with two keys: "title_text" (a punchy on-screen adaptation of the
-hook, opening the video) and "outro_text" (a short on-screen adaptation of the call to action,
-closing the video). Both must be real words adapted from the hook/call to action below - never a
-placeholder like "..." or an empty string. No prose, no markdown fences. Example shape (placeholder
-text your answer must NOT reuse):
+respond with ONLY a JSON object with these keys - no prose, no markdown fences:
+"title_text": a punchy on-screen adaptation of the hook, opening the video
+"title_emphasis": a short (1-3 word) emphasized closing phrase that complements the title, in a
+  warm, poetic voice - a single striking word or short exclamation, not a repeat of title_text
+"outro_text": a short on-screen adaptation of the call to action, closing the video
+"outro_tagline": a short (4-8 word) emotional closing statement, separate from the call to action
+"outro_emphasis": a short (1-3 word) emphasized closing phrase that complements outro_tagline
+
+All five must be real words adapted from the hook/call to action below - never a placeholder like
+"..." or an empty string. Example shape (placeholder text your answer must NOT reuse):
 {{
   "title_text": "Stop wrestling with setup scripts",
-  "outro_text": "Try our CLI tool today"
+  "title_emphasis": "finally.",
+  "outro_text": "Try our CLI tool today",
+  "outro_tagline": "Let the tool handle the busywork",
+  "outro_emphasis": "for once."
 }}
 
 Hook: {target_hook}
 Call to action: {call_to_action}
 """
+
+
+def _clean_short_text(value, max_chars: int) -> str:
+    """Best-effort sanitization for the optional emphasis/tagline fields -
+    "" means "omit this prop entirely", same graceful-degradation pattern
+    decorationSrc/logoSrc already use elsewhere. Never raises, never blocks
+    the job - a bad or missing value here just means the video plays without
+    that one polish detail instead of retrying composition_agent.py over a
+    cosmetic phrase."""
+    if not isinstance(value, str):
+        return ""
+    cleaned = value.strip()
+    if not cleaned or not re.search(r"[A-Za-z0-9]", cleaned) or len(cleaned) > max_chars:
+        return ""
+    if _is_example_placeholder(cleaned):
+        return ""
+    return cleaned
 
 # The Revideo transition library's known transition types
 # (revideo/src/transitions.ts) - keep in sync with schema.ts's transitionOut
@@ -158,12 +215,46 @@ def _scene_summary_text(scene: dict) -> str:
     return ""
 
 
-def _build_scenes(job_state: dict, title_text: str, outro_text: str, example_items: list) -> list:
+def _build_typed_text(items: list) -> str:
+    """Mechanical assembly, not another LLM call - the captions were already
+    chosen by _choose_archetypes, so there's nothing left to generate here,
+    same "narration_engine.py already did the real work" reasoning this
+    module's own docstring gives for CaptionOverlay's text. This is what
+    product-mockup.tsx's simulated input types out, paying the same items
+    off a second time (see that file's module docstring)."""
+    captions = [item["caption"] for item in items]
+    if not captions:
+        return ""
+    if len(captions) == 1:
+        return f"A story about {captions[0]}."
+    *head, tail = captions
+    return f"A story about {', '.join(head)} and {tail}."
+
+
+def _build_scenes(
+    job_state: dict,
+    title_text: str,
+    outro_text: str,
+    example_items: list,
+    title_emphasis: str = "",
+    outro_tagline: str = "",
+    outro_emphasis: str = "",
+) -> list:
+    title_props = {"text": title_text}
+    if title_emphasis:
+        title_props["emphasisText"] = title_emphasis
+
+    outro_props = {"text": outro_text}
+    if outro_tagline:
+        outro_props["tagline"] = outro_tagline
+        if outro_emphasis:
+            outro_props["emphasisText"] = outro_emphasis
+
     scenes = [
         {
             "component": "TitleReveal",
             "durationInFrames": _frames(settings.TITLE_REVEAL_SECONDS),
-            "props": {"text": title_text},
+            "props": title_props,
         },
         {
             "component": "IllustratedExample",
@@ -181,6 +272,24 @@ def _build_scenes(job_state: dict, title_text: str, outro_text: str, example_ite
         )
     scenes.append(
         {
+            "component": "ProductMockup",
+            "durationInFrames": _frames(settings.PRODUCT_MOCKUP_SECONDS),
+            "props": {
+                "headline": _MOCKUP_HEADLINE,
+                "typedText": _build_typed_text(example_items),
+                "items": example_items,
+            },
+        }
+    )
+    scenes.append(
+        {
+            "component": "BadgeChecklist",
+            "durationInFrames": _frames(settings.BADGE_CHECKLIST_SECONDS),
+            "props": {"items": example_items},
+        }
+    )
+    scenes.append(
+        {
             "component": "AbstractTransition",
             "durationInFrames": _frames(settings.TRANSITION_BEAT_SECONDS),
             "props": {},
@@ -190,7 +299,7 @@ def _build_scenes(job_state: dict, title_text: str, outro_text: str, example_ite
         {
             "component": "Outro",
             "durationInFrames": _frames(settings.OUTRO_HOLD_SECONDS),
-            "props": {"text": outro_text},
+            "props": outro_props,
         }
     )
     return scenes
@@ -258,11 +367,18 @@ def _apply_brand(composition_spec: dict) -> None:
     Outro also gets the brand logo (revideo/src/scenes/outro.tsx has always
     supported a logoSrc prop - it just had nothing setting it until now).
 
-    IllustratedExample's captions are short labels under each icon, not a
-    headline, so they take the body font/color like CaptionOverlay rather
-    than the else-branch's headline styling. AbstractTransition is textless
-    and instead needs the two extra fixed accent tones its gradient orb
-    cycles through (revideo/src/scenes/abstract-transition.tsx).
+    IllustratedExample/BadgeChecklist/ProductMockup's own text is body-ish
+    (captions, chip/window labels), not a headline, so they take the body
+    font/color like CaptionOverlay rather than the else-branch's headline
+    styling. AbstractTransition is textless and instead needs the two extra
+    fixed accent tones its gradient orb cycles through
+    (revideo/src/scenes/abstract-transition.tsx). TitleReveal/Outro also get
+    that same secondaryColor now - it's what their optional emphasis-word
+    treatment gradients into when emphasisText is present (harmless, unused,
+    when it isn't - see title-reveal.tsx/outro.tsx). BadgeChecklist's
+    checkmarks get confirmColor - design.md: "Sage - confirmations,
+    checkmarks" - rather than reusing accentColor's terracotta, which
+    design.md reserves for primary actions only.
     """
     for scene in composition_spec.get("scenes", []):
         props = scene.get("props")
@@ -271,12 +387,15 @@ def _apply_brand(composition_spec: dict) -> None:
         component = scene.get("component")
         props["backgroundColor"] = brand.BACKGROUND_COLOR
         props["accentColor"] = brand.ACCENT_COLOR
-        if component in ("CaptionOverlay", "IllustratedExample"):
+        if component in ("CaptionOverlay", "IllustratedExample", "BadgeChecklist", "ProductMockup"):
             props["textColor"] = brand.TEXT_COLOR
             props["fontFamily"] = brand.BODY_FONT
+            if component == "BadgeChecklist":
+                props["confirmColor"] = brand.TERTIARY_ACCENT_COLOR
         elif component == "Outro":
             props["textColor"] = brand.ON_ACCENT_COLOR
             props["fontFamily"] = brand.HEADLINE_FONT
+            props["secondaryColor"] = brand.SECONDARY_ACCENT_COLOR
             if brand.LOGO_SRC:
                 props["logoSrc"] = brand.LOGO_SRC
         elif component == "AbstractTransition":
@@ -285,6 +404,7 @@ def _apply_brand(composition_spec: dict) -> None:
         else:
             props["textColor"] = brand.TEXT_COLOR
             props["fontFamily"] = brand.HEADLINE_FONT
+            props["secondaryColor"] = brand.SECONDARY_ACCENT_COLOR
 
 
 def run(job_id: str) -> None:
@@ -297,11 +417,27 @@ def run(job_id: str) -> None:
     )
     llm_text = extract_json(response)
     example_items = _choose_archetypes(job_state, job_id)
+    # title_text/outro_text are required (unlike the emphasis/tagline
+    # fields above), so an echoed placeholder can't just be omitted - it's
+    # rejected down to "", which composition_validator.py's existing
+    # placeholder-text check (no letters/digits) then catches exactly like
+    # any other empty/garbled LLM response, driving the orchestrator's
+    # normal composition_agent retry rather than silently shipping the
+    # PROMPT's own example text into a real video.
+    title_text = llm_text.get("title_text", "")
+    if _is_example_placeholder(title_text):
+        title_text = ""
+    outro_text = llm_text.get("outro_text", "")
+    if _is_example_placeholder(outro_text):
+        outro_text = ""
     scenes = _build_scenes(
         job_state,
-        title_text=llm_text.get("title_text", ""),
-        outro_text=llm_text.get("outro_text", ""),
+        title_text=title_text,
+        outro_text=outro_text,
         example_items=example_items,
+        title_emphasis=_clean_short_text(llm_text.get("title_emphasis"), _MAX_EMPHASIS_CHARS),
+        outro_tagline=_clean_short_text(llm_text.get("outro_tagline"), _MAX_TAGLINE_CHARS),
+        outro_emphasis=_clean_short_text(llm_text.get("outro_emphasis"), _MAX_EMPHASIS_CHARS),
     )
     _assign_transitions(scenes, job_id)
     composition_spec = {"scenes": scenes}

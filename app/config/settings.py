@@ -60,6 +60,13 @@ OUTRO_HOLD_SECONDS = 3.0
 ILLUSTRATED_EXAMPLE_SECONDS = 3.5
 TRANSITION_BEAT_SECONDS = 1.2
 
+# Same pattern for the two payoff-beat scenes (product-mockup.tsx's window
+# scale-in + typing + chip highlights; badge-checklist.tsx's per-badge
+# stagger + stamp) - sized generously since both have more moving parts per
+# beat than a single headline reveal.
+PRODUCT_MOCKUP_SECONDS = 4.5
+BADGE_CHECKLIST_SECONDS = 3.5
+
 # Sentence segmentation for CaptionOverlay (narration_engine.py splits
 # content.script_text into one Piper synthesis + one scene per sentence, so
 # cuts land on real speech boundaries instead of one continuous block). A

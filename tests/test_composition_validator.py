@@ -33,6 +33,24 @@ def _abstract_transition_scene(duration=30, **extra_props):
     return {"component": "AbstractTransition", "durationInFrames": duration, "props": props}
 
 
+def _badge_checklist_scene(duration=30, items=None, **extra_props):
+    props = {"backgroundColor": "#EFE3D0", "accentColor": "#BE7C6C", "items": items or _VALID_ITEMS}
+    props.update(extra_props)
+    return {"component": "BadgeChecklist", "durationInFrames": duration, "props": props}
+
+
+def _product_mockup_scene(duration=30, items=None, **extra_props):
+    props = {
+        "backgroundColor": "#EFE3D0",
+        "accentColor": "#BE7C6C",
+        "headline": "What's your story about?",
+        "typedText": "A story about a curious dinosaur and a brave knight.",
+        "items": items or _VALID_ITEMS,
+    }
+    props.update(extra_props)
+    return {"component": "ProductMockup", "durationInFrames": duration, "props": props}
+
+
 def _valid_scenes():
     return [_scene("TitleReveal"), _scene("CaptionOverlay"), _scene("Outro")]
 
@@ -42,6 +60,8 @@ def _valid_scenes_with_new_components():
         _scene("TitleReveal"),
         _illustrated_example_scene(),
         _scene("CaptionOverlay"),
+        _product_mockup_scene(),
+        _badge_checklist_scene(),
         _abstract_transition_scene(),
         _scene("Outro"),
     ]
@@ -112,7 +132,8 @@ def test_valid_spec_with_new_components_passes():
 
 def test_abstract_transition_missing_color_prop_flagged():
     scenes = _valid_scenes_with_new_components()
-    del scenes[3]["props"]["secondaryColor"]
+    abstract_transition = next(s for s in scenes if s["component"] == "AbstractTransition")
+    del abstract_transition["props"]["secondaryColor"]
     problems = cv.check({"composition_spec": {"scenes": scenes}})
     assert any("missing props" in p for p in problems)
 
@@ -165,3 +186,73 @@ def test_illustrated_example_caption_too_long_flagged():
     scenes[1]["props"]["items"] = [{"iconId": "dinosaur", "caption": "x" * 1000}]
     problems = cv.check({"composition_spec": {"scenes": scenes}})
     assert any("caption exceeds" in p for p in problems)
+
+
+def _find(scenes, component):
+    return next(s for s in scenes if s["component"] == component)
+
+
+def test_badge_checklist_reuses_items_check():
+    scenes = _valid_scenes_with_new_components()
+    badges = _find(scenes, "BadgeChecklist")
+    badges["props"]["items"] = [{"iconId": "not-a-real-archetype", "caption": "whatever"}]
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("unknown iconId" in p for p in problems)
+
+
+def test_product_mockup_missing_headline_flagged():
+    scenes = _valid_scenes_with_new_components()
+    del _find(scenes, "ProductMockup")["props"]["headline"]
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("missing props" in p for p in problems)
+
+
+def test_product_mockup_placeholder_headline_flagged():
+    scenes = _valid_scenes_with_new_components()
+    _find(scenes, "ProductMockup")["props"]["headline"] = "..."
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("headline is empty or placeholder-only" in p for p in problems)
+
+
+def test_product_mockup_placeholder_typed_text_flagged():
+    scenes = _valid_scenes_with_new_components()
+    _find(scenes, "ProductMockup")["props"]["typedText"] = ""
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("typedText is empty or placeholder-only" in p for p in problems)
+
+
+def test_product_mockup_reuses_items_check():
+    scenes = _valid_scenes_with_new_components()
+    _find(scenes, "ProductMockup")["props"]["items"] = []
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("items must be a list of 1 to" in p for p in problems)
+
+
+def test_emphasis_text_placeholder_flagged():
+    scenes = _valid_scenes()
+    scenes[0]["props"]["emphasisText"] = "..."
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("emphasisText is empty or placeholder-only" in p for p in problems)
+
+
+def test_emphasis_text_too_long_flagged():
+    scenes = _valid_scenes()
+    scenes[0]["props"]["emphasisText"] = "x" * 1000
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("emphasisText exceeds" in p for p in problems)
+
+
+def test_tagline_placeholder_flagged():
+    scenes = _valid_scenes()
+    scenes[-1]["props"]["tagline"] = "..."
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert any("tagline is empty or placeholder-only" in p for p in problems)
+
+
+def test_valid_emphasis_and_tagline_pass():
+    scenes = _valid_scenes()
+    scenes[0]["props"]["emphasisText"] = "tonight?"
+    scenes[-1]["props"]["tagline"] = "Let them write the rules"
+    scenes[-1]["props"]["emphasisText"] = "for once."
+    problems = cv.check({"composition_spec": {"scenes": scenes}})
+    assert problems == []

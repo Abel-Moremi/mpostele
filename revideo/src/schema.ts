@@ -18,6 +18,10 @@ import {z} from 'zod';
 // last scene - there's nothing to transition into after it.
 const transitionOut = z.enum(['crossfade', 'slide', 'matchCut']).optional();
 
+// emphasisText/secondaryColor are the opening half of title-reveal.tsx's
+// signature emphasis-word treatment, mirrored by outroScene's own
+// tagline/emphasisText below - both optional, only present when
+// composition_agent.py's prompt actually produced a short closing phrase.
 const titleRevealScene = z.object({
 	component: z.literal('TitleReveal'),
 	durationInFrames: z.number().int().positive(),
@@ -29,6 +33,8 @@ const titleRevealScene = z.object({
 		textColor: z.string().optional(),
 		fontFamily: z.string().optional(),
 		decorationSrc: z.string().optional(),
+		emphasisText: z.string().optional(),
+		secondaryColor: z.string().optional(),
 	}),
 });
 
@@ -57,6 +63,9 @@ const outroScene = z.object({
 		fontFamily: z.string().optional(),
 		logoSrc: z.string().optional(),
 		decorationSrc: z.string().optional(),
+		tagline: z.string().optional(),
+		emphasisText: z.string().optional(),
+		secondaryColor: z.string().optional(),
 	}),
 });
 
@@ -96,12 +105,52 @@ const abstractTransitionScene = z.object({
 	}),
 });
 
+// Reuses the exact same {iconId, caption} item shape as illustratedExampleScene
+// above - see badge-checklist.tsx's module docstring for why (the payoff
+// beat deliberately shows the same characters again, not new ones).
+const badgeChecklistScene = z.object({
+	component: z.literal('BadgeChecklist'),
+	durationInFrames: z.number().int().positive(),
+	transitionOut,
+	props: z.object({
+		backgroundColor: z.string(),
+		accentColor: z.string(),
+		textColor: z.string().optional(),
+		fontFamily: z.string().optional(),
+		confirmColor: z.string().optional(),
+		items: z
+			.array(z.object({iconId: z.string(), caption: z.string()}))
+			.min(1)
+			.max(3),
+	}),
+});
+
+const productMockupScene = z.object({
+	component: z.literal('ProductMockup'),
+	durationInFrames: z.number().int().positive(),
+	transitionOut,
+	props: z.object({
+		backgroundColor: z.string(),
+		accentColor: z.string(),
+		textColor: z.string().optional(),
+		fontFamily: z.string().optional(),
+		headline: z.string(),
+		typedText: z.string(),
+		items: z
+			.array(z.object({iconId: z.string(), caption: z.string()}))
+			.min(1)
+			.max(3),
+	}),
+});
+
 export const sceneSchema = z.discriminatedUnion('component', [
 	titleRevealScene,
 	captionOverlayScene,
 	outroScene,
 	illustratedExampleScene,
 	abstractTransitionScene,
+	badgeChecklistScene,
+	productMockupScene,
 ]);
 
 export const compositionPropsSchema = z.object({

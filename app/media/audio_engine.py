@@ -21,6 +21,33 @@ from app.media.narration_engine import probe_duration_seconds
 from app.orchestrator import state
 
 
+def _pre_narration_seconds(composition_spec: dict) -> float:
+    """How much of the video plays before the first CaptionOverlay - the
+    voiceover (narration_engine.py only ever synthesizes CaptionOverlay's
+    own script_text) must start exactly there, not at a fixed constant.
+    Composition_agent.py's scene order isn't fixed forever - IllustratedExample
+    now sits between TitleReveal and the first CaptionOverlay, and future
+    scenes may move again - so this sums real scene durations from state.json
+    instead of assuming TitleReveal is always scene 0's only predecessor.
+    Falls back to TITLE_REVEAL_SECONDS (the old, single-scene assumption) if
+    the spec is missing or malformed, rather than raising - a bad delay
+    computation should never block a job that already rendered successfully."""
+    scenes = composition_spec.get("scenes") if isinstance(composition_spec, dict) else None
+    if not isinstance(scenes, list):
+        return settings.TITLE_REVEAL_SECONDS
+    frames = 0
+    for scene in scenes:
+        if not isinstance(scene, dict):
+            return settings.TITLE_REVEAL_SECONDS
+        if scene.get("component") == "CaptionOverlay":
+            return frames / settings.REVIDEO_FPS
+        duration = scene.get("durationInFrames")
+        if not isinstance(duration, int):
+            return settings.TITLE_REVEAL_SECONDS
+        frames += duration
+    return settings.TITLE_REVEAL_SECONDS
+
+
 def pick_music_track(job_id: str, mood: str = None) -> Path:
     """Prefers the track matching strategy_brief's mood tag (see
     strategy_agent.py's _tag_mood and settings.MUSIC_MOODS) when there is
@@ -59,10 +86,11 @@ def mix_audio(
     #
     # adelay shifts the voice to start when CaptionOverlay actually appears
     # on screen (voice_delay_seconds - the caller passes
-    # settings.TITLE_REVEAL_SECONDS), not at t=0 - without it, narration
-    # would play over the silent TitleReveal title card instead of the
-    # caption text it's meant to accompany, since narration_engine.py only
-    # synthesizes content.script_text (CaptionOverlay's copy).
+    # _pre_narration_seconds(job_state["composition_spec"])), not at t=0 -
+    # without it, narration would play over whichever silent scenes precede
+    # the first CaptionOverlay instead of the caption text it's meant to
+    # accompany, since narration_engine.py only synthesizes
+    # content.script_text (CaptionOverlay's copy).
     voice_delay_ms = round(voice_delay_seconds * 1000)
     voice_chain = (
         "aresample=44100,aformat=channel_layouts=stereo,"
@@ -114,7 +142,7 @@ def run(job_id: str) -> None:
         music_path,
         clip_duration,
         audio_track_path,
-        voice_delay_seconds=settings.TITLE_REVEAL_SECONDS,
+        voice_delay_seconds=_pre_narration_seconds(job_state.get("composition_spec", {})),
     )
 
     job_state = state.load(job_id)

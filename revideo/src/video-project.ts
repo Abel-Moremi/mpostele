@@ -3,9 +3,11 @@ import {makeProject, Reference, ThreadGenerator, useScene} from '@revideo/core';
 
 import '../global.css';
 import {mountAbstractTransition, playAbstractTransition, AbstractTransitionRefs} from './scenes/abstract-transition';
+import {mountBadgeChecklist, playBadgeChecklist, BadgeChecklistRefs} from './scenes/badge-checklist';
 import {mountCaptionOverlay, playCaptionOverlay, CaptionOverlayRefs} from './scenes/caption-overlay';
 import {mountIllustratedExample, playIllustratedExample, IllustratedExampleRefs} from './scenes/illustrated-example';
 import {mountOutro, playOutro, OutroRefs} from './scenes/outro';
+import {mountProductMockup, playProductMockup, ProductMockupRefs} from './scenes/product-mockup';
 import {mountTitleReveal, playTitleReveal, TitleRevealRefs} from './scenes/title-reveal';
 import type {Scene} from './schema';
 import {fadeIn, runTransition, TRANSITION_SECONDS} from './transitions';
@@ -41,6 +43,10 @@ function mountScene(view: Layout, scene: Scene): MountedScene {
 			return mountIllustratedExample(view, scene.props);
 		case 'AbstractTransition':
 			return mountAbstractTransition(view, scene.props);
+		case 'BadgeChecklist':
+			return mountBadgeChecklist(view, scene.props);
+		case 'ProductMockup':
+			return mountProductMockup(view, scene.props);
 	}
 }
 
@@ -74,6 +80,12 @@ function* playScene(mounted: MountedScene, scene: Scene, headSeconds: number, ta
 				headSeconds,
 				tailSeconds,
 			);
+			return;
+		case 'BadgeChecklist':
+			yield* playBadgeChecklist(mounted as BadgeChecklistRefs, scene.props, scene.durationInFrames, FPS, headSeconds, tailSeconds);
+			return;
+		case 'ProductMockup':
+			yield* playProductMockup(mounted as ProductMockupRefs, scene.props, scene.durationInFrames, FPS, headSeconds, tailSeconds);
 			return;
 	}
 }
